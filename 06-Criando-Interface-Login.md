@@ -51,4 +51,4 @@ Nossa interface visual está pronta! Se você clicar no botão "Iniciar" (Start)
 
 Para que ele funcione, precisamos de um banco de dados com os usuários cadastrados. É o que faremos no próximo módulo!
 
-➡️ **[Ir para o Módulo 6: Criando o Banco de Dados Neon](./06-Criando-Banco-Dados-Neon.md)**
+➡️ **[Ir para o Módulo 7: Criando o Banco de Dados Neon](./07-Criando-Banco-Dados-Neon.md)**

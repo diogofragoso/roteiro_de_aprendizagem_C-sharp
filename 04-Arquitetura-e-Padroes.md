@@ -66,4 +66,4 @@ public class UsuarioRepository : IUsuarioRepository
 
 Com essa base teórica sólida, estamos prontos para configurar nosso ambiente de desenvolvimento!
 
-➡️ **[Ir para o Módulo 4: Configuração do Ambiente](./04-Configuracao-Ambiente.md)**
+➡️ **[Ir para o Módulo 5: Configuração do Ambiente](./05-Configuracao-Ambiente.md)**

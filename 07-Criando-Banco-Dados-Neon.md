@@ -70,4 +70,4 @@ INSERT INTO Usuario (Username, Senha, TipoUsuarioId) VALUES ('admin', '123456', 
 
 Pronto! Nosso banco de dados está online e abastecido com um usuário "admin" de senha "123456". Agora, precisamos ensinar o Visual Studio a conversar com ele!
 
-➡️ **[Ir para o Módulo 7: Conectando o Sistema ao Banco](./07-Conectando-Banco-Dados.md)**
+➡️ **[Ir para o Módulo 8: Conectando o Sistema ao Banco](./08-Conectando-Banco-Dados.md)**

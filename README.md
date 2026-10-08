@@ -18,21 +18,23 @@ Siga a ordem dos módulos abaixo para um aprendizado progressivo:
 ### Parte 1: Fundamentos da Linguagem
 1. [**Introdução ao C# e Lógica de Programação**](./01-Introducao-CSharp.md)
    - Variáveis, tipos de dados, estruturas de decisão e repetição.
-2. [**Programação Orientada a Objetos (POO)**](./02-Orientacao-a-Objetos.md)
+2. [**Prática: Aplicações de Console**](./02-Pratica-Console.md)
+   - Criando seu primeiro projeto no Visual Studio e praticando a sintaxe C# no Console.
+3. [**Programação Orientada a Objetos (POO)**](./03-Orientacao-a-Objetos.md)
    - Classes, objetos, herança, polimorfismo, encapsulamento e interfaces.
 
 ### Parte 2: Arquitetura e Ambiente
-3. [**Arquitetura, Padrões e Boas Práticas**](./03-Arquitetura-e-Padroes.md)
+4. [**Arquitetura, Padrões e Boas Práticas**](./04-Arquitetura-e-Padroes.md)
    - Por que organizar o código? Padrão Repository e Injeção de Dependências.
-4. [**Configuração do Ambiente (Visual Studio 2022)**](./04-Configuracao-Ambiente.md)
+5. [**Configuração do Ambiente (Visual Studio 2022)**](./05-Configuracao-Ambiente.md)
    - Instalação e configuração do Visual Studio 2022 e criação do projeto Windows Forms.
 
 ### Parte 3: Mão na Massa - O Sistema do Supermercado
-5. [**Criando a Interface Visual da Tela de Login**](./05-Criando-Interface-Login.md)
+6. [**Criando a Interface Visual da Tela de Login**](./06-Criando-Interface-Login.md)
    - Desenhando o Form no Visual Studio 2022 utilizando o Toolbox (Caixa de Ferramentas).
-6. [**Criando o Banco de Dados Neon e Tabelas**](./06-Criando-Banco-Dados-Neon.md)
+7. [**Criando o Banco de Dados Neon e Tabelas**](./07-Criando-Banco-Dados-Neon.md)
    - Passo a passo detalhado para criar sua conta no Neon PostgreSQL e criar as tabelas `TipoUsuario` e `Usuario`.
-7. [**Conectando o Sistema ao Banco (Instalação de Plugins e Autenticação)**](./07-Conectando-Banco-Dados.md)
+8. [**Conectando o Sistema ao Banco (Instalação de Plugins e Autenticação)**](./08-Conectando-Banco-Dados.md)
    - Instalação do plugin/pacote `Npgsql` via NuGet, criação do Repositório e integração com o botão de Login.
 
 ---
