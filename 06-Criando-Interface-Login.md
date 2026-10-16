@@ -1,54 +1,74 @@
-# 5️⃣ Criando a Interface Visual da Tela de Login
+# Aula 06 — Interface de login pelo Designer
 
-A primeira impressão do nosso sistema de supermercado será a tela de login. Queremos algo moderno, com cara de aplicação profissional. Nesta etapa, vamos focar **apenas no design visual** (a cara do programa), sem programar a conexão com o banco de dados ainda.
+**Duração:** 3h30. **Pré-requisito:** aula 05. **Entrega:** tela de login acessível pelo teclado, com campos e validação visual; autenticação só será adicionada na aula 09.
 
-![Mockup da Tela de Login](./assets/winforms_login_mockup_1791481192847.jpg)
-*(Ideia de design para a nossa tela de Login)*
+| Bloco | Minutos | Atividade |
+| --- | ---: | --- |
+| Retomada | 15 | Executar a janela vazia |
+| Explicação | 30 | Name, Text, propriedades e eventos |
+| Construção | 60 | Desenhar e nomear os controles |
+| Intervalo | 15 | Pausa |
+| Prática | 60 | Navegação por teclado, evento e validação |
+| Entrega | 30 | Demonstrar Tab, Enter e senha oculta |
 
-## 1. Preparando o Formulário (Form)
+![Referência visual para o login](assets/winforms_login_mockup_1791481192847.jpg)
 
-No Visual Studio, o "Form1" que foi criado por padrão é a janela do seu programa. Vamos personalizá-lo:
+## 1. Configure o formulário
 
-1. No **Gerenciador de Soluções (Solution Explorer)** (geralmente do lado direito), crie uma pasta chamada `Views`.
-2. Arraste o arquivo `Form1.cs` para dentro da pasta `Views`.
-3. Clique com o botão direito no `Form1.cs`, selecione **Renomear** e mude para `FormLogin.cs`. Se o Visual Studio perguntar se você quer renomear todas as referências, clique em **Sim**.
-4. Dê um duplo clique em `FormLogin.cs` para abrir o modo **Designer** (onde você pode "desenhar" a tela).
+Abra `Views/FormLogin.cs` no Designer. Se aparecer código, use botão direito → **Exibir Designer**. Selecione a área vazia da janela, pressione F4 e configure:
 
-Na janela de **Propriedades (Properties)** (no canto inferior direito), configure as seguintes propriedades do seu Formulário:
-- `Text`: Supermercado - Login *(Este é o título da janela)*
-- `BackColor`: Escolha uma cor escura elegante (ex: clique na aba 'Custom' e digite `45, 45, 48`) ou deixe branco puro.
-- `StartPosition`: Mude para `CenterScreen` *(Para que o programa abra bem no meio do monitor)*.
-- `FormBorderStyle`: Mude para `FixedSingle` *(Para o usuário não conseguir redimensionar ou esticar a janela)*.
+| Propriedade | Valor | Motivo |
+| --- | --- | --- |
+| Text | MarketFlow — Login | Identificar a janela |
+| StartPosition | CenterScreen | Facilitar a localização |
+| FormBorderStyle | FixedSingle | Manter o desenho inicial estável |
+| MaximizeBox | False | Evitar expansão de um layout ainda fixo |
+| ClientSize | 420; 300 | Dar espaço aos campos e rótulos |
+| Font | Segoe UI, 10 | Leitura consistente |
 
-## 2. Adicionando os Componentes (Caixa de Ferramentas)
+Use contraste legível. Não dependa apenas de vermelho/verde para indicar erro; a mensagem deve explicar o problema.
 
-A **Caixa de Ferramentas (Toolbox)**, que fica à esquerda, contém os "peças de lego" do nosso sistema. Arraste os seguintes itens para a tela:
+## 2. Arraste e nomeie os controles
 
-### A) Título da Tela
-1. Arraste um **Label** (Rótulo).
-2. Na janela de Propriedades, mude o `Text` para "MarketFlow - Supermercado".
-3. Mude a propriedade `Font` para um tamanho maior, como 16, e coloque em Negrito (Bold).
-4. Se o fundo da sua tela for escuro, mude o `ForeColor` para Branco (`White`).
+Na **Caixa de Ferramentas**, arraste os itens abaixo. Diferencie `Name` (identificador usado no C#) de `Text` (texto exibido).
 
-### B) Campo de Usuário
-1. Arraste um **Label** e mude o `Text` para "Usuário:".
-2. Arraste um **TextBox** (Caixa de Texto) e posicione abaixo do label.
-3. **MUITO IMPORTANTE:** Mude a propriedade `Name` do TextBox para `txtUsuario`. (É através desse nome que o C# vai saber qual caixa ler depois).
+| Controle | Name | Text / outras propriedades |
+| --- | --- | --- |
+| Label | lblTitulo | MarketFlow — Supermercado |
+| Label | lblUsuario | Usuário |
+| TextBox | txtUsuario | Text vazio; TabIndex = 0; MaxLength = 50 |
+| Label | lblSenha | Senha |
+| TextBox | txtSenha | Text vazio; UseSystemPasswordChar = True; TabIndex = 1; MaxLength = 128 |
+| Button | btnLogin | Entrar; TabIndex = 2 |
 
-### C) Campo de Senha
-1. Arraste outro **Label** e mude o `Text` para "Senha:".
-2. Arraste outro **TextBox**.
-3. Mude a propriedade `Name` para `txtSenha`.
-4. Mude a propriedade `PasswordChar` para `*`. Isso faz com que a senha fique escondida por asteriscos quando o usuário digitar.
+Selecione o formulário e ajuste **AcceptButton** para `btnLogin`: Enter aciona o botão. Rótulos permitem identificar os campos mesmo quando a caixa está vazia. Os asteriscos escondem a senha na tela, mas **não** a protegem no banco; isso será resolvido com hash.
 
-### D) Botão de Entrar
-1. Arraste um **Button** (Botão).
-2. Mude a propriedade `Name` para `btnLogin`.
-3. Mude a propriedade `Text` para "ENTRAR".
-4. Personalize! Mude o `BackColor` para um verde ou azul vibrante e o `ForeColor` (Cor da letra) para Branco.
+## 3. Programe um evento pequeno
 
-Nossa interface visual está pronta! Se você clicar no botão "Iniciar" (Start) no topo do Visual Studio, o programa vai abrir e você verá a sua tela. Porém, o botão "ENTRAR" ainda não faz nada. 
+Dê duplo clique em `btnLogin` para o VS gerar o evento. Dentro dele, adicione:
 
-Para que ele funcione, precisamos de um banco de dados com os usuários cadastrados. É o que faremos no próximo módulo!
+```csharp
+if (string.IsNullOrWhiteSpace(txtUsuario.Text) || txtSenha.Text.Length == 0)
+{
+    MessageBox.Show("Preencha usuário e senha.");
+    return;
+}
+MessageBox.Show("Campos preenchidos. A autenticação será adicionada na aula 09.");
+```
 
-➡️ **[Ir para o Módulo 7: Criando o Banco de Dados Neon](./07-Criando-Banco-Dados-Neon.md)**
+`return` encerra esse clique; a aplicação continua aberta. Não crie uma senha fixa `admin/123456` nem simule sucesso de login. Ainda estamos verificando os controles.
+
+## 4. Teste e ajuste
+
+1. F5: tente entrar com os dois campos vazios.
+2. Digite apenas o usuário e pressione Enter: a mensagem ainda deve pedir os dois campos.
+3. Preencha ambos: a tela deve informar que a autenticação ainda não existe.
+4. Use Tab desde o usuário até o botão, sem mouse. Use Shift+Tab para voltar.
+5. Confira que o texto de senha é oculto. Feche e reabra: campos não devem vir preenchidos.
+6. Na janela de eventos do botão (ícone de raio nas Propriedades), confira que `Click` aponta uma única vez para `btnLogin_Click`. Dois eventos podem executar a ação duas vezes.
+
+## Verifique antes de encerrar
+
+Entregue a tela, as três verificações de campos e uma explicação de `Name`, `Text` e `Click`. Não cole o construtor completo da referência sobre esse formulário: ela constrói o layout em código. Nas próximas aulas você pode manter seu Designer e adaptar somente os campos, dependências e eventos indicados.
+
+[Anterior: aula 05](05-Configuracao-Ambiente.md) · [Próxima: aula 07](07-Criando-Banco-Dados-Neon.md)

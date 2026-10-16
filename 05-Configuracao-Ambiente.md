@@ -1,50 +1,69 @@
-# 4️⃣ Configuração do Ambiente (Visual Studio 2022)
+# Aula 05 — Ambiente e solução no Visual Studio 2022
 
-Para criarmos nosso Sistema de Supermercado em C#, utilizaremos a principal ferramenta do mercado para ecossistema .NET: o **Visual Studio 2022**.
+**Duração:** 3h30. **Pré-requisito:** aula 04 e laboratório preparado pelo professor para as práticas de console anteriores. **Entrega:** solução Windows Forms compilando, com pastas e janela inicial.
 
-## 1. Baixando e Instalando o Visual Studio 2022
+| Bloco | Minutos | Atividade |
+| --- | ---: | --- |
+| Retomada | 15 | Conferir console e diferenças de uma aplicação desktop |
+| Explicação | 30 | IDE, SDK, runtime, solução e projeto |
+| Construção | 60 | Conferir instalação e criar o projeto |
+| Intervalo | 15 | Pausa |
+| Prática | 60 | Organizar pastas, propriedades e depuração |
+| Entrega | 30 | Compilar, executar e registrar ambiente |
 
-1. Acesse o site oficial: [visualstudio.microsoft.com](https://visualstudio.microsoft.com/)
-2. Baixe a versão **Community** (Ela é gratuita e completa para estudantes e desenvolvedores individuais).
-3. Durante a instalação, o instalador perguntará quais "cargas de trabalho" (Workloads) você deseja instalar.
-4. **IMPORTANTE:** Marque a opção **Desenvolvimento para Desktop com .NET** (Isso incluirá o C# e o Windows Forms).
+## 1. Confira o ambiente
 
-## 2. Criando o Projeto
+1. Abra **Visual Studio Installer** pelo menu Iniciar do Windows. Localize **Visual Studio 2022 Community** e selecione **Modificar**. Para uma instalação nova, use o instalador específico do VS 2022; o botão principal do site pode oferecer outra edição. O professor deve preparar o instalador antes da aula.
+2. Marque **Desenvolvimento para desktop com .NET**. Na lista de componentes individuais, confira o SDK e as ferramentas de direcionamento do .NET 8.
+3. Conclua a instalação e abra o VS 2022. Em **Ajuda → Sobre**, confira a versão. Prefira VS 2022 17.14 atualizado com SDK 8.0.4xx.
+4. No terminal do Visual Studio, execute `dotnet --list-sdks`. Deve aparecer uma versão `8.0.xxx`.
 
-Com o Visual Studio instalado, siga estes passos para criar o esqueleto do nosso sistema:
+**Por quê?** A IDE edita e depura, o SDK compila, e o runtime executa. Instalar apenas o runtime não permite criar o projeto. A versão do SDK também precisa ser compatível com a IDE; veja as [referências](REFERENCIAS.md).
 
-1. Abra o Visual Studio 2022.
-2. Clique em **Criar um novo projeto** (Create a new project).
-3. Na barra de pesquisa, digite `Windows Forms` ou procure na lista.
-4. Selecione o template **Aplicativo do Windows Forms (Windows Forms App - .NET)**. Cuidado para não escolher a versão antiga "(.NET Framework)". Nós queremos a versão mais nova.
+Esta sequência mantém .NET 8 para VS 2022. Seu suporte termina em 10/11/2026. O professor deve planejar atualização do framework e da IDE antes de turmas posteriores, em vez de selecionar “a versão mais recente” sem conferir a compatibilidade.
 
-![Criando Novo Projeto](./assets/vs2022_new_project_1791481163568.jpg)
-*(Exemplo da tela de criação de projeto no Visual Studio 2022)*
+## 2. Crie a solução
 
-5. Dê um nome ao projeto, como `SupermercadoApp`.
-6. Escolha o **.NET 8.0 (Suporte de Longo Prazo)**.
-7. Clique em **Criar**.
+1. Clique em **Criar um novo projeto**.
+2. Pesquise **Windows Forms** e filtre por **C#**.
+3. Escolha **Aplicativo do Windows Forms**, sem o sufixo **.NET Framework**.
+4. Use o nome de projeto `SupermercadoApp` e de solução `Supermercado`.
+5. Selecione **.NET 8.0** e clique em **Criar**.
+6. Pressione **Ctrl+Shift+B**. Na janela **Saída**, confirme que a compilação foi concluída.
+7. Pressione **F5**, confira a janela e feche-a para voltar ao editor.
 
-## 3. Conhecendo o Windows Forms Designer
+![Exemplo de criação de projeto](assets/vs2022_new_project_1791481163568.jpg)
 
-Quando o projeto for criado, você verá uma tela em branco chamada `Form1`. Esta é a sua tela!
+As imagens são ilustrativas: a posição dos itens pode mudar. Use o nome do modelo e a versão do framework como critérios.
 
-![Windows Forms Designer](./assets/vs2022_winforms_designer_1791481183125.jpg)
-*(Visual Studio 2022: Caixa de Ferramentas à esquerda e Propriedades à direita)*
+## 3. Conheça o projeto
 
-- **Caixa de Ferramentas (Toolbox):** Fica geralmente na esquerda. É aqui que você encontra os botões (Button), caixas de texto (TextBox) e rótulos (Label) para arrastar para a sua tela.
-- **Janela de Propriedades (Properties):** Fica geralmente na direita. Quando você clica em um botão, é aqui que você muda a cor dele, o texto, a fonte e o nome interno (`Name`).
-- **Gerenciador de Soluções (Solution Explorer):** Onde ficam os arquivos do seu projeto. É por aqui que criaremos as nossas pastas (`Models`, `Repositories`, `Views`).
+![Exemplo do Designer](assets/vs2022_winforms_designer_1791481183125.jpg)
 
-## 4. Organizando a Arquitetura
+- **Gerenciador de Soluções:** arquivos e dependências. Se estiver oculto, use **Exibir → Gerenciador de Soluções**.
+- **Caixa de Ferramentas:** controles para arrastar ao Designer.
+- **Propriedades (F4):** aparência, nome e eventos do controle selecionado.
+- `Program.cs`: ponto de entrada; `ApplicationConfiguration.Initialize()` prepara padrões da interface e `Application.Run(...)` inicia o formulário.
+- `Form1.cs`: comportamento da tela.
+- `Form1.Designer.cs`: código gerado pelo Designer. Modifique a aparência pela ferramenta visual.
+- `.csproj`: configuração do projeto, incluindo `net8.0-windows` e `UseWindowsForms`.
 
-Lembra do Módulo 3? Vamos organizar nosso projeto agora. No **Gerenciador de Soluções**, clique com o botão direito no nome do seu projeto (`SupermercadoApp`) -> `Adicionar` -> `Nova Pasta`.
+## 4. Organize e depure
 
-Crie as seguintes pastas:
-- `Models` (Onde ficarão nossas classes)
-- `Repositories` (Onde ficarão as conexões com o banco de dados)
-- `Views` (Onde colocaremos nossas telas/Forms)
+1. Pelo botão direito do projeto, use **Adicionar → Nova Pasta** para criar `Models`, `Services`, `Repositories`, `Infrastructure` e `Views`.
+2. Mova `Form1.cs` para `Views` e renomeie para `FormLogin.cs`. Aceite a atualização de referências oferecida pelo VS.
+3. Confira o namespace de **ambas** as partes do formulário (`.cs` e `.Designer.cs`): use `SupermercadoApp.Views`. Mover o arquivo nem sempre atualiza o namespace.
+4. Em `Program.cs`, adicione `using SupermercadoApp.Views;` e confira `Application.Run(new FormLogin());`.
+5. Compile novamente. Coloque um breakpoint no construtor, execute F5 e depois F10 para avançar uma instrução.
+6. Com o aplicativo fechado, copie o projeto para uma pasta de entrega, excluindo `bin`, `obj` e `.vs`. Se usar Git, adote o `.gitignore` da raiz deste repositório.
 
-Agora que o ambiente está pronto, vamos preparar o nosso Banco de Dados na Nuvem!
+**Por quê?** Organizar cedo evita renomear dezenas de arquivos depois. Compilar após cada pequena mudança ajuda a identificar qual alteração causou o erro.
 
-➡️ **[Ir para o Módulo 6: Criando Interface de Login](./06-Criando-Interface-Login.md)**
+## Verifique antes de encerrar
+
+- F5 abre `FormLogin` e fechar a janela encerra o aplicativo.
+- O projeto usa .NET 8, não .NET Framework.
+- Você sabe explicar a diferença entre `FormLogin.cs` e `FormLogin.Designer.cs`.
+- O caderno registra IDE, SDK e uma compilação bem-sucedida.
+
+[Anterior: aula 04](04-Arquitetura-e-Padroes.md) · [Próxima: aula 06](06-Criando-Interface-Login.md)

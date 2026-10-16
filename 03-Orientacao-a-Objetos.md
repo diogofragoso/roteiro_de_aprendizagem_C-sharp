@@ -1,4 +1,15 @@
-# 2️⃣ Programação Orientada a Objetos (POO)
+# Aula 03 — Orientação a objetos
+
+**Duração:** 3h30. **Pré-requisito:** Aula 02. **Entrega:** Classes Produto e ItemDeCompra instanciadas, com subtotal calculado.
+
+| Bloco | Minutos | Atividade |
+| --- | ---: | --- |
+| Retomada | 15 | Contexto e problema do supermercado |
+| Explicação | 30 | Conceitos dos exemplos abaixo |
+| Construção | 60 | Criar e comparar dois produtos |
+| Intervalo | 15 | Pausa |
+| Prática | 60 | Implementar subtotal e percorrer objetos |
+| Entrega | 30 | Demonstrar casos normal/inválido e registrar evidências |
 
 A Programação Orientada a Objetos (POO) não é apenas uma funcionalidade da linguagem; é uma **forma de pensar**. No início da programação de computadores, o código era uma lista gigante de comandos descendo a tela (programação procedural). Com a POO, nós modelamos o nosso software para se parecer com o mundo real.
 
@@ -12,7 +23,7 @@ Esses são os dois conceitos que mais confundem iniciantes, mas a diferença é 
 
 ```csharp
 // A CLASSE (O Molde)
-public class Produto 
+public class Produto
 {
     // Atributos / Propriedades
     public string Nome { get; set; }
@@ -38,30 +49,23 @@ prod2.Preco = 4.00m;
 Todo sistema profissional (especialmente em .NET) se baseia nestes quatro conceitos. Ignorá-los resulta em códigos difíceis de dar manutenção.
 
 ### Pilar 1: Abstração
-É a capacidade de ignorar detalhes que não importam e focar apenas no essencial para o seu sistema. 
+É a capacidade de ignorar detalhes que não importam e focar apenas no essencial para o seu sistema.
 - *Exemplo:* Um `Funcionario` humano possui tipo sanguíneo, altura e cor dos olhos. Mas para o Sistema de Supermercado, abstraímos isso! Nos importam apenas: `Nome`, `CPF`, `Cargo` e `DataAdmissao`.
 
 ### Pilar 2: Encapsulamento (Proteção)
 É a prática de esconder os detalhes internos da classe e proteger os dados contra mudanças indevidas de fora. Usamos os modificadores de acesso:
-- `public`: Qualquer parte do sistema pode ver e alterar.
+- `public`: O membro pode ser acessado externamente; a possibilidade de alteração depende também do setter.
 - `private`: Só a própria classe pode ver e alterar.
 
 ```csharp
-public class Usuario 
+public class Usuario
 {
-    public string Username { get; set; }
-    
-    // Ninguém de fora da classe pode mudar a senha diretamente! (private set)
-    public string SenhaHash { get; private set; } 
-
-    // O mundo exterior SÓ PODE mudar a senha usando esse método autorizado,
-    // garantindo que ela sempre passará por uma criptografia.
-    public void DefinirNovaSenha(string senhaAberta) 
+    public string Username { get; private set; } = "";
+    public void Renomear(string novoNome)
     {
-        if (senhaAberta.Length < 6) {
-            throw new Exception("A senha deve ter no mínimo 6 caracteres!");
-        }
-        SenhaHash = CriptografarMD5(senhaAberta); 
+        if (string.IsNullOrWhiteSpace(novoNome))
+            throw new ArgumentException("O nome é obrigatório.");
+        Username = novoNome.Trim();
     }
 }
 ```
@@ -71,12 +75,12 @@ Permite que uma classe "filha" herde todas as características da classe "pai", 
 
 ```csharp
 // Classe Pai (Base)
-public class Pessoa 
+public class Pessoa
 {
     public string Nome { get; set; }
     public string Cpf { get; set; }
-    
-    public void ExibirCadastro() 
+
+    public void ExibirCadastro()
     {
         Console.WriteLine($"Nome: {Nome} | CPF: {Cpf}");
     }
@@ -84,13 +88,13 @@ public class Pessoa
 
 // Cliente herda de Pessoa (Usa-se os dois pontos :)
 // Cliente ganha Nome, Cpf e ExibirCadastro automaticamente!
-public class Cliente : Pessoa 
+public class Cliente : Pessoa
 {
     public int PontosFidelidade { get; set; }
 }
 
 // Funcionario também herda de Pessoa
-public class Funcionario : Pessoa 
+public class Funcionario : Pessoa
 {
     public decimal SalarioBase { get; set; }
 }
@@ -152,19 +156,19 @@ O <b>Encapsulamento</b>. Estamos encapsulando (escondendo e protegendo) o estado
 <summary><b>💡 Ver Resposta</b></summary>
 <br>
 <pre><code>
-public class ProdutoGeral 
+public class ProdutoGeral
 {
     public string Nome { get; set; }
     public decimal Preco { get; set; }
 }
 
-public class Carne : ProdutoGeral 
+public class Carne : ProdutoGeral
 {
     public int DiasValidade { get; set; }
     public string TipoCorte { get; set; } // Picanha, Alcatra
 }
 
-public class Eletrodomestico : ProdutoGeral 
+public class Eletrodomestico : ProdutoGeral
 {
     public int MesesGarantia { get; set; }
     public string Voltagem { get; set; } // 110v, 220v
@@ -172,4 +176,22 @@ public class Eletrodomestico : ProdutoGeral
 </code></pre>
 </details>
 
-➡️ **[Ir para o Módulo 4: Arquitetura e Padrões](./04-Arquitetura-e-Padroes.md)**
+
+## Entrega prática: objetos e subtotal
+
+Crie as classes em arquivos separados. No console, mantenha apenas instruções de execução: não coloque instruções soltas depois da declaração de uma classe no mesmo `Program.cs`.
+
+```csharp
+public class ItemDeCompra
+{
+    public Produto Produto { get; set; } = new Produto();
+    public int Quantidade { get; set; }
+    public decimal Subtotal => Produto.Preco * Quantidade;
+}
+```
+
+Instancie arroz de R$ 25,90 e feijão de R$ 8,50. Crie uma `List<ItemDeCompra>` com duas unidades de arroz e uma de feijão; percorra a lista com `foreach` e some os subtotais. Resultado: R$ 60,30. Mude apenas o preço do feijão e confira que o arroz permanece igual. Chame `Renomear("")` e observe a validação. Na arquitetura final, regras de acesso ficarão em serviços; esse exemplo serve para compreender encapsulamento.
+
+Hash de senha será ensinado na aula 09 com uma biblioteca pronta. MD5 não é uma solução adequada para senhas. Herança é um recurso a conhecer; não precisamos criar uma subclasse para cada produto do supermercado.
+
+[Próxima aula](04-Arquitetura-e-Padroes.md) · [Índice](README.md)

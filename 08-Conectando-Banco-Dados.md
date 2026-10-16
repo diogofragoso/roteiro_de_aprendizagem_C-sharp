@@ -1,169 +1,111 @@
-# 7️⃣ Conectando o Sistema ao Banco (Instalação de Plugins e Autenticação)
+# Aula 08 — Conexão assíncrona com o Neon
 
-Chegou o momento de ligarmos as pontas: fazer a tela de Login (que desenhamos no Módulo 5) acessar o Banco de Dados Neon (que configuramos no Módulo 6).
+**Duração:** 3h30. **Pré-requisito:** aula 07 e login visual. **Entrega:** botão de diagnóstico que executa `SELECT 1` sem bloquear a interface, sem credenciais no código.
 
-Por padrão, o C# sabe falar com bancos de dados da própria Microsoft (como SQL Server). Para que ele consiga falar com o **PostgreSQL** (que é o motor por trás do Neon), precisamos instalar um **Plugin / Pacote** chamado `Npgsql`.
+| Bloco | Minutos | Atividade |
+| --- | ---: | --- |
+| Retomada | 15 | Conferir banco/branch e projeto .NET 8 |
+| Explicação | 30 | NuGet, conexão, await e descarte |
+| Construção | 60 | Instalar pacote, configurar variável e Banco |
+| Intervalo | 15 | Pausa |
+| Prática | 60 | Criar botão de diagnóstico e tratar falha |
+| Entrega | 30 | Demonstrar conexão normal e configuração ausente |
 
-## 1. O que é o NuGet e Instalando o Npgsql
+## 1. Instale o Npgsql
 
-No ecossistema .NET, a "loja de plugins" oficial se chama **NuGet Package Manager**. Não assuma que você precisa baixar arquivos em sites, o Visual Studio faz isso automaticamente.
+1. No Gerenciador de Soluções, botão direito em `SupermercadoApp` → **Gerenciar Pacotes NuGet**.
+2. Abra **Procurar**, selecione a origem `nuget.org` e pesquise `Npgsql`.
+3. Confira o pacote **Npgsql** do projeto Npgsql, selecione **8.0.9** e instale.
+4. Em **Dependências → Pacotes**, confira a referência. É uma biblioteca do projeto; não é uma extensão da IDE.
+5. Compile. Se o laboratório bloquear o NuGet, o professor precisa liberar a origem ou preparar o cache antes da aula.
 
-### Passo a passo para instalar o plugin Npgsql:
-1. Volte para o seu projeto no **Visual Studio 2022**.
-2. No menu superior, clique em **Ferramentas (Tools)**.
-3. Vá em **Gerenciador de Pacotes do NuGet (NuGet Package Manager)** e depois clique em **Gerenciar Pacotes do NuGet para a Solução...**.
-4. Vai abrir uma tela. Clique na aba superior chamada **Procurar (Browse)**.
-5. Na barra de pesquisa, digite exatamente: `Npgsql`
-6. Clique no primeiro resultado (geralmente tem um ícone azul do PostgreSQL).
-7. No painel da direita, marque a caixinha do seu projeto (`SupermercadoApp`) e clique no botão **Instalar (Install)**.
-8. Uma janela de permissão vai aparecer, clique em **OK** ou **Aceitar (I Accept)**.
+Fixamos versões para reproduzir o material; confira atualizações compatíveis e alertas de vulnerabilidade antes de uma nova turma.
 
-Pronto! O seu projeto agora sabe se comunicar com o Postgres.
+## 2. Configure a conexão fora do código
 
-## 2. Preparando os Modelos e o Repositório
+No Windows, pesquise **Editar as variáveis de ambiente da sua conta**. Em **Variáveis do usuário**, crie `SUPERMERCADO_DB` com a string Npgsql da aula 07. Feche e reabra o Visual Studio: processos já abertos não recebem automaticamente a variável nova.
 
-Lembra do Módulo 3 sobre a arquitetura Repository? Vamos implementar isso.
+Para um teste somente no terminal PowerShell atual, use:
 
-### 2.1 Criando os Models
-No **Gerenciador de Soluções**, clique com o botão direito na pasta `Models`, vá em `Adicionar -> Classe`. Crie a classe `Usuario.cs`:
+```powershell
+$env:SUPERMERCADO_DB = 'Host=SEU_HOST;Database=SEU_BANCO;Username=SEU_ROLE;Password=SUA_SENHA;SSL Mode=VerifyFull;'
+```
+
+Essa linha é um **modelo**. Prefira a interface do Windows para inserir o valor real e não registrar a senha no histórico de comandos. Variável de ambiente evita versionar a credencial; não a torna inacessível a outras pessoas com acesso à mesma conta Windows.
+
+## 3. Crie a infraestrutura
+
+Na pasta `Infrastructure`, **Adicionar → Classe → Banco.cs**. Use o conteúdo de [Banco.cs](src/SupermercadoApp/Infrastructure/Banco.cs). Ele lê a variável, rejeita configuração ausente, configura TLS e cria um `NpgsqlDataSource`.
+
+**Por quê?** A fonte de dados é criada uma vez e reutiliza um pool de conexões. Uma conexão aberta para cada operação é devolvida ao pool quando descartada. Não guarde uma conexão aberta global nem recrie o pool a cada clique. Veja o [uso oficial do Npgsql](https://www.npgsql.org/doc/basic-usage.html).
+
+## 4. Acrescente o diagnóstico temporário
+
+No Designer do login, adicione um botão `btnTestarConexao`, texto “Testar conexão”. Em `FormLogin.cs`, adicione os `using` de Npgsql e Infrastructure e um campo:
 
 ```csharp
-namespace SupermercadoApp.Models
+private readonly NpgsqlDataSource banco;
+```
+
+Mude o construtor existente para receber a fonte de dados, mantendo o Designer:
+
+```csharp
+public FormLogin(NpgsqlDataSource banco)
 {
-    public class Usuario
+    InitializeComponent();
+    this.banco = banco;
+}
+```
+
+No `Program.cs`, após `ApplicationConfiguration.Initialize()`, substitua a linha que abria o login por:
+
+```csharp
+try
+{
+    using var banco = SupermercadoApp.Infrastructure.Banco.Criar();
+    Application.Run(new SupermercadoApp.Views.FormLogin(banco));
+}
+catch (InvalidOperationException erro)
+{
+    MessageBox.Show(erro.Message, "Configuração");
+}
+```
+
+Duplo clique no botão de diagnóstico e use:
+
+```csharp
+private async void btnTestarConexao_Click(object sender, EventArgs e)
+{
+    btnTestarConexao.Enabled = false;
+    try
     {
-        public int Id { get; set; }
-        public string Username { get; set; }
-        public string Senha { get; set; }
-        // Para simplificar, traremos o nome do cargo na mesma classe
-        public string CargoNome { get; set; } 
+        await using var comando = banco.CreateCommand("SELECT 1");
+        var resultado = await comando.ExecuteScalarAsync();
+        MessageBox.Show($"Conexão confirmada: {resultado}");
+    }
+    catch (Exception)
+    {
+        MessageBox.Show("Não foi possível consultar. Verifique rede e configuração.");
+    }
+    finally
+    {
+        btnTestarConexao.Enabled = true;
     }
 }
 ```
 
-### 2.2 Criando o Repositório
-Clique com o botão direito na pasta `Repositories`, vá em `Adicionar -> Classe`. Crie `UsuarioRepository.cs`:
+`async void` é reservado aqui ao evento exigido pelo Windows Forms. Outros métodos assíncronos retornarão `Task` para que o chamador consiga aguardar e tratar falhas. `await` entrega o controle à interface enquanto a consulta aguarda a rede; não use `.Result` nem `.Wait()`. `await using` descarta recursos inclusive quando ocorre uma exceção.
 
-```csharp
-using System;
-using Npgsql; // Isso só funciona porque instalamos o Plugin Npgsql!
-using SupermercadoApp.Models;
+Não mostre `erro.ToString()` ao usuário: detalhes técnicos podem revelar infraestrutura. Para investigar no laboratório, use o depurador sem publicar valores de credenciais.
 
-namespace SupermercadoApp.Repositories
-{
-    public class UsuarioRepository
-    {
-        // ⚠️ COLOQUE AQUI A SUA STRING DE CONEXÃO DO NEON DB ⚠️
-        private string stringDeConexao = "Host=...;Database=...;Username=...;Password=...;SSL Mode=Require;Trust Server Certificate=true;";
+## Verifique antes de encerrar
 
-        public Usuario FazerLogin(string username, string senha)
-        {
-            using (var conexao = new NpgsqlConnection(stringDeConexao))
-            {
-                conexao.Open(); // Abre a porta de internet com o banco na nuvem
+1. Com a conexão correta, o botão mostra `1` e volta a ficar habilitado.
+2. Sem a variável, a aplicação explica a configuração ausente. Restaure a variável e reabra a IDE.
+3. Com rede indisponível, a mensagem não expõe a conexão nem a senha. A tela volta a responder após o timeout.
+4. Enquanto aguarda, a janela pode ser movida. O botão não permite uma segunda consulta simultânea.
+5. Não registre os valores secretos no caderno.
 
-                // Note que fazemos um INNER JOIN para descobrir o nome do cargo!
-                string querySql = @"
-                    SELECT u.Id, u.Username, t.NomeCargo 
-                    FROM Usuario u
-                    INNER JOIN TipoUsuario t ON u.TipoUsuarioId = t.Id
-                    WHERE u.Username = @usuarioDigitado AND u.Senha = @senhaDigitada";
-                
-                using (var comando = new NpgsqlCommand(querySql, conexao))
-                {
-                    // Parâmetros de segurança (Evita ataques Hacker - SQL Injection)
-                    comando.Parameters.AddWithValue("usuarioDigitado", username);
-                    comando.Parameters.AddWithValue("senhaDigitada", senha);
+O teste de conexão não autentica usuários. Na aula 09 removeremos esse botão e o banco deixará de ser dependência direta da tela.
 
-                    using (var leitor = comando.ExecuteReader())
-                    {
-                        if (leitor.Read()) // Se o banco de dados achar alguém...
-                        {
-                            return new Usuario
-                            {
-                                Id = leitor.GetInt32(0),
-                                Username = leitor.GetString(1),
-                                CargoNome = leitor.GetString(2)
-                            };
-                        }
-                    }
-                }
-            }
-            return null; // Se errou a senha ou não existe, retorna vazio (null)
-        }
-    }
-}
-```
-
-## 3. Conectando tudo no Botão de Entrar
-
-Finalmente, vamos voltar à tela de Login. 
-1. No Gerenciador de Soluções, dê um duplo clique no `FormLogin.cs` para abrir o modo visual (Designer).
-2. Dê um **duplo clique no botão ENTRAR**. Isso vai gerar um método de "Clique" no código automaticamente.
-3. Deixe o código do clique exatamente assim:
-
-```csharp
-using System;
-using System.Windows.Forms;
-using SupermercadoApp.Repositories;
-using SupermercadoApp.Models;
-
-namespace SupermercadoApp.Views
-{
-    public partial class FormLogin : Form
-    {
-        public FormLogin()
-        {
-            InitializeComponent();
-        }
-
-        private void btnLogin_Click(object sender, EventArgs e)
-        {
-            // Pega o que o usuário digitou nas caixas de texto
-            string usuario = txtUsuario.Text;
-            string senha = txtSenha.Text;
-
-            // Validação simples para não enviar vazio
-            if (usuario == "" || senha == "")
-            {
-                MessageBox.Show("Preencha todos os campos!", "Aviso");
-                return; // Para a execução do código aqui
-            }
-
-            // Chama o nosso repositório
-            UsuarioRepository repositorio = new UsuarioRepository();
-
-            try
-            {
-                // Tenta fazer o login
-                Usuario usuarioAutenticado = repositorio.FazerLogin(usuario, senha);
-
-                if (usuarioAutenticado != null)
-                {
-                    MessageBox.Show($"Login com sucesso!\nBem-vindo {usuarioAutenticado.Username}!\nVocê é um: {usuarioAutenticado.CargoNome}", "Sucesso");
-                    
-                    // Aqui abriremos a tela do caixa de supermercado no futuro.
-                }
-                else
-                {
-                    MessageBox.Show("Usuário ou Senha incorretos.", "Erro");
-                }
-            }
-            catch (Exception erro)
-            {
-                // Se faltar internet ou a Connection String estiver errada, cairá aqui.
-                MessageBox.Show($"Erro de conexão: {erro.Message}", "Erro Crítico");
-            }
-        }
-    }
-}
-```
-
-## 🎉 Sucesso Absoluto!
-
-Aperte **Iniciar (Start)** no topo do Visual Studio. Seu programa vai rodar.
-- Digite `admin` e `123456`.
-- Clique em ENTRAR.
-- Você verá a mensagem de sucesso resgatada diretamente das nuvens pelo Neon PostgreSQL!
-
-Parabéns! Você concluiu os fundamentos de C#, orientação a objetos, construiu uma arquitetura em camadas e integrou um Banco de Dados Profissional em Nuvem. O céu é o limite para o seu Sistema de Supermercado!
+[Anterior: aula 07](07-Criando-Banco-Dados-Neon.md) · [Próxima: aula 09](09-Autenticacao-Segura.md)

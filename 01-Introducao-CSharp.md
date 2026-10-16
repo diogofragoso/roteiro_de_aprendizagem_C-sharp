@@ -1,4 +1,15 @@
-# 1️⃣ Introdução ao C# e Lógica de Programação
+# Aula 01 — Lógica e tipos
+
+**Duração:** 3h30. **Pré-requisito:** Laboratório com Visual Studio preparado pelo professor. **Entrega:** Calcular uma compra, aplicar uma decisão e percorrer uma lista.
+
+| Bloco | Minutos | Atividade |
+| --- | ---: | --- |
+| Retomada | 15 | Contexto e problema do supermercado |
+| Explicação | 30 | Conceitos dos exemplos abaixo |
+| Construção | 60 | Explorar valores e tipos |
+| Intervalo | 15 | Pausa |
+| Prática | 60 | Implementar cálculo, condição e repetição |
+| Entrega | 30 | Demonstrar casos normal/inválido e registrar evidências |
 
 O **C# (C-Sharp)** é uma linguagem de programação moderna, fortemente tipada e orientada a objetos, desenvolvida e mantida pela Microsoft. Ele faz parte do ecossistema .NET, sendo incrivelmente versátil: com C# você pode criar aplicações web, sistemas desktop (como o nosso supermercado), aplicativos mobile e até mesmo jogos (utilizando a Unity).
 
@@ -20,7 +31,8 @@ char setor = 'A'; // Char usa aspas simples e guarda um único caractere
 
 // Números Inteiros
 int quantidadeEstoque = 150;
-long codigoDeBarras = 7891020304050L; // Usado para números inteiros muito grandes
+string codigoDeBarras = "07891020304050"; // Identificador: preserva zeros à esquerda
+long contadorDeOperacoes = 7891020304050L; // Exemplo de inteiro grande
 
 // Números Decimais (Com vírgula/ponto flutuante)
 double pesoBanca = 5.45; // Mais comum para medidas matemáticas e pesos
@@ -33,7 +45,7 @@ bool precisaDeRefrigeracao = false;
 
 > [!TIP]
 > **Por que usar `decimal` no lugar de `double` no supermercado?**
-> O tipo `double` armazena números usando base binária, o que pode causar erros de arredondamento em cálculos financeiros (ex: 0.1 + 0.2 resultando em 0.30000000000000004). O `decimal` trabalha na base 10, garantindo precisão absoluta em centavos.
+> O tipo `double` armazena números usando base binária, o que pode causar erros de arredondamento em cálculos financeiros (ex: 0.1 + 0.2 resultando em 0.30000000000000004). O `decimal` trabalha na base 10, representando melhor valores decimais financeiros. Ainda precisamos definir limites de casas e regras de arredondamento.
 
 ### Constantes
 Se um valor nunca deve mudar durante a execução do programa, declaramos como constante usando `const`:
@@ -57,7 +69,7 @@ int quantidade2 = int.Parse(entradaDigitada);
 
 // Convertendo Número de volta para String (para mostrar na tela)
 decimal troco = 12.50m;
-string textoTroco = troco.ToString("C"); // O "C" formata como Moeda (R$ 12,50)
+string textoTroco = troco.ToString("C", System.Globalization.CultureInfo.GetCultureInfo("pt-BR")); // O "C" formata como Moeda (R$ 12,50)
 ```
 
 ---
@@ -157,7 +169,7 @@ foreach (string produto in carrinho)
 
 ## 📝 Atividades de Fixação
 
-Chegou a hora de testar seus conhecimentos! 
+Chegou a hora de testar seus conhecimentos!
 
 > [!IMPORTANT]
 > Tente resolver mentalmente ou escrevendo em um bloco de notas antes de abrir a resposta. Isso é crucial para fixar a lógica de programação.
@@ -195,7 +207,12 @@ else
 <summary><b>💡 Ver Resposta</b></summary>
 <br>
 O C# é fortemente tipado. Você não pode jogar um texto (string) diretamente dentro de uma variável numérica (decimal) sem convertê-lo explicitamente. O correto seria usar o <code>Convert.ToDecimal()</code> ou <code>decimal.Parse()</code>:
-<pre><code>decimal preco = decimal.Parse(precoTexto);</code></pre>
+<pre><code>decimal preco = decimal.Parse(precoTexto, System.Globalization.CultureInfo.InvariantCulture);</code></pre>
 </details>
 
-➡️ **[Ir para o Módulo 2: Prática com Console](./02-Pratica-Console.md)**
+
+## Entrega prática
+
+No console preparado pelo professor, calcule 3 unidades de R$ 5,50, mostre R$ 16,50 e percorra uma lista de produtos com `foreach`. Depois altere a quantidade para 0: use `if` para recusar a compra. Explique por que preço usa `decimal` e código de barras usa texto. Se ainda não conhece o console, o professor mostra F5 agora; a criação detalhada do projeto está na aula 02.
+
+[Próxima aula](02-Pratica-Console.md) · [Índice](README.md)

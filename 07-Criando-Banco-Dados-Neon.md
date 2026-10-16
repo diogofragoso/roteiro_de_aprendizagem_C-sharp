@@ -1,73 +1,82 @@
-# 6️⃣ Criando o Banco de Dados Neon e Tabelas
+# Aula 07 — Banco Neon e usuários
 
-Para que o nosso sistema de supermercado seja seguro e profissional, os dados (como usuários e senhas) não podem ficar guardados direto no código. Precisamos de um **Banco de Dados**.
+**Duração:** 3h30. **Pré-requisito:** aula 06, internet e conta de laboratório. **Entrega:** banco com a tabela `usuario` criada, sem contas com senha aberta.
 
-Neste guia, utilizaremos o **Neon PostgreSQL**. O Neon é um banco de dados moderno, executado 100% na nuvem (Cloud) e que possui um plano gratuito ideal para estudantes e projetos em desenvolvimento. Você não precisa instalar servidores pesados no seu computador!
+| Bloco | Minutos | Atividade |
+| --- | ---: | --- |
+| Retomada | 15 | Diferenciar campos de tela e persistência |
+| Explicação | 30 | Tabela, chave, restrições e credenciais |
+| Construção | 60 | Criar projeto/branch e executar script 001 |
+| Intervalo | 15 | Pausa |
+| Prática | 60 | Consultar estrutura e conferir conexão |
+| Entrega | 30 | Explicar o esquema e identificar a branch correta |
 
-## 1. Criando a conta e o Projeto no Neon
+## 1. Prepare um ambiente só da turma
 
-1. Acesse o site oficial: [neon.tech](https://neon.tech/)
-2. Clique no botão **Sign Up** (Registrar) ou **Start for Free**. Você pode criar a conta rapidamente usando sua conta do GitHub, Google, ou um e-mail padrão.
-3. Após o login, você será direcionado para criar o seu primeiro projeto.
-4. **Project Name:** Digite `SupermercadoDB`.
-5. **Postgres version:** Pode deixar a versão mais recente sugerida.
-6. **Region:** Escolha a região mais próxima de você (ex: `US East` ou algo similar).
-7. Clique em **Create Project**.
+1. Entre no [console do Neon](https://console.neon.tech/). Os nomes dos botões podem mudar; procure a criação de projeto.
+2. Crie um projeto `SupermercadoDB`, escolha uma região disponível adequada ao laboratório e anote o nome do banco e da branch.
+3. Cada estudante/dupla deve usar um ambiente separado. Se o professor usar um projeto compartilhado, distribua branches/bancos diferentes; executar os mesmos scripts e testes no mesmo esquema provoca conflitos.
+4. Confira os limites e as condições do plano usado antes da turma. Não presuma gratuidade ou cotas ilimitadas.
+5. Abra o **SQL Editor** e confira banco e branch antes de executar qualquer comando.
 
-![Neon DB Dashboard](./assets/neon_postgres_dashboard_1791481203630.jpg)
-*(Dashboard moderno do Neon DB mostrando informações do seu projeto)*
+![Exemplo ilustrativo do painel Neon](assets/neon_postgres_dashboard_1791481203630.jpg)
 
-## 2. A String de Conexão (Connection String)
+**Por quê?** Uma branch de laboratório permite errar sem atingir outro grupo. Uma branch derivada de um banco existente pode copiar o esquema; para esta sequência, escolha um banco vazio. Quem fez o material antigo deve ler a [transição](TRANSICAO.md).
 
-Assim que o projeto for criado, o Neon mostrará um painel inicial (Dashboard). Lá você verá um campo chamado **Connection Details** (ou Connection String).
+## 2. Execute o primeiro script
 
-Certifique-se de que a linguagem selecionada seja **C#** ou `.NET` (se não tiver, escolha a string padrão `postgres://...`). Uma string de conexão para .NET costuma ter o formato:
+Abra [database/001-usuarios.sql](database/001-usuarios.sql), copie seu conteúdo inteiro para o SQL Editor e execute **uma vez**. Ele contém:
+
+```sql
+CREATE TABLE usuario (
+    id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    username varchar(50) NOT NULL UNIQUE CHECK (username = lower(username)),
+    senha_hash text NOT NULL,
+    perfil varchar(20) NOT NULL CHECK (perfil IN ('Administrador', 'Caixa'))
+);
+```
+
+O arquivo também envolve a criação em `BEGIN` e `COMMIT`. Se houver erro e a sessão ficar em transação abortada, execute `ROLLBACK` antes de corrigir e tentar novamente.
+
+- `id` identifica o registro, independentemente do nome de login.
+- `IDENTITY` faz o banco gerar o número; não suponha que o próximo será sempre o anterior mais um.
+- `UNIQUE` impede dois logins iguais, inclusive se duas pessoas tentarem cadastrar ao mesmo tempo.
+- `NOT NULL` impede ausência de dado; não equivale a validar texto vazio.
+- `CHECK` restringe os perfis e exige nome em minúsculas.
+- `senha_hash` guarda a representação produzida por uma biblioteca. Não execute um `INSERT` com senha aberta nessa coluna.
+
+Usamos um conjunto pequeno de perfis em vez de uma tabela separada de cargos. Isso evita dependência em IDs mágicos como “gerente = 1” e combina com o `enum Perfil` do C#.
+
+Execute:
+
+```sql
+SELECT id, username, perfil FROM usuario;
+SELECT column_name, data_type, is_nullable
+FROM information_schema.columns
+WHERE table_schema = 'public' AND table_name = 'usuario';
+```
+
+A primeira consulta retorna **zero usuários**, o que é correto. O administrador será criado pelo aplicativo na aula 09. O script não deve ser reaplicado como se fosse uma consulta: se a tabela já existe, confira o ambiente e o histórico em vez de apagá-la.
+
+## 3. Prepare os dados de conexão
+
+No painel **Connect**, selecione **.NET/C#**, branch, banco e role. Copie os campos adequados ao Npgsql. Uma URI `postgresql://...` não deve ser colada diretamente no construtor que espera os pares abaixo:
+
 ```text
-Host=ep-cool-butterfly-12345.us-east-2.aws.neon.tech;Database=neondb;Username=seu_usuario;Password=SUA_SENHA_SECRETA;SSL Mode=Require;Trust Server Certificate=true;
+Host=SEU_HOST;Database=SEU_BANCO;Username=SEU_ROLE;Password=SUA_SENHA;SSL Mode=VerifyFull;
 ```
 
-> ⚠️ **Guarde essa string!** Copie e cole em um bloco de notas. É com ela que o nosso programa C# vai pedir permissão para acessar os dados na nuvem. Ela é como o "RG e Senha" do seu banco de dados.
+O hostname deve ser exatamente o fornecido pelo Neon. `VerifyFull` solicita criptografia e validação da identidade do servidor. Não use `Trust Server Certificate=true` para contornar erros. Confirme rede, data do Windows, hostname e cadeia de certificados.
 
-## 3. Criando as Tabelas no Banco de Dados
+Guarde a conexão apenas no ambiente local conforme a aula 08. A senha do **role do PostgreSQL** é diferente da senha de um **usuário do supermercado**. Não inclua credenciais em Git, capturas ou entregas.
 
-Agora que temos o banco na nuvem, ele está "vazio". Precisamos criar as "tabelas" (semelhantes a abas do Excel) para guardar os tipos de usuários e os usuários em si.
+## Verifique antes de encerrar
 
-No painel esquerdo do Neon, clique em **SQL Editor**. Esse editor permite executar comandos diretamente no banco.
+- `usuario` existe e contém `senha_hash`, sem coluna de senha aberta.
+- A consulta retorna zero contas; não inventamos uma senha padrão.
+- Você explica chave primária, unicidade e a diferença entre role e perfil do aplicativo.
+- Registrou nome da branch e resultado das consultas, sem credenciais.
 
-### Passo 3.1: Tabela de Tipo de Usuário (Cargos)
-Vamos criar uma tabela que define se a pessoa é um Gerente, Caixa, etc.
-Cole o código abaixo no SQL Editor e clique em **Run** (Executar):
+Fontes: [conexão Neon/.NET](https://neon.com/docs/guides/dotnet-npgsql) e [TLS no Npgsql](https://www.npgsql.org/doc/security.html).
 
-```sql
-CREATE TABLE TipoUsuario (
-    Id SERIAL PRIMARY KEY,
-    NomeCargo VARCHAR(50) NOT NULL
-);
-
--- Inserindo alguns cargos iniciais
-INSERT INTO TipoUsuario (NomeCargo) VALUES ('Gerente');
-INSERT INTO TipoUsuario (NomeCargo) VALUES ('Operador de Caixa');
-```
-
-### Passo 3.2: Tabela de Usuários
-Agora vamos criar a tabela onde os usuários farão o login, com uma chave estrangeira (Foreign Key) apontando para o cargo deles.
-No mesmo SQL Editor, limpe o código anterior, cole o código abaixo e clique em **Run**:
-
-```sql
-CREATE TABLE Usuario (
-    Id SERIAL PRIMARY KEY,
-    Username VARCHAR(50) UNIQUE NOT NULL,
-    Senha VARCHAR(50) NOT NULL,
-    TipoUsuarioId INT NOT NULL,
-    FOREIGN KEY (TipoUsuarioId) REFERENCES TipoUsuario(Id)
-);
-
--- Inserindo um usuário administrador (Gerente = Id 1)
--- IMPORTANTE: Em sistemas reais, a senha NUNCA deve ser gravada em texto puro (123456).
--- Ela deve ser criptografada (Hash). Faremos em texto puro apenas para fins didáticos iniciais.
-INSERT INTO Usuario (Username, Senha, TipoUsuarioId) VALUES ('admin', '123456', 1);
-```
-
-Pronto! Nosso banco de dados está online e abastecido com um usuário "admin" de senha "123456". Agora, precisamos ensinar o Visual Studio a conversar com ele!
-
-➡️ **[Ir para o Módulo 8: Conectando o Sistema ao Banco](./08-Conectando-Banco-Dados.md)**
+[Anterior: aula 06](06-Criando-Interface-Login.md) · [Próxima: aula 08](08-Conectando-Banco-Dados.md)

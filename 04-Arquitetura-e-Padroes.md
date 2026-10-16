@@ -1,69 +1,112 @@
-# 3️⃣ Arquitetura e Padrões de Projeto
+# Aula 04 — Arquitetura e responsabilidades
 
-Em projetos pequenos, é muito comum desenvolvedores iniciantes colocarem todo o código (regras de negócio, conexão com banco e manipulação da tela) diretamente dentro dos botões (ex: no `btnSalvar_Click`). 
+**Duração:** 3h30. **Pré-requisito:** aula 03. **Entrega:** uma consulta a produtos em memória em que a tela/console chama um serviço, que chama uma interface de repositório.
 
-**Isso é uma péssima prática!** O código fica bagunçado, impossível de testar e difícil de dar manutenção.
+| Bloco | Minutos | Atividade |
+| --- | ---: | --- |
+| Retomada | 15 | Identificar cálculo, entrada e armazenamento no console |
+| Explicação | 30 | Camadas, contratos e composição |
+| Construção | 60 | Separar produto, contrato e repositório em memória |
+| Intervalo | 15 | Pausa |
+| Prática | 60 | Colocar uma regra no serviço e chamar pelo console |
+| Entrega | 30 | Trocar a implementação e explicar o fluxo |
 
-Para o nosso Sistema de Supermercado, utilizaremos uma separação em camadas.
+## 1. Parta de um problema concreto
 
-## Arquitetura em Camadas (N-Tier)
+Abra o console anterior. Imagine que a mesma regra de preço positivo será usada no cadastro, na importação e numa futura API. Se a regra estiver no clique de um botão, cada entrada precisará copiá-la. Vamos colocá-la num serviço, independente do controle visual.
 
-Vamos separar nosso código em responsabilidades distintas. A estrutura ideal (e simplificada) será:
+Nossa arquitetura é uma **separação lógica em um projeto**. Pastas ajudam a localizar código, mas não impedem dependências indevidas; cabe à equipe respeitar o sentido das chamadas. Não chamaremos essa organização de uma implementação completa de Clean Architecture.
 
-1. **Camada de Apresentação (UI - User Interface):** 
-   - São as telas em Windows Forms (`.cs` e `.Designer.cs`). 
-   - *Regra de ouro:* O Form **não sabe** como salvar no banco de dados. Ele só captura o que o usuário digitou e mostra as respostas.
+```text
+Views → Services → interfaces de Repositories
+                      ↑
+             implementações Npgsql → Neon
+Models são usados nos contratos e serviços.
+Program cria os objetos e conecta as dependências.
+```
 
-2. **Camada de Domínio / Modelos (Models):**
-   - São as classes puras do nosso sistema (ex: `Usuario.cs`, `Produto.cs`). Elas representam os dados e as regras essenciais.
+| Pasta | Responsabilidade | Exemplo |
+| --- | --- | --- |
+| Models | Dados e conceitos do supermercado | Produto, Sessao, ItemCarrinho |
+| Services | Validações, autorização e casos de uso | ProdutoService |
+| Repositories | Consultas e persistência; nenhum MessageBox | ProdutoRepository |
+| Infrastructure | Configuração técnica | Banco |
+| Views | Ler controles, chamar serviço e apresentar resultado | FormProdutos |
 
-3. **Camada de Acesso a Dados (Data Access Layer - Repositories):**
-   - É aqui que ficam os códigos de banco de dados (os comandos `INSERT`, `SELECT`, conexão via Npgsql, etc).
-   - O Form chama o Repositório, e o Repositório fala com o Neon Postgres.
+## 2. Faça um contrato pequeno
 
-## O Padrão Repository (Repositório)
-
-O padrão de projeto *Repository* serve para abstrair a forma como acessamos os dados. Ele atua como uma coleção em memória para a camada que o está chamando.
-
-### Por que usá-lo?
-- Se um dia você quiser mudar o banco de dados de Postgres para SQL Server, você só altera o repositório. As telas (Forms) continuam intactas.
-- Facilita muito a manutenção. Toda a lógica de banco está em um só lugar.
-
-### Como funciona na prática?
-
-Criamos uma Interface que define o contrato:
+No console `TreinoSupermercado`, adicione uma classe `Produto` (se ainda não a criou) com propriedades `Nome` e `Preco`. Depois adicione o arquivo `IConsultaProdutos.cs`:
 
 ```csharp
-public interface IUsuarioRepository
+public interface IConsultaProdutos
 {
-    Usuario Autenticar(string username, string senha);
-    void Adicionar(Usuario usuario);
+    IReadOnlyList<Produto> Listar();
 }
 ```
 
-E depois criamos a classe concreta que fala com o banco:
+`IReadOnlyList` permite consultar a lista sem oferecer `Add` nesse contrato. Uma interface descreve **o que** podemos pedir; não decide **como** buscar.
+
+Adicione `ProdutosEmMemoria.cs`:
 
 ```csharp
-public class UsuarioRepository : IUsuarioRepository
+public class ProdutosEmMemoria : IConsultaProdutos
 {
-    public Usuario Autenticar(string username, string senha)
+    public IReadOnlyList<Produto> Listar() => new List<Produto>
     {
-        // Aqui vai o código real do Npgsql (Postgres)
-        // que abre a conexão e faz o "SELECT * FROM Usuarios WHERE..."
-    }
-    
-    // ...
+        new Produto { Nome = "Arroz", Preco = 25.90m },
+        new Produto { Nome = "Feijão", Preco = 8.50m }
+    };
 }
 ```
 
-## Resumo do Fluxo do nosso Sistema
+Esse exemplo cria a lista em cada consulta. O banco virá depois; hoje verificamos a organização sem depender de internet.
 
-1. O usuário digita "admin" e "123" na tela (`FormLogin`).
-2. O `FormLogin` chama `usuarioRepository.Autenticar("admin", "123")`.
-3. O `UsuarioRepository` abre conexão com o Neon PostgreSQL, executa o SELECT e verifica.
-4. O `UsuarioRepository` retorna um objeto `Usuario` (se achar) ou `null` (se errar a senha).
-5. O `FormLogin` recebe o resultado e mostra a tela principal ou uma mensagem de "Senha incorreta".
+## 3. Receba a dependência pelo construtor
 
-Com essa base teórica sólida, estamos prontos para configurar nosso ambiente de desenvolvimento!
+Adicione `ConsultaProdutosService.cs`:
 
-➡️ **[Ir para o Módulo 5: Configuração do Ambiente](./05-Configuracao-Ambiente.md)**
+```csharp
+public class ConsultaProdutosService
+{
+    private readonly IConsultaProdutos produtos;
+    public ConsultaProdutosService(IConsultaProdutos produtos)
+    {
+        this.produtos = produtos;
+    }
+    public IReadOnlyList<Produto> Executar() => produtos.Listar();
+    public void ValidarPreco(decimal preco)
+    {
+        if (preco <= 0) throw new ArgumentException("Preço deve ser positivo.");
+    }
+}
+```
+
+No `Program.cs`, deixe apenas as instruções de execução; as classes ficam em seus próprios arquivos:
+
+```csharp
+IConsultaProdutos repositorio = new ProdutosEmMemoria();
+var servico = new ConsultaProdutosService(repositorio);
+foreach (var produto in servico.Executar())
+    Console.WriteLine($"{produto.Nome}: {produto.Preco:C}");
+try { servico.ValidarPreco(0); }
+catch (ArgumentException erro) { Console.WriteLine(erro.Message); }
+```
+
+Isso é **injeção de dependência manual**: quem cria o serviço entrega o objeto de que ele precisa. Não precisamos de uma biblioteca de injeção para aprender o conceito.
+
+## 4. Entenda o alcance das escolhas
+
+O Repository concentra o SQL, mas trocar PostgreSQL por outro banco pode exigir também mudar transações, tipos e migrações. A interface reduz o impacto; não torna bancos intercambiáveis automaticamente.
+
+No aplicativo final, o serviço decide se o usuário pode salvar e se o preço é válido. O repositório executa o SQL. Na venda, o repositório mantém os comandos relacionados numa mesma transação: dividir cada comando em uma conexão diferente destruiria essa garantia.
+
+A conexão direta do desktop ao Neon serve ao laboratório. Um usuário com acesso à máquina pode obter a credencial de banco ou modificar uma sessão em memória. Em uma implantação comercial, coloque as regras de autorização numa API autenticada; o desktop não deve receber a credencial compartilhada do banco.
+
+## Verifique antes de encerrar
+
+- Troque o preço da lista em memória e mostre a mudança no console.
+- Chame `ValidarPreco(-1)` sem nenhuma tela: a regra continua funcionando.
+- Explique por que um repositório não deve mostrar `MessageBox`.
+- Registre no caderno quais responsabilidades mudarão quando adicionarmos o Neon.
+
+[Anterior: aula 03](03-Orientacao-a-Objetos.md) · [Próxima: aula 05](05-Configuracao-Ambiente.md)

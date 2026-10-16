@@ -1,4 +1,15 @@
-# 2️⃣ Prática: Criando Aplicações de Console (Treinando Sintaxe)
+# Aula 02 — Console e depuração
+
+**Duração:** 3h30. **Pré-requisito:** Aula 01. **Entrega:** Caixa de console com entradas validadas e breakpoint demonstrado.
+
+| Bloco | Minutos | Atividade |
+| --- | ---: | --- |
+| Retomada | 15 | Contexto e problema do supermercado |
+| Explicação | 30 | Conceitos dos exemplos abaixo |
+| Construção | 60 | Criar console e calcular total |
+| Intervalo | 15 | Pausa |
+| Prática | 60 | Validar entrada com TryParse e depurar |
+| Entrega | 30 | Demonstrar casos normal/inválido e registrar evidências |
 
 Antes de pularmos para interfaces gráficas complexas (telas com botões) ou conectarmos um banco de dados, precisamos garantir que você dominou a **sintaxe** do C# que aprendemos no Módulo 1.
 
@@ -15,7 +26,7 @@ Se você ainda não instalou o **Visual Studio 2022**, instale a versão Communi
 3. Na barra de pesquisa, digite `Console`.
 4. Escolha **Aplicativo de Console (Console App)** com a tag `C#`.
 5. Dê um nome, como `TreinoSupermercado`.
-6. Escolha a versão mais recente do .NET (ex: .NET 8.0) e clique em **Criar**.
+6. Escolha **.NET 8.0**, mantendo o ambiente da turma e clique em **Criar**.
 
 O Visual Studio abrirá um arquivo chamado `Program.cs`. O código padrão se parece com isso:
 
@@ -24,7 +35,7 @@ O Visual Studio abrirá um arquivo chamado `Program.cs`. O código padrão se pa
 Console.WriteLine("Hello, World!");
 ```
 
-Se você apertar o botão **Iniciar** (ou F5) no topo, uma tela preta vai piscar mostrando "Hello, World!". 
+Se você apertar o botão **Iniciar** (ou F5) no topo, uma tela preta vai piscar mostrando "Hello, World!".
 
 ---
 
@@ -37,15 +48,15 @@ Apague tudo no `Program.cs` e escreva o seguinte código:
 Console.WriteLine("=== BEM-VINDO AO MARKETFLOW ===");
 
 // 1. O sistema pergunta algo (Saída de dados)
-Console.Write("Digite o nome do produto: "); 
+Console.Write("Digite o nome do produto: ");
 
 // 2. O sistema lê o que o usuário digitou (Entrada de dados)
-string nomeProduto = Console.ReadLine();
+string nomeProduto = Console.ReadLine() ?? "";
 
 Console.Write("Digite a quantidade: ");
-// Console.ReadLine() sempre retorna um TEXTO (string). 
+// Console.ReadLine() sempre retorna um TEXTO (string).
 // Precisamos converter para Inteiro para fazer contas!
-string quantidadeTexto = Console.ReadLine();
+string quantidadeTexto = Console.ReadLine() ?? "";
 int quantidade = Convert.ToInt32(quantidadeTexto);
 
 Console.Write("Digite o preço unitário (ex: 5,50): ");
@@ -55,7 +66,7 @@ decimal preco = Convert.ToDecimal(Console.ReadLine());
 decimal total = quantidade * preco;
 
 // 4. O sistema exibe o resultado final
-Console.WriteLine("\n--- CUPOM FISCAL ---");
+Console.WriteLine("\n--- COMPROVANTE DIDÁTICO — SEM VALOR FISCAL ---");
 Console.WriteLine($"Produto: {nomeProduto}");
 Console.WriteLine($"Qtd: {quantidade} x {preco:C}"); // :C formata como Moeda (Currency)
 Console.WriteLine($"Total a Pagar: {total:C}");
@@ -119,4 +130,21 @@ Console.WriteLine("ALERTA: Estoque vazio! Solicitar reposição.");
 
 Agora que você dominou a sintaxe e a lógica escrevendo códigos estruturados no Console, você está preparado para elevar o nível com a Orientação a Objetos.
 
-➡️ **[Ir para o Módulo 3: Orientação a Objetos](./03-Orientacao-a-Objetos.md)**
+
+## Entrega prática: valide e depure
+
+Os exemplos iniciais usam `Convert` para mostrar a conversão. Na versão entregue, substitua a leitura da quantidade por:
+
+```csharp
+int quantidade;
+do
+{
+    Console.Write("Quantidade inteira maior que zero: ");
+} while (!int.TryParse(Console.ReadLine(), out quantidade) || quantidade <= 0);
+```
+
+Faça o mesmo para preço com `decimal.TryParse`, exigindo valor positivo. No começo de `Program.cs`, configure `CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("pt-BR");` e adicione `using System.Globalization;` antes das instruções. Assim `5,50` tem interpretação consistente no laboratório.
+
+Coloque breakpoint na multiplicação, pressione F5, inspecione `quantidade` e `preco` e avance com F10. Demonstre as entradas `abc`, `0` e `3`: as duas primeiras devem pedir novamente; a última deve ser aceita. Explique por que uma entrada inválida não deve encerrar o programa. Os exemplos de conversão anteriores continuam úteis para comparar o comportamento.
+
+[Próxima aula](03-Orientacao-a-Objetos.md) · [Índice](README.md)
