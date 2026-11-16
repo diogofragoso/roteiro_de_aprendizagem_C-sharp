@@ -46,6 +46,8 @@ Configure `FormClosing` como na referência: não permitir fechar enquanto execu
 
 ## 4. Trate uma queda de comunicação com cuidado
 
+Entregue a tabela de estados com uma transição concreta por linha: ação inicial, estado dos controles, resposta e próxima ação. Para a simulação de resposta perdida, use `RespostaPerdidaFake` no [console de verificações](tests/SupermercadoApp.Verificacoes/Program.cs): grava a operação em memória e falha no primeiro retorno; a segunda chamada devolve a mesma venda. Identifique como simulação: ela não comprova queda de rede após commit no PostgreSQL. O ensaio real e suas pendências ficam registrados separadamente.
+
 Uma exceção de rede pode acontecer **depois de o banco confirmar**, antes de a resposta chegar. Nesse caso não diga “venda cancelada” e não gere outra chave. Mantenha o Guid e peça para repetir a consulta/finalização. O repositório retorna a venda existente ou conclui a mesma operação quando ainda não existe.
 
 O exemplo mantém a tentativa **em memória**. Se o processo for encerrado à força ou a máquina desligar, não há recuperação automática do carrinho. Antes de reiniciar uma operação, o professor deve consultar o identificador anotado na tela:
@@ -66,3 +68,7 @@ Não reabra a compra com um novo Guid sem esclarecer o resultado anterior. Para 
 - Sair após uma venda confirmada volta ao login.
 
 [Anterior: aula 16](16-Venda-com-Transacao.md) · [Próxima: aula 18](18-Relatorio-de-Vendas.md)
+
+## Atividades por conceito
+
+Realize as atividades da [aula 17 no caderno complementar](ATIVIDADES-POR-CONCEITO.md#aula-17). Cada conceito tem enunciado e critério de aceite. Reúna as evidências em uma entrega por aula, usando os IDs no [caderno de evidências](CADERNO-DE-EVIDENCIAS.md). Essas tarefas integram a prática e a verificação já previstas no encontro.

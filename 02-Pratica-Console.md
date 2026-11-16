@@ -19,14 +19,14 @@ A melhor forma de aprender lógica de programação é criando **Aplicações de
 
 ## 1. Criando seu Primeiro Projeto de Console
 
-Se você ainda não instalou o **Visual Studio 2022**, instale a versão Community gratuita no site da Microsoft (marcando a opção "Desenvolvimento para Desktop com .NET").
+Se você ainda não instalou o **Visual Studio 2026**, instale a versão Community gratuita no site da Microsoft (marcando a opção "Desenvolvimento para Desktop com .NET").
 
-1. Abra o Visual Studio 2022.
+1. Abra o Visual Studio 2026.
 2. Clique em **Criar um novo projeto**.
 3. Na barra de pesquisa, digite `Console`.
 4. Escolha **Aplicativo de Console (Console App)** com a tag `C#`.
 5. Dê um nome, como `TreinoSupermercado`.
-6. Escolha **.NET 8.0**, mantendo o ambiente da turma e clique em **Criar**.
+6. Escolha **.NET 10.0**, mantendo o ambiente da turma e clique em **Criar**.
 
 O Visual Studio abrirá um arquivo chamado `Program.cs`. O código padrão se parece com isso:
 
@@ -115,8 +115,14 @@ Agora é a sua vez de codificar. Apague o código anterior e tente resolver este
 <summary><b>💡 Ver Resposta (Tentou fazer sozinho primeiro?)</b></summary>
 <br>
 <pre><code>
-Console.Write("Quantidade atual de maçãs no estoque: ");
-int estoque = Convert.ToInt32(Console.ReadLine());
+int estoque;
+string? entrada;
+do
+{
+    Console.Write("Quantidade atual de maçãs no estoque (zero ou mais): ");
+    entrada = Console.ReadLine();
+    if (entrada is null) return;
+} while (!int.TryParse(entrada, out estoque) || estoque < 0);
 
 while (estoque > 0)
 {
@@ -133,14 +139,36 @@ Agora que você dominou a sintaxe e a lógica escrevendo códigos estruturados n
 
 ## Entrega prática: valide e depure
 
+### Entenda a repetição antes de usar
+
+`ReadLine()` pode retornar `null`, por exemplo quando a entrada é encerrada; `?? ""` fornece texto vazio nesse caso. Isso não prova que há um nome válido: a regra de nome obrigatório precisa de outra verificação.
+
+`TryParse(texto, out quantidade)` devolve um `bool` indicando conversão e preenche `quantidade`. `!` inverte o booleano. `||` significa “ou” e só avalia o lado direito se o esquerdo for falso. Assim, `!TryParse(...) || quantidade <= 0` repete por formato inválido **ou** por número fora da regra. `do/while` executa o corpo ao menos uma vez e testa a condição depois.
+
+| Entrada | Converteu? | É positiva? | Ação |
+| --- | --- | --- | --- |
+| abc | Não | Não se aplica | Pedir novamente |
+| 0 | Sim | Não | Pedir novamente |
+| -1 | Sim | Não | Pedir novamente |
+| 3 | Sim | Sim | Continuar |
+
+Se `ReadLine()` retornar `null`, encerre a leitura com uma mensagem; repetir indefinidamente não resolve o fim da entrada. Na atividade de estoque, aceite zero como estoque vazio e recuse negativo; na compra, quantidade deve ser maior que zero. O gabarito com `Convert` mostra a versão inicial: sua entrega final deve usar `TryParse`, inclusive no estoque.
+
 Os exemplos iniciais usam `Convert` para mostrar a conversão. Na versão entregue, substitua a leitura da quantidade por:
 
 ```csharp
 int quantidade;
+string? entrada;
 do
 {
     Console.Write("Quantidade inteira maior que zero: ");
-} while (!int.TryParse(Console.ReadLine(), out quantidade) || quantidade <= 0);
+    entrada = Console.ReadLine();
+    if (entrada is null)
+    {
+        Console.WriteLine("Entrada encerrada.");
+        return;
+    }
+} while (!int.TryParse(entrada, out quantidade) || quantidade <= 0);
 ```
 
 Faça o mesmo para preço com `decimal.TryParse`, exigindo valor positivo. No começo de `Program.cs`, configure `CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("pt-BR");` e adicione `using System.Globalization;` antes das instruções. Assim `5,50` tem interpretação consistente no laboratório.
@@ -148,3 +176,7 @@ Faça o mesmo para preço com `decimal.TryParse`, exigindo valor positivo. No co
 Coloque breakpoint na multiplicação, pressione F5, inspecione `quantidade` e `preco` e avance com F10. Demonstre as entradas `abc`, `0` e `3`: as duas primeiras devem pedir novamente; a última deve ser aceita. Explique por que uma entrada inválida não deve encerrar o programa. Os exemplos de conversão anteriores continuam úteis para comparar o comportamento.
 
 [Próxima aula](03-Orientacao-a-Objetos.md) · [Índice](README.md)
+
+## Atividades por conceito
+
+Realize as atividades da [aula 02 no caderno complementar](ATIVIDADES-POR-CONCEITO.md#aula-02). Cada conceito tem enunciado e critério de aceite. Reúna as evidências em uma entrega por aula, usando os IDs no [caderno de evidências](CADERNO-DE-EVIDENCIAS.md). Essas tarefas integram a prática e a verificação já previstas no encontro.

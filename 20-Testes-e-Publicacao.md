@@ -13,6 +13,8 @@
 
 ## 1. Separe o que cada verificação comprova
 
+Antes da suíte pronta, cada estudante apresenta uma asserção própria reaproveitada das aulas 11 ou 15, com um caso de fronteira e uma alteração controlada que a faça falhar. Restaure o código e repita. Isso comprova que o teste detecta um defeito conhecido, em vez de apenas executar comandos fornecidos.
+
 Uma compilação encontra tipos e chamadas inconsistentes, mas não comprova venda correta. Um teste com repositório em memória comprova uma regra, mas não comprova transação PostgreSQL. Um teste no banco não comprova navegação por teclado. Precisamos de evidências complementares.
 
 Na solução de referência, abra `Supermercado.sln` e execute no terminal da raiz:
@@ -24,7 +26,7 @@ dotnet run --project tests/SupermercadoApp.Verificacoes -c Release
 
 O projeto de verificações é um console para reduzir dependências didáticas; falhas encerram com código diferente de zero. Leia os casos em [Program.cs](tests/SupermercadoApp.Verificacoes/Program.cs). Eles verificam carrinho, validação, hash, perfis e encaminhamento de pedidos. Não são testes de PostgreSQL.
 
-O roteiro opcional de integração fica em [VALIDACAO-MANUAL.md](VALIDACAO-MANUAL.md), incluindo rollback após escrita, duas vendas concorrentes e repetição de chave. Rode apenas em ambiente didático isolado e registre saldos antes/depois. Sem executar esses casos, registre “pendente”; não conclua que os fakes testaram transações.
+O [roteiro de integração](VALIDACAO-MANUAL.md) inclui rollback após escrita, duas vendas concorrentes e repetição de chave. Esses casos fazem parte das evidências da aula 16; se não puderem executar, registre “pendente” e programe recuperação. A automação de apoio está em `tests/SupermercadoApp.Integracao`: com `SUPERMERCADO_TEST_DB` configurada em banco didático e argumento `--executar`, cria um esquema próprio, testa os casos e remove somente esse esquema. Ela não usa a conexão normal do aplicativo. Sem execução, não conclua que os fakes testaram transações.
 
 ## 2. Verifique a interface e os dados
 
@@ -66,3 +68,7 @@ Demonstre um login de cada perfil e uma venda de teste. Se o computador não pud
 Os desafios futuros — API, recuperação de senha, turnos de caixa, devoluções, paginação, persistência local de tentativas, testes com framework e integrações fiscais — formam novas unidades. Eles não são trabalho obrigatório escondido nesta aula.
 
 [Anterior: aula 19](19-Cadastro-de-Usuarios.md) · [Índice](README.md)
+
+## Atividades por conceito
+
+Realize as atividades da [aula 20 no caderno complementar](ATIVIDADES-POR-CONCEITO.md#aula-20). Cada conceito tem enunciado e critério de aceite. Reúna as evidências em uma entrega por aula, usando os IDs no [caderno de evidências](CADERNO-DE-EVIDENCIAS.md). Essas tarefas integram a prática e a verificação já previstas no encontro.

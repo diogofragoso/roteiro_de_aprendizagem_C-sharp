@@ -4,6 +4,8 @@ Execute apenas em branch/banco **didático isolado**, com dados fictícios. Este
 
 ## Preparação
 
+Há automação opcional para executar os casos de banco: veja [como usar o runner isolado](src/README.md#verificações-de-integração-isoladas). Ele exige `SUPERMERCADO_TEST_DB` e `--executar`, cria esquema exclusivo e o remove ao terminar. Os casos pedagógicos de atomicidade e concorrência continuam exigindo evidência executada; automação é uma alternativa à operação manual, não uma inferência a partir dos fakes.
+
 1. Scripts 001, 002 e 003 executados na ordem, uma vez, em banco vazio.
 2. `SUPERMERCADO_DB` configurada localmente; TLS com verificação completa.
 3. Administrador preparado uma vez; duas contas de caixa criadas.
@@ -92,5 +94,7 @@ Com uma sessão de caixa, chame diretamente o serviço de produtos, reposição,
 Essa proteção vale para o fluxo normal do cliente. O teste não comprova segurança contra aplicativo modificado ou credencial de banco obtida na máquina: esse cenário exige API com autorização no servidor.
 
 ## Registro
+
+Para a aula 07, use o [laboratório de restrições](database/laboratorio/07-restricoes.sql), com tabelas temporárias em uma sessão direta. Para a aula 18, use a [massa de fronteiras](database/laboratorio/18-fronteiras.sql): duas das quatro vendas devem entrar no dia fixo 16/10/2026, somando 17,00 quando não há outras vendas nesse período. As massas não são executadas automaticamente ao abrir o aplicativo.
 
 Para cada caso, preencha: data, branch, preparação, ação, esperado, observado, estado e evidência. Não registre segredos. Um teste pendente de rede, conta ou segunda máquina permanece pendente no relatório da turma.

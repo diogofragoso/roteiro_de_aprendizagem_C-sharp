@@ -13,6 +13,10 @@
 
 ## 1. Crie as tabelas e resultados
 
+Use as quatro paradas de implementação: **esquema e pedido**, **leitura protegida**, **gravação e commit**, **ensaios de falha e repetição**. O professor prepara o ambiente conforme [roteiro de apoio](ensino/README.md). A versão 15 é o início, e a 16 fornece recuperação com botão de chamada controlada e sem os estados definitivos da aula 17.
+
+Antes do código, desenhe duas linhas do tempo: chaves iguais aguardam no bloqueio da operação e retornam a mesma venda; chaves distintas disputando o último produto aguardam na linha, e apenas uma pode consumir o saldo. Marque leitura, bloqueios, escrita e commit.
+
 Execute [003-vendas.sql](database/003-vendas.sql) uma vez, depois dos scripts 001 e 002. Leia cada tabela:
 
 - `venda`: operação única (`uuid`), operador, instante, total e recebido.
@@ -50,7 +54,9 @@ No caixa, acrescente temporariamente um botão de teste que chama o serviço com
 
 Prepare um produto novo de R$ 8,50 com estoque 1. Para testar concorrência, use duas instâncias conectadas ao mesmo banco, com o carrinho já preenchido em ambas, e finalize uma unidade em cada. Uma deve confirmar e a outra recusar estoque. Use contas de caixa separadas para representar a situação real.
 
-Para testar rollback, prepare dois produtos e um carrinho válido; antes de confirmar, reduza o saldo do segundo por uma venda em outra instância. A tentativa deve falhar e o primeiro produto não pode perder saldo. A falha ocorre durante a validação de todas as linhas, antes das gravações; nas verificações de integração fornecidas, teste também uma falha provocada após a escrita para observar rollback real de alterações.
+Para verificar recusa antes da escrita, prepare dois produtos e reduza o saldo do segundo por outra venda antes de confirmar. Nenhum deles deve sofrer baixa na tentativa recusada. Esse caso não comprova rollback de alterações já feitas.
+
+Para entregar A16.05, execute obrigatoriamente, com o professor, o caso [Rollback após alteração real](VALIDACAO-MANUAL.md#rollback-após-alteração-real). O gatilho provoca falha depois de cabeçalho, item e UPDATE de estoque. Anote contagens e saldo antes/depois; todos devem permanecer iguais. Remova o gatilho e repita a mesma tentativa para confirmar uma única vez. Se o ensaio não puder executar, registre pendência e recuperação, sem substituir o resultado por uma previsão.
 
 ## Verifique antes de encerrar
 
@@ -63,3 +69,7 @@ SELECT produto_id, quantidade, motivo FROM movimento_estoque ORDER BY id;
 Duas chamadas com **o mesmo Guid**, mesmos itens e mesmo recebido devem devolver o mesmo ID e gerar uma baixa. Cada venda nova usa outro Guid. Não reutilize a chave para um carrinho editado. Verifique também carrinho vazio e recebido insuficiente. Guarde evidências de contagens e saldos, sem inventar resultados quando a rede impedir o teste.
 
 [Anterior: aula 15](15-Carrinho-do-Caixa.md) · [Próxima: aula 17](17-Finalizacao-e-Troco.md)
+
+## Atividades por conceito
+
+Realize as atividades da [aula 16 no caderno complementar](ATIVIDADES-POR-CONCEITO.md#aula-16). Cada conceito tem enunciado e critério de aceite. Reúna as evidências em uma entrega por aula, usando os IDs no [caderno de evidências](CADERNO-DE-EVIDENCIAS.md). Essas tarefas integram a prática e a verificação já previstas no encontro.

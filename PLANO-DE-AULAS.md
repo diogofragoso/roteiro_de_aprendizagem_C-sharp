@@ -47,11 +47,28 @@ Cada capítulo especifica o conteúdo desses blocos. Desafios extras são opcion
 
 O [exemplo](src/README.md) reúne o resultado de todas as aulas para o professor conferir nomes, assinaturas e SQL. Os capítulos dizem quais arquivos e métodos pertencem ao encontro. Construa primeiro a versão mínima indicada; copie apenas os trechos daquela aula. Quando o arquivo de referência possui funções futuras, deixe-as de fora até sua aula.
 
-Nas interfaces, declare apenas os métodos já implementados. Os tipos novos de `Modelos.cs` também entram quando a aula os apresenta. Não adicione uma assinatura que usa `Produto` antes de criar `Produto`. Até a aula 10, `Program.cs` só compõe os objetos já existentes; abra o login diretamente. Na aula 10, use janelas vazias para os menus; os botões entram nas respectivas aulas. Isso mantém a entrega intermediária compilável.
+Nas interfaces, declare apenas os métodos já implementados. Os tipos novos da pasta `Models` também entram quando a aula os apresenta. Não adicione uma assinatura que usa `Produto` antes de criar `Produto`. Até a aula 10, `Program.cs` só compõe os objetos já existentes; abra o login diretamente. Na aula 10, use janelas vazias para os menus; os botões entram nas respectivas aulas. Isso mantém a entrega intermediária compilável.
 
-Para quem precisar de um ponto de partida para recuperação, o professor pode abrir a solução final e desabilitar no menu as funções futuras. Essa é uma alternativa de recuperação, não a sequência principal de construção.
+Para recuperação, gere as [versões por aula](ensino/README.md) com `tools/Gerar-Checkpoints.ps1`. A aula N começa no checkpoint N−1 e termina no N; o checkpoint 00 prepara o primeiro console. Os projetos são independentes e possuem inventário de fontes e scripts. O formulário antecipado de contas é uma ferramenta explícita do professor, disponível por argumento e com autorização, até entrar no menu na aula 19.
+
+Antes da aula 01, faça diagnóstico sem nota de arquivos, IDE e execução. Em cada retomada, peça previsão de uma entrada diferente da aula anterior; nos marcos, peça explicação individual. A [preparação do professor](ensino/README.md) detalha banco, contas e quatro paradas para as aulas 09 e 16.
 
 ## Avaliação formativa
+
+Use o [caderno de atividades por conceito](ATIVIDADES-POR-CONCEITO.md) como enunciado de entrega das 20 aulas. Cada atividade tem ID e critério de aceite; vários IDs podem usar o mesmo código e a mesma demonstração. Reúna tudo em uma entrega por aula, registrando a localização de cada evidência no caderno.
+
+As atividades substituem verificações dispersas e exercícios equivalentes, dentro dos blocos já previstos; não representam uma segunda lista a acrescentar às 70 horas. Planeje construção com apoio, variação de entradas na prática e explicação individual no fechamento. Nas aulas 09 e 16, o professor deve preparar infraestrutura e checkpoints antes do encontro. Ajuste o calendário se os objetivos não couberem na aplicação piloto, sem deslocar obrigatoriedades para casa.
+
+A correção deve registrar por ID: atingiu, parcial ou pendente, com uma ação de recuperação. Em dupla, mantenha a explicação individual. Exercícios com gabarito expansível servem à autoavaliação; as evidências entregues devem demonstrar o trabalho do estudante.
+
+| Dimensão e peso | Nível 0 | Nível 1 | Nível 2 | Nível 3 |
+| --- | --- | --- | --- | --- |
+| Funcionalidade — 40% | Ausente/não executa | Execução parcial | Caso normal correto | Normal e limites corretos |
+| Explicação — 25% | Não identifica conceito | Repete definição | Explica no próprio código | Prevê mudança e justifica |
+| Dados/erros — 25% | Não verifica | Só caminho feliz | Demonstra recusa | Recusa e preservação do estado |
+| Organização/evidências — 10% | Sem entrega verificável | Arquivos sem caso | IDs, arquivos e resultados | Outra pessoa reproduz |
+
+Calcule cada parcela como `peso × nível / 3` e some para obter percentual. Em atividade conceitual, use justificativa e contraexemplo no lugar de execução. A devolutiva deve citar o ID e a próxima ação de recuperação; não substitua o mapa de conceitos por uma nota global.
 
 Em cada encontro, registre no [caderno](CADERNO-DE-EVIDENCIAS.md) o caso normal, um caso inválido e o motivo de uma decisão. Sugestão de rubrica: funcionalidade 40%, explicação 25%, tratamento de dados e erros 25%, organização e evidências 10%. A demonstração de uma tela funcionando não substitui a explicação de quem decide a regra e quem executa o SQL.
 

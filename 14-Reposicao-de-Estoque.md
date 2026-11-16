@@ -37,6 +37,8 @@ Reposição é uma ação separada do botão Salvar. O cadastro altera descriç�
 
 ## 4. Confira os efeitos
 
+Antes de executar, trace duas reposições sobre saldo zero. Se ambas lerem zero e gravarem valores calculados separadamente, uma pode sobrescrever a outra: resultado 10 ou 3 em vez de 13. Com incremento no SQL, cada comando soma ao estado protegido da linha. Essa linha do tempo explica o risco; o teste real exige duas conexões e deve ser registrado separadamente.
+
 Cadastre um produto novo, reponha 10 unidades e consulte:
 
 ```sql
@@ -58,3 +60,7 @@ O saldo deve ser 10 e deve existir um movimento `+10`. Reponha 3: saldo 13 e seg
 Na venda, os movimentos terão quantidade negativa. Usaremos a mesma ideia de transação para incluir cabeçalho, itens e baixa de estoque juntos.
 
 [Anterior: aula 13](13-Cadastro-de-Produtos.md) · [Próxima: aula 15](15-Carrinho-do-Caixa.md)
+
+## Atividades por conceito
+
+Realize as atividades da [aula 14 no caderno complementar](ATIVIDADES-POR-CONCEITO.md#aula-14). Cada conceito tem enunciado e critério de aceite. Reúna as evidências em uma entrega por aula, usando os IDs no [caderno de evidências](CADERNO-DE-EVIDENCIAS.md). Essas tarefas integram a prática e a verificação já previstas no encontro.

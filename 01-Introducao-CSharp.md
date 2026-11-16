@@ -213,6 +213,12 @@ O C# é fortemente tipado. Você não pode jogar um texto (string) diretamente d
 
 ## Entrega prática
 
+Organize o mesmo console em blocos identificados pelos IDs A01.01–A01.08. Além da compra abaixo, entregue a taxa constante, as quatro saídas do `switch`, três vias com `for` e a simulação limitada por `while`. Esses blocos substituem a repetição dos exercícios de fixação; fazem parte do tempo de prática e comprovam cada conceito. Balança, cartão e Pix nesta aula são apenas mensagens de simulação.
+
 No console preparado pelo professor, calcule 3 unidades de R$ 5,50, mostre R$ 16,50 e percorra uma lista de produtos com `foreach`. Depois altere a quantidade para 0: use `if` para recusar a compra. Explique por que preço usa `decimal` e código de barras usa texto. Se ainda não conhece o console, o professor mostra F5 agora; a criação detalhada do projeto está na aula 02.
 
 [Próxima aula](02-Pratica-Console.md) · [Índice](README.md)
+
+## Atividades por conceito
+
+Realize as atividades da [aula 01 no caderno complementar](ATIVIDADES-POR-CONCEITO.md#aula-01). Cada conceito tem enunciado e critério de aceite. Reúna as evidências em uma entrega por aula, usando os IDs no [caderno de evidências](CADERNO-DE-EVIDENCIAS.md). Essas tarefas integram a prática e a verificação já previstas no encontro.

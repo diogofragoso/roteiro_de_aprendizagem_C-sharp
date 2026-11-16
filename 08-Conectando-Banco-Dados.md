@@ -4,7 +4,7 @@
 
 | Bloco | Minutos | Atividade |
 | --- | ---: | --- |
-| Retomada | 15 | Conferir banco/branch e projeto .NET 8 |
+| Retomada | 15 | Conferir banco/branch e projeto .NET 10 |
 | Explicação | 30 | NuGet, conexão, await e descarte |
 | Construção | 60 | Instalar pacote, configurar variável e Banco |
 | Intervalo | 15 | Pausa |
@@ -15,7 +15,7 @@
 
 1. No Gerenciador de Soluções, botão direito em `SupermercadoApp` → **Gerenciar Pacotes NuGet**.
 2. Abra **Procurar**, selecione a origem `nuget.org` e pesquise `Npgsql`.
-3. Confira o pacote **Npgsql** do projeto Npgsql, selecione **8.0.9** e instale.
+3. Confira o pacote **Npgsql** do projeto Npgsql, selecione **10.0.3** e instale.
 4. Em **Dependências → Pacotes**, confira a referência. É uma biblioteca do projeto; não é uma extensão da IDE.
 5. Compile. Se o laboratório bloquear o NuGet, o professor precisa liberar a origem ou preparar o cache antes da aula.
 
@@ -100,6 +100,10 @@ Não mostre `erro.ToString()` ao usuário: detalhes técnicos podem revelar infr
 
 ## Verifique antes de encerrar
 
+Antes de executar, trace três caminhos: sucesso passa pelo `try` e pelo `finally`; falha na consulta passa pelo `catch` e pelo `finally`; configuração ausente falha ao criar Banco, antes do clique. Em cada caminho, identifique quais recursos já existem e precisam de descarte. O `finally` reabilita o botão mesmo quando a operação falha.
+
+Para observar a tela respondendo sem depender da velocidade da rede, acrescente temporariamente `await Task.Delay(2000);` antes da consulta e mova a janela durante a espera. Retire a linha ao concluir. Esse ensaio comprova o comportamento da espera assíncrona; registre separadamente a execução real de `SELECT 1` e o teste de indisponibilidade.
+
 1. Com a conexão correta, o botão mostra `1` e volta a ficar habilitado.
 2. Sem a variável, a aplicação explica a configuração ausente. Restaure a variável e reabra a IDE.
 3. Com rede indisponível, a mensagem não expõe a conexão nem a senha. A tela volta a responder após o timeout.
@@ -109,3 +113,7 @@ Não mostre `erro.ToString()` ao usuário: detalhes técnicos podem revelar infr
 O teste de conexão não autentica usuários. Na aula 09 removeremos esse botão e o banco deixará de ser dependência direta da tela.
 
 [Anterior: aula 07](07-Criando-Banco-Dados-Neon.md) · [Próxima: aula 09](09-Autenticacao-Segura.md)
+
+## Atividades por conceito
+
+Realize as atividades da [aula 08 no caderno complementar](ATIVIDADES-POR-CONCEITO.md#aula-08). Cada conceito tem enunciado e critério de aceite. Reúna as evidências em uma entrega por aula, usando os IDs no [caderno de evidências](CADERNO-DE-EVIDENCIAS.md). Essas tarefas integram a prática e a verificação já previstas no encontro.

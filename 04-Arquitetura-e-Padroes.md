@@ -96,6 +96,22 @@ Isso é **injeção de dependência manual**: quem cria o serviço entrega o obj
 
 ## 4. Entenda o alcance das escolhas
 
+Antes de continuar, crie uma segunda implementação do contrato:
+
+```csharp
+public class ProdutosPromocionais : IConsultaProdutos
+{
+    public IReadOnlyList<Produto> Listar() => new List<Produto>
+    {
+        new Produto { Nome = "Café", Preco = 12.90m }
+    };
+}
+```
+
+No Program, substitua apenas `new ProdutosEmMemoria()` por `new ProdutosPromocionais()`. O serviço deve continuar igual e a saída deve mudar. Essa é a evidência da substituição da dependência; alterar o preço dentro da mesma lista não demonstra a troca de implementação.
+
+`ValidarPreco` está separado da consulta para exercitar a localização de uma regra sem interface gráfica. A partir da aula 11, a validação fará parte do próprio caso de uso `SalvarAsync`, antes da gravação. No `try`, execute a operação; no `catch`, apresente a recusa. O código depois do `throw` não continua no mesmo caminho.
+
 O Repository concentra o SQL, mas trocar PostgreSQL por outro banco pode exigir também mudar transações, tipos e migrações. A interface reduz o impacto; não torna bancos intercambiáveis automaticamente.
 
 No aplicativo final, o serviço decide se o usuário pode salvar e se o preço é válido. O repositório executa o SQL. Na venda, o repositório mantém os comandos relacionados numa mesma transação: dividir cada comando em uma conexão diferente destruiria essa garantia.
@@ -110,3 +126,7 @@ A conexão direta do desktop ao Neon serve ao laboratório. Um usuário com aces
 - Registre no caderno quais responsabilidades mudarão quando adicionarmos o Neon.
 
 [Anterior: aula 03](03-Orientacao-a-Objetos.md) · [Próxima: aula 05](05-Configuracao-Ambiente.md)
+
+## Atividades por conceito
+
+Realize as atividades da [aula 04 no caderno complementar](ATIVIDADES-POR-CONCEITO.md#aula-04). Cada conceito tem enunciado e critério de aceite. Reúna as evidências em uma entrega por aula, usando os IDs no [caderno de evidências](CADERNO-DE-EVIDENCIAS.md). Essas tarefas integram a prática e a verificação já previstas no encontro.

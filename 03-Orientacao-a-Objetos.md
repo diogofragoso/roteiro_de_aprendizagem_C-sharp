@@ -26,7 +26,7 @@ Esses são os dois conceitos que mais confundem iniciantes, mas a diferença é 
 public class Produto
 {
     // Atributos / Propriedades
-    public string Nome { get; set; }
+    public string Nome { get; set; } = "";
     public decimal Preco { get; set; }
 }
 
@@ -71,14 +71,14 @@ public class Usuario
 ```
 
 ### Pilar 3: Herança (Reaproveitamento)
-Permite que uma classe "filha" herde todas as características da classe "pai", evitando repetição de código.
+Permite que uma classe derivada reutilize membros de uma classe base. Os modificadores de acesso continuam valendo: um membro `private` da base não pode ser acessado diretamente pela derivada. Use herança quando a relação entre os tipos fizer sentido para o modelo, além de evitar repetição.
 
 ```csharp
 // Classe Pai (Base)
 public class Pessoa
 {
-    public string Nome { get; set; }
-    public string Cpf { get; set; }
+    public string Nome { get; set; } = "";
+    public string Cpf { get; set; } = "";
 
     public void ExibirCadastro()
     {
@@ -104,7 +104,7 @@ public class Funcionario : Pessoa
 Permite que classes diferentes tenham o mesmo nome de método, mas executem lógicas diferentes de acordo com a sua classe. Muito usado com **Interfaces** (contratos).
 
 ```csharp
-// A Interface é um CONTRATO. Ela obriga quem herdar a ter o método "Processar"
+// A interface é um contrato. Quem implementá-la deve oferecer Processar.
 public interface IPagamento
 {
     void Processar(decimal valor);
@@ -158,26 +158,48 @@ O <b>Encapsulamento</b>. Estamos encapsulando (escondendo e protegendo) o estado
 <pre><code>
 public class ProdutoGeral
 {
-    public string Nome { get; set; }
+    public string Nome { get; set; } = "";
     public decimal Preco { get; set; }
 }
 
 public class Carne : ProdutoGeral
 {
     public int DiasValidade { get; set; }
-    public string TipoCorte { get; set; } // Picanha, Alcatra
+    public string TipoCorte { get; set; } = ""; // Picanha, Alcatra
 }
 
 public class Eletrodomestico : ProdutoGeral
 {
     public int MesesGarantia { get; set; }
-    public string Voltagem { get; set; } // 110v, 220v
+    public string Voltagem { get; set; } = ""; // 110v, 220v
 }
 </code></pre>
 </details>
 
 
 ## Entrega prática: objetos e subtotal
+
+### Propriedade, campo e fluxo de erro
+
+Uma propriedade possui acessores como `get`/`set`; um campo armazena diretamente um valor. `private set` permite leitura pública e restringe a escrita à classe. Inicialize as propriedades textuais dos exemplos com `= "";` para deixar explícito o estado inicial e evitar avisos de nulabilidade.
+
+No método `Renomear`, `throw` interrompe a execução normal e leva o erro ao chamador. A atribuição posterior não acontece quando o nome é vazio. Experimente no console:
+
+```csharp
+var usuario = new Usuario();
+usuario.Renomear("operador");
+try
+{
+    usuario.Renomear("");
+}
+catch (ArgumentException erro)
+{
+    Console.WriteLine(erro.Message);
+}
+Console.WriteLine(usuario.Username); // Continua operador.
+```
+
+Complete também A03.05 e A03.06: execute um método herdado em duas subclasses e percorra uma lista de `IPagamento` com implementações diferentes. A mesma chamada deve produzir mensagens distintas. Use arquivos separados e mantenha essa simulação fora do modelo final de produtos.
 
 Crie as classes em arquivos separados. No console, mantenha apenas instruções de execução: não coloque instruções soltas depois da declaração de uma classe no mesmo `Program.cs`.
 
@@ -195,3 +217,7 @@ Instancie arroz de R$ 25,90 e feijão de R$ 8,50. Crie uma `List<ItemDeCompra>` 
 Hash de senha será ensinado na aula 09 com uma biblioteca pronta. MD5 não é uma solução adequada para senhas. Herança é um recurso a conhecer; não precisamos criar uma subclasse para cada produto do supermercado.
 
 [Próxima aula](04-Arquitetura-e-Padroes.md) · [Índice](README.md)
+
+## Atividades por conceito
+
+Realize as atividades da [aula 03 no caderno complementar](ATIVIDADES-POR-CONCEITO.md#aula-03). Cada conceito tem enunciado e critério de aceite. Reúna as evidências em uma entrega por aula, usando os IDs no [caderno de evidências](CADERNO-DE-EVIDENCIAS.md). Essas tarefas integram a prática e a verificação já previstas no encontro.

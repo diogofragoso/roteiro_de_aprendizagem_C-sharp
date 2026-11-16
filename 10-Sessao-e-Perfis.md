@@ -47,6 +47,17 @@ Adicione os `using` de `Models` e `Services` e o namespace `SupermercadoApp.View
 
 ## 3. Controle o fluxo no Program
 
+### Do Designer ao layout em código
+
+| No Designer | Em código | Significado |
+| --- | --- | --- |
+| Arrastar Button | `new Button()` | Criar controle |
+| Configurar Text | `botao.Text = "Sair"` | Definir o texto visível |
+| Inserir no formulário/painel | `painel.Controls.Add(botao)` | Inserir no contêiner |
+| Associar evento Click | `botao.Click += AoSair` | Registrar comportamento uma vez |
+
+`(_, _) => Close()` pode ser reescrito como `void AoSair(object? sender, EventArgs e) { Close(); }`. Os argumentos existem mesmo quando não são usados. Faça essa troca em A10.03 e mantenha uma única associação do evento. Layout e regras continuam sendo responsabilidades diferentes.
+
 Substitua o trecho que abre o login uma única vez por um laço. Mantenha o modo `--preparar-admin` separado e saindo após a preparação. No modo normal:
 
 ```csharp
@@ -68,9 +79,9 @@ No evento de autenticação, `DialogResult = DialogResult.OK` só ocorre quando 
 
 ## 4. Prepare uma conta de caixa para os testes
 
-A interface de cadastro será construída na aula 19. Hoje o professor faz uma preparação temporária controlada no depurador: após autenticar um administrador, chame uma vez `await autenticacao.CriarAsync(sessao, "caixa.teste", senhaDeLaboratorio, Perfil.Caixa)` em um evento temporário da janela de administração. Leia a senha por uma caixa `TextBox` com `UseSystemPasswordChar = true`; não escreva a senha como literal no código. Remova esse evento e os controles de preparação depois de cadastrar.
+A interface de cadastro será estudada na aula 19. Antes deste encontro, o professor executa a referência ou o checkpoint com `--preparar-caixa`, autentica um administrador e cadastra uma conta Caixa pelo formulário de preparação. A ferramenta usa o serviço existente e exige permissão administrativa; não contém senha padrão. Veja o [roteiro do professor](ensino/README.md). A turma recebe a conta preparada localmente, sem senha no código ou nas evidências.
 
-Se quiser um caminho pronto, antecipe apenas a criação de `FormUsuarios` da aula 19 e use-a como ferramenta de preparação do professor. A turma não precisa implementar o cadastro completo hoje.
+Não acrescente um botão provisório de cadastro ao menu da turma. O formulário antecipado é identificado nos checkpoints como ferramenta do professor; seu acesso normal só entra no menu na aula 19.
 
 ## Verifique antes de encerrar
 
@@ -83,3 +94,7 @@ Se quiser um caminho pronto, antecipe apenas a criação de `FormUsuarios` da au
 A autorização em C# organiza e protege os caminhos normais do aplicativo. Contra modificação maliciosa do cliente, precisamos da fronteira de servidor discutida na aula 04.
 
 [Anterior: aula 09](09-Autenticacao-Segura.md) · [Próxima: aula 11](11-Modelo-de-Produtos.md)
+
+## Atividades por conceito
+
+Realize as atividades da [aula 10 no caderno complementar](ATIVIDADES-POR-CONCEITO.md#aula-10). Cada conceito tem enunciado e critério de aceite. Reúna as evidências em uma entrega por aula, usando os IDs no [caderno de evidências](CADERNO-DE-EVIDENCIAS.md). Essas tarefas integram a prática e a verificação já previstas no encontro.

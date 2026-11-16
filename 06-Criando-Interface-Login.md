@@ -60,6 +60,8 @@ MessageBox.Show("Campos preenchidos. A autenticação será adicionada na aula 0
 
 ## 4. Teste e ajuste
 
+Registre cada execução em A06.01–A06.04: preparação, ação, resultado e uma explicação individual. Anote a ordem do teclado e a quantidade de mensagens por clique. Esses registros são a entrega do teste, junto dos arquivos `.cs` e `.Designer.cs`.
+
 1. F5: tente entrar com os dois campos vazios.
 2. Digite apenas o usuário e pressione Enter: a mensagem ainda deve pedir os dois campos.
 3. Preencha ambos: a tela deve informar que a autenticação ainda não existe.
@@ -72,3 +74,7 @@ MessageBox.Show("Campos preenchidos. A autenticação será adicionada na aula 0
 Entregue a tela, as três verificações de campos e uma explicação de `Name`, `Text` e `Click`. Não cole o construtor completo da referência sobre esse formulário: ela constrói o layout em código. Nas próximas aulas você pode manter seu Designer e adaptar somente os campos, dependências e eventos indicados.
 
 [Anterior: aula 05](05-Configuracao-Ambiente.md) · [Próxima: aula 07](07-Criando-Banco-Dados-Neon.md)
+
+## Atividades por conceito
+
+Realize as atividades da [aula 06 no caderno complementar](ATIVIDADES-POR-CONCEITO.md#aula-06). Cada conceito tem enunciado e critério de aceite. Reúna as evidências em uma entrega por aula, usando os IDs no [caderno de evidências](CADERNO-DE-EVIDENCIAS.md). Essas tarefas integram a prática e a verificação já previstas no encontro.

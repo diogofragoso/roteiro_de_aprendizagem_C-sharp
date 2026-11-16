@@ -38,6 +38,8 @@ Se você antecipou `FormUsuarios` para preparar o laboratório na aula 10, revis
 
 ## Verifique antes de encerrar
 
+Reaproveite os testes por conceito A19.01–A19.06: fronteiras de tamanho, espaços da senha e valor de enum inválido são verificações de serviço, mesmo quando o controle visual impede digitação equivalente. Registre quais chamadas chegaram ao repositório e confirme o login da conta criada. Não basta fotografar o cadastro com mensagem de sucesso.
+
 1. `CAIXA.NOVO` e `caixa.novo` não podem criar duas contas diferentes.
 2. Senha curta é recusada; senha com espaços não é recortada silenciosamente.
 3. Conta nova com senha incorreta não entra.
@@ -47,3 +49,7 @@ Se você antecipou `FormUsuarios` para preparar o laboratório na aula 10, revis
 Este encontro cobre criação, não recuperação de senha, desativação de usuários ou mudança de perfil durante uma sessão. Esses casos precisam de políticas próprias. Uma sessão deste laboratório mantém seu perfil até sair; no cenário com API, revogação e validade de sessão devem ser aplicadas no servidor.
 
 [Anterior: aula 18](18-Relatorio-de-Vendas.md) · [Próxima: aula 20](20-Testes-e-Publicacao.md)
+
+## Atividades por conceito
+
+Realize as atividades da [aula 19 no caderno complementar](ATIVIDADES-POR-CONCEITO.md#aula-19). Cada conceito tem enunciado e critério de aceite. Reúna as evidências em uma entrega por aula, usando os IDs no [caderno de evidências](CADERNO-DE-EVIDENCIAS.md). Essas tarefas integram a prática e a verificação já previstas no encontro.

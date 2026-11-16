@@ -11,6 +11,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{0AB3BF05
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SupermercadoApp.Verificacoes", "tests\SupermercadoApp.Verificacoes\SupermercadoApp.Verificacoes.csproj", "{953EFFF2-D99F-404F-A491-F29821F78224}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SupermercadoApp.Integracao", "tests\SupermercadoApp.Integracao\SupermercadoApp.Integracao.csproj", "{08AF633C-D12C-4B60-800D-8938AFA9D698}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -45,6 +47,18 @@ Global
 		{953EFFF2-D99F-404F-A491-F29821F78224}.Release|x64.Build.0 = Release|Any CPU
 		{953EFFF2-D99F-404F-A491-F29821F78224}.Release|x86.ActiveCfg = Release|Any CPU
 		{953EFFF2-D99F-404F-A491-F29821F78224}.Release|x86.Build.0 = Release|Any CPU
+		{08AF633C-D12C-4B60-800D-8938AFA9D698}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{08AF633C-D12C-4B60-800D-8938AFA9D698}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{08AF633C-D12C-4B60-800D-8938AFA9D698}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{08AF633C-D12C-4B60-800D-8938AFA9D698}.Debug|x64.Build.0 = Debug|Any CPU
+		{08AF633C-D12C-4B60-800D-8938AFA9D698}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{08AF633C-D12C-4B60-800D-8938AFA9D698}.Debug|x86.Build.0 = Debug|Any CPU
+		{08AF633C-D12C-4B60-800D-8938AFA9D698}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{08AF633C-D12C-4B60-800D-8938AFA9D698}.Release|Any CPU.Build.0 = Release|Any CPU
+		{08AF633C-D12C-4B60-800D-8938AFA9D698}.Release|x64.ActiveCfg = Release|Any CPU
+		{08AF633C-D12C-4B60-800D-8938AFA9D698}.Release|x64.Build.0 = Release|Any CPU
+		{08AF633C-D12C-4B60-800D-8938AFA9D698}.Release|x86.ActiveCfg = Release|Any CPU
+		{08AF633C-D12C-4B60-800D-8938AFA9D698}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -52,5 +66,6 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{1ED49BD1-A9FD-4701-8F3E-BD37D523B83B} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{953EFFF2-D99F-404F-A491-F29821F78224} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
+		{08AF633C-D12C-4B60-800D-8938AFA9D698} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 	EndGlobalSection
 EndGlobal

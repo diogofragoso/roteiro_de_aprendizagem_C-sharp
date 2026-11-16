@@ -24,6 +24,33 @@ Acesse o SQL Editor, confira a branch e execute [002-produtos.sql](database/002-
 
 O produto nasce com estoque **zero**. Não aceite saldo digitado na tela de cadastro: a entrada será feita por reposição, com histórico. Evitamos excluir fisicamente produtos porque vendas futuras precisarão preservar sua referência.
 
+```mermaid
+erDiagram
+    USUARIO ||--o{ MOVIMENTO_ESTOQUE : registra
+    PRODUTO ||--o{ MOVIMENTO_ESTOQUE : possui
+    USUARIO {
+        integer id PK
+        varchar username UK
+    }
+    PRODUTO {
+        integer id PK
+        varchar codigo UK
+        numeric preco
+        integer estoque
+        boolean ativo
+    }
+    MOVIMENTO_ESTOQUE {
+        bigint id PK
+        integer produto_id FK
+        integer usuario_id FK
+        integer quantidade
+        varchar motivo
+        timestamptz criado_em
+    }
+```
+
+As linhas indicam “um para muitos”: cada movimento referencia exatamente um usuário e um produto. As FKs garantem referências existentes; elas não calculam o saldo automaticamente. Use os comandos de reposição e venda para manter saldo e movimentos coerentes.
+
 ## 2. Crie o modelo e o contrato mínimo
 
 Em `Models`, crie [Produto.cs](src/SupermercadoApp/Models/Produto.cs). Em `Repositories`, crie `IProdutoRepository.cs` inicialmente com:
@@ -50,6 +77,18 @@ Não arredondamos silenciosamente `1,999` para `2,00`: o cadastro deve pedir cor
 
 ## 3. Teste sem a interface de cadastro
 
+Desenhe antes as relações: um Produto tem muitos Movimentos; um Usuário é responsável por muitos Movimentos; cada Movimento aponta para um Produto e um Usuário por chaves estrangeiras. No dicionário de dados, registre tipos, PK, FK e restrições das duas tabelas.
+
+No fake, acrescente `public int Chamadas { get; private set; }` e incremente apenas dentro de `SalvarAsync`. Após um caso válido, execute os inválidos abaixo e comprove que o contador não aumentou. Uma primeira asserção executável pode ser `if (fake.Chamadas != 1) throw new Exception("Validação chegou indevidamente ao repositório");`. Essa verificação será reaproveitada na aula 20.
+
+| Entrada | Resultado esperado |
+| --- | --- |
+| Preço 0 / 0,01 / 1,999 | Recusa / aceita / recusa |
+| Preço 99.999.999,99 / 100.000.000 | Aceita / recusa |
+| Nome com 1 / 2 / 120 / 121 caracteres | Recusa / aceita / aceita / recusa |
+| Código com 0 / 1 / 30 / 31 caracteres após Trim | Recusa / aceita / aceita / recusa |
+| ID -1 / 0 | Recusa / inclusão |
+
 Crie um `ProdutoEmMemoriaRepository` temporário implementando `IProdutoRepository`, com `SalvarAsync` que apenas anota os argumentos em uma propriedade e devolve `Task.CompletedTask`. Use um botão temporário na janela de administração para chamar o serviço com código “000123”, nome “Arroz” e preço 25,90. Remova o botão após a verificação; o fake pode ser guardado como exercício.
 
 Repita com nome vazio, preço zero e `1.999m`. A propriedade do fake não deve mudar quando a validação falha. Passe também uma `Sessao` de caixa: o serviço deve negar antes de chamar o repositório.
@@ -61,3 +100,7 @@ Repita com nome vazio, preço zero e `1.999m`. A propriedade do fake não deve m
 Execute `SELECT codigo, nome, preco, estoque, ativo FROM produto;`: ainda pode estar vazio. Confirme os casos de validação e explique a diferença entre saldo e movimento. Não crie produtos diretamente no SQL para substituir o exercício de validação do serviço.
 
 [Anterior: aula 10](10-Sessao-e-Perfis.md) · [Próxima: aula 12](12-Consulta-de-Produtos.md)
+
+## Atividades por conceito
+
+Realize as atividades da [aula 11 no caderno complementar](ATIVIDADES-POR-CONCEITO.md#aula-11). Cada conceito tem enunciado e critério de aceite. Reúna as evidências em uma entrega por aula, usando os IDs no [caderno de evidências](CADERNO-DE-EVIDENCIAS.md). Essas tarefas integram a prática e a verificação já previstas no encontro.

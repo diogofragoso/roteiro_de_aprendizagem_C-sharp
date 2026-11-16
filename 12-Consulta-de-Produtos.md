@@ -51,7 +51,9 @@ Adicione o namespace e os `using` dos tipos utilizados. Confira as opções de `
 
 No `Program`, crie `ProdutoRepository` usando a fonte de dados existente e `ProdutoService` usando esse repositório. Passe o serviço para `FormAdministrador`, cujo construtor passa a recebê-lo. Adicione o botão “Produtos” abrindo `new FormProdutos(sessao, produtos)` com `using` e `ShowDialog(this)`. Não copie ainda os botões de relatório ou usuários da referência final.
 
-Para ter dados de busca, use o botão temporário da aula 11, agora com o repositório real, e cadastre arroz e feijão. O método de cadastro já foi implementado nesta aula para cumprir o contrato. Esse preparo é temporário; os campos definitivos chegam na aula 13.
+Antes da aula, o professor cadastra arroz e feijão pela referência no banco didático, conforme [preparação do laboratório](ensino/README.md). Não é necessário criar outro botão provisório. O método de escrita existe no repositório para cumprir o contrato; a turma construirá os campos definitivos na aula 13.
+
+Produza uma tabela das seis colunas retornadas, suas posições de 0 a 5, tipos e propriedades C#. Preveja o que aconteceria se invertesse duas colunas sem mudar `Ler`. Depois diferencie três resultados: lista vazia é consulta concluída sem correspondências; falha de rede é operação não concluída; permissão negada é recusa anterior ao SQL.
 
 ## Verifique antes de encerrar
 
@@ -64,3 +66,7 @@ Para ter dados de busca, use o botão temporário da aula 11, agora com o reposi
 Uma lista vazia é resultado válido. Não a confunda com falha de rede. Nos registros do caderno, anote o texto buscado e os nomes esperados.
 
 [Anterior: aula 11](11-Modelo-de-Produtos.md) · [Próxima: aula 13](13-Cadastro-de-Produtos.md)
+
+## Atividades por conceito
+
+Realize as atividades da [aula 12 no caderno complementar](ATIVIDADES-POR-CONCEITO.md#aula-12). Cada conceito tem enunciado e critério de aceite. Reúna as evidências em uma entrega por aula, usando os IDs no [caderno de evidências](CADERNO-DE-EVIDENCIAS.md). Essas tarefas integram a prática e a verificação já previstas no encontro.

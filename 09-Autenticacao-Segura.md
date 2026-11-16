@@ -13,6 +13,15 @@
 
 ## 1. Crie os tipos e o contrato
 
+Trabalhe em quatro checkpoints: **tipos/ausência**, **consulta**, **hash/verificação** e **evento da tela**. Use a versão 08 como início e a 09 como recuperação, geradas conforme [apoio ao professor](ensino/README.md). Compile em cada parada, antes de ligar o botão Entrar. Não adicione simultaneamente arquivos que você ainda não consegue localizar no fluxo.
+
+| Parada | Pergunta de leitura | Verificação antes de avançar |
+| --- | --- | --- |
+| Tipos | O que a tela pode receber e o que fica interno? | Sessao não tem hash; explique `Credencial?`. |
+| Consulta | O que retorna para username inexistente? | `null`, sem acessar propriedades de usuário ausente. |
+| Verificação | O hash é comparado pelo SQL ou pela biblioteca? | Biblioteca verifica senha correta e incorreta; salt produz representações diferentes. |
+| Evento | Quando pode devolver DialogResult.OK? | Somente após preparação ou autenticação bem-sucedida; senha limpa ao terminar. |
+
 Em **Gerenciador de Soluções → Models → Adicionar → Classe**, crie os arquivos abaixo, substituindo o conteúdo gerado pelo conteúdo da referência:
 
 - [Perfil.cs](src/SupermercadoApp/Models/Perfil.cs): `enum` com `Administrador` e `Caixa`.
@@ -23,13 +32,13 @@ Em **Gerenciador de Soluções → Models → Adicionar → Classe**, crie os ar
 
 Em `Repositories`, crie [IUsuarioRepository.cs](src/SupermercadoApp/Repositories/IUsuarioRepository.cs) e [UsuarioRepository.cs](src/SupermercadoApp/Repositories/UsuarioRepository.cs). Implemente os quatro métodos da referência. `Task<Credencial?>` informa que a consulta é assíncrona e pode retornar ausência de usuário. `@nome` é um parâmetro: o texto digitado nunca é concatenado ao SQL.
 
-A declaração `class AutenticacaoService(IUsuarioRepository usuarios)` usa um **construtor primário**, disponível no C# 12 do .NET 8: recebe a dependência ao criar o objeto, como o construtor escrito por extenso na aula 04. `sealed` impede herança dessa classe; não altera a forma de usá-la.
+A declaração `class AutenticacaoService(IUsuarioRepository usuarios)` usa um **construtor primário**, disponível desde o C# 12 e também no .NET 10: recebe a dependência ao criar o objeto, como o construtor escrito por extenso na aula 04. `sealed` impede herança dessa classe; não altera a forma de usá-la.
 
 **Por quê buscar somente pelo username?** A senha não pode ser comparada como texto SQL, porque o banco guarda um hash. O serviço recebe a credencial e pede à biblioteca para verificar.
 
 ## 2. Adicione a biblioteca de senha e o serviço
 
-No NuGet, instale `Microsoft.Extensions.Identity.Core` **8.0.22** no projeto. Apesar do namespace `Microsoft.AspNetCore.Identity`, a classe `PasswordHasher` pode ser usada nesse aplicativo desktop; não estamos criando um servidor web.
+No NuGet, instale `Microsoft.Extensions.Identity.Core` **10.0.15** no projeto. Apesar do namespace `Microsoft.AspNetCore.Identity`, a classe `PasswordHasher` pode ser usada nesse aplicativo desktop; não estamos criando um servidor web.
 
 Crie [AutenticacaoService.cs](src/SupermercadoApp/Services/AutenticacaoService.cs) com o conteúdo de referência. Nesse encontro a classe `Permissoes` do mesmo arquivo pode ser copiada também: são duas verificações simples de perfil que usaremos na aula 10. Leia com atenção:
 
@@ -144,3 +153,7 @@ Não projete a coluna inteira de hash na apresentação da turma. A senha deve s
 Na aula 10 trocaremos a mensagem pelas janelas de cada perfil. Autenticação identifica a pessoa; autorização decide o que ela pode fazer. A biblioteca de hash não adiciona bloqueio por tentativas, recuperação de senha ou autenticação de servidor: esses são aprimoramentos posteriores ao recorte local.
 
 [Anterior: aula 08](08-Conectando-Banco-Dados.md) · [Próxima: aula 10](10-Sessao-e-Perfis.md)
+
+## Atividades por conceito
+
+Realize as atividades da [aula 09 no caderno complementar](ATIVIDADES-POR-CONCEITO.md#aula-09). Cada conceito tem enunciado e critério de aceite. Reúna as evidências em uma entrega por aula, usando os IDs no [caderno de evidências](CADERNO-DE-EVIDENCIAS.md). Essas tarefas integram a prática e a verificação já previstas no encontro.

@@ -67,6 +67,20 @@ internal static class Program
         await cadastro.ReporAsync(Admin, 1, 3);
         Conferir(produtos.UsuarioReposicao == Admin.Id, "Responsável vem da sessão");
 
+        foreach (decimal precoInvalido in new[] { -1m, 100000000m })
+            await RecusarAsync<ArgumentException>(() => cadastro.SalvarAsync(Admin, 0, "1", "Arroz", precoInvalido), "Fronteira de preço inválido");
+        foreach (decimal precoValido in new[] { 0.01m, 99999999.99m })
+            await cadastro.SalvarAsync(Admin, 0, "1", "Arroz", precoValido);
+        Conferir(produtos.Gravacoes == 3, "Mínimo e máximo monetários chegam ao repositório");
+        int antes = produtos.Gravacoes;
+        await RecusarAsync<ArgumentException>(() => cadastro.SalvarAsync(Admin, -1, "1", "Arroz", 1), "ID negativo");
+        await RecusarAsync<ArgumentException>(() => cadastro.SalvarAsync(Admin, 0, new string('a', 31), "Arroz", 1), "Código acima do limite");
+        await RecusarAsync<ArgumentException>(() => cadastro.SalvarAsync(Admin, 0, "1", "A", 1), "Nome abaixo do limite");
+        await RecusarAsync<ArgumentException>(() => cadastro.SalvarAsync(Admin, 0, "1", new string('a', 121), 1), "Nome acima do limite");
+        Conferir(produtos.Gravacoes == antes, "Recusas de fronteira preservam contagem de gravações");
+        await cadastro.SalvarAsync(Admin, 0, new string('a', 30), new string('b', 120), 1);
+        Conferir(produtos.Gravacoes == antes + 1, "Comprimentos máximos são aceitos");
+
         var usuarios = new UsuariosFake();
         var autenticacao = new AutenticacaoService(usuarios);
         const string senhaFicticia = "frase de laboratório"; // Somente fake em memória; não é conta do banco.
@@ -82,6 +96,21 @@ internal static class Program
         await RecusarAsync<ArgumentException>(() => autenticacao.CriarAsync(Admin, "outro", "curta", Perfil.Caixa), "Senha curta");
         await autenticacao.CriarAsync(Admin, "caixa", senhaFicticia, Perfil.Caixa);
         Conferir(usuarios.Dados[1].SenhaHash != primeiroHash, "Salt gera hashes diferentes para a mesma senha");
+
+        await RecusarAsync<ArgumentException>(() => autenticacao.CriarAsync(Admin, "ab", senhaFicticia, Perfil.Caixa), "Username com dois caracteres");
+        await RecusarAsync<ArgumentException>(() => autenticacao.CriarAsync(Admin, new string('a', 51), senhaFicticia, Perfil.Caixa), "Username com 51 caracteres");
+        await RecusarAsync<ArgumentException>(() => autenticacao.CriarAsync(Admin, "acentuação", senhaFicticia, Perfil.Caixa), "Username com acentos");
+        await RecusarAsync<ArgumentException>(() => autenticacao.CriarAsync(Admin, "outro", senhaFicticia, (Perfil)999), "Enum inválido no serviço");
+        await RecusarAsync<ArgumentException>(() => autenticacao.CriarAsync(Admin, "outro", new string('s', 129), Perfil.Caixa), "Senha com 129 caracteres");
+        await autenticacao.CriarAsync(Admin, "espacos", "  senha com espacos  ", Perfil.Caixa);
+        Conferir(await autenticacao.EntrarAsync("espacos", "  senha com espacos  ") is not null
+            && await autenticacao.EntrarAsync("espacos", "senha com espacos") is null, "Espaços da senha são preservados");
+        var hasherAntigo = new Microsoft.AspNetCore.Identity.PasswordHasher<string>(
+            Microsoft.Extensions.Options.Options.Create(new Microsoft.AspNetCore.Identity.PasswordHasherOptions { IterationCount = 10000 }));
+        string hashAntigo = hasherAntigo.HashPassword("legado", senhaFicticia);
+        await usuarios.CriarAsync("legado", hashAntigo, Perfil.Caixa);
+        Conferir(await autenticacao.EntrarAsync("legado", senhaFicticia) is not null
+            && usuarios.Dados.Single(u => u.Username == "legado").SenhaHash != hashAntigo, "Login atualiza hash com custo antigo");
 
         var repositorioVendas = new VendasFake();
         var vendas = new VendaService(repositorioVendas, produtos);
@@ -99,6 +128,22 @@ internal static class Program
         await RecusarAsync<UnauthorizedAccessException>(() => vendas.RelatorioAsync(Caixa, DateTime.UtcNow.AddDays(-1), DateTime.UtcNow), "Caixa não consulta relatório");
         await RecusarAsync<ArgumentException>(() => vendas.RelatorioAsync(Admin, DateTime.Now.AddDays(-1), DateTime.Now), "Relatório exige UTC");
         await RecusarAsync<ArgumentException>(() => vendas.RelatorioAsync(Admin, DateTime.UtcNow, DateTime.UtcNow.AddDays(-1)), "Relatório recusa intervalo invertido");
+        await RecusarAsync<ArgumentException>(() => vendas.FinalizarAsync(Caixa, Guid.NewGuid(),
+            [carrinho.Itens[0], carrinho.Itens[0]], 100), "Pedido com produto repetido é recusado");
+        var excesso = new Carrinho();
+        excesso.Adicionar(arroz with { Estoque = int.MaxValue }, int.MaxValue);
+        await RecusarAsync<OverflowException>(() => Executar(() => excesso.Adicionar(arroz with { Estoque = int.MaxValue }, 1)), "Checked detecta excesso de quantidade acumulada");
+        Conferir(excesso.Itens[0].Quantidade == int.MaxValue, "Excesso preserva quantidade anterior");
+
+        // Aula 17: simulação de resposta perdida, sem PostgreSQL e sem teste de rede.
+        var respostaPerdida = new RespostaPerdidaFake();
+        var simulacao = new VendaService(respostaPerdida, produtos);
+        Guid tentativa = Guid.NewGuid();
+        await RecusarAsync<IOException>(() => simulacao.FinalizarAsync(Caixa, tentativa, carrinho.Itens, 100),
+            "Simulação perde a primeira resposta após registrar em memória");
+        var reconciliada = await simulacao.FinalizarAsync(Caixa, tentativa, carrinho.Itens, 100);
+        Conferir(reconciliada.Id == 1 && respostaPerdida.Gravacoes == 1 && respostaPerdida.Operacao == tentativa,
+            "Repetição da mesma tentativa recupera resultado sem segunda gravação simulada");
     }
 
     private static void Interfaces()
@@ -152,4 +197,22 @@ internal sealed class VendasFake : IVendaRepository
     public Task<VendaConfirmada> FinalizarAsync(Guid operacao, int usuarioId, IReadOnlyList<PedidoItem> itens, decimal recebido)
     { Operacao = operacao; Itens = itens; return Task.FromResult(new VendaConfirmada(1, 60.30m, recebido)); }
     public Task<IReadOnlyList<ResumoVenda>> RelatorioAsync(DateTime inicioUtc, DateTime fimUtc) => Task.FromResult<IReadOnlyList<ResumoVenda>>([]);
+}
+
+internal sealed class RespostaPerdidaFake : IVendaRepository
+{
+    public Guid Operacao { get; private set; }
+    public int Gravacoes { get; private set; }
+    private VendaConfirmada? confirmada;
+    public Task<VendaConfirmada?> BuscarAsync(Guid operacao)
+        => Task.FromResult(operacao == Operacao ? confirmada : null);
+    public Task<VendaConfirmada> FinalizarAsync(Guid operacao, int usuarioId, IReadOnlyList<PedidoItem> itens, decimal recebido)
+    {
+        if (confirmada is not null && operacao == Operacao) return Task.FromResult(confirmada);
+        Operacao = operacao; Gravacoes++;
+        confirmada = new VendaConfirmada(1, 60.30m, recebido);
+        throw new IOException("Resposta perdida simulada; não houve conexão de rede.");
+    }
+    public Task<IReadOnlyList<ResumoVenda>> RelatorioAsync(DateTime inicioUtc, DateTime fimUtc)
+        => Task.FromResult<IReadOnlyList<ResumoVenda>>([]);
 }

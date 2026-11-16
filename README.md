@@ -1,15 +1,19 @@
 # C# na prática: supermercado desktop
 
-Roteiro para estudantes iniciantes construírem o **MarketFlow**, um aplicativo Windows Forms com áreas separadas para **Administrador** e **Caixa**, utilizando **Visual Studio 2022** e **Neon PostgreSQL**.
+Roteiro para estudantes iniciantes construírem o **MarketFlow**, um aplicativo Windows Forms com áreas separadas para **Administrador** e **Caixa**, utilizando **Visual Studio 2026** e **Neon PostgreSQL**.
 
 São **20 aulas práticas de 3h30 (210 minutos), totalizando 70 horas**. Cada aula começa com o resultado da anterior, explica as decisões e termina com uma entrega verificável. As oito aulas existentes foram revisadas e a continuação vai até a venda com estoque, relatórios e publicação local.
 
 ## Por onde começar
 
+Para preparar as entregas da turma, consulte o [caderno de atividades por conceito](ATIVIDADES-POR-CONCEITO.md), com enunciados e critérios de aceite para as 20 aulas. A [análise pedagógica](ANALISE-PEDAGOGICA.md) apresenta lacunas, prioridades e recomendações para o professor.
+
+O [apoio ao professor](ensino/README.md) traz preparação do laboratório e geração de 21 checkpoints, do console inicial à entrega final. Para conferir documentação, compilar as etapas e executar as verificações locais, use `tools/Validar-Material.ps1`.
+
 1. Leia o [plano das aulas](PLANO-DE-AULAS.md): objetivos, tempos, entregas e avaliação.
 2. Faça as aulas na ordem abaixo. Se já concluiu a versão antiga, siga primeiro a [transição](TRANSICAO.md).
 3. Consulte o [código de referência e a execução](src/README.md) para comparar seu trabalho; ele representa o resultado final, não um projeto inicial que deve ser copiado inteiro na primeira aula.
-4. Registre as verificações no [caderno de evidências](CADERNO-DE-EVIDENCIAS.md). Consulte também o [registro de validação desta entrega](VALIDACAO.md).
+4. Registre as verificações no [caderno de evidências](CADERNO-DE-EVIDENCIAS.md). Consulte também o [registro de validação das melhorias](VALIDACAO-MELHORIAS.md); o [registro anterior](VALIDACAO.md) foi preservado como histórico.
 
 ## Sequência das práticas
 
@@ -46,6 +50,6 @@ A ligação direta do desktop ao Neon é um recorte de laboratório: credenciais
 
 ## Versões e referências
 
-Mantemos **.NET 8** para continuidade com o material e compatibilidade com **VS 2022**. Use a edição 17.14 atualizada com SDK 8.0.4xx; o mínimo para direcionar .NET 8 é VS 17.8. O suporte do .NET 8 termina em **10 de novembro de 2026**: antes de reutilizar o curso depois dessa data, planeje atualizar o framework e a IDE em conjunto. [Compatibilidade oficial](https://learn.microsoft.com/en-us/dotnet/core/porting/versioning-sdk-msbuild-vs) e [política de suporte](https://dotnet.microsoft.com/en-us/platform/support/policy/dotnet-core).
+O ambiente desta edição é **.NET 10 LTS**, **Visual Studio 2026 18.11** e **SDK 10.0.404** (faixa 10.0.4xx, selecionada por `global.json`). Atualize os patches dessa faixa antes de cada turma. O .NET 8 usado na edição anterior encerrou suporte em 10/11/2026; código, pacotes e instruções foram atualizados em conjunto nesta edição. Consulte a [compatibilidade oficial](https://learn.microsoft.com/en-us/dotnet/core/porting/versioning-sdk-msbuild-vs) e a [política de suporte](https://dotnet.microsoft.com/en-us/platform/support/policy/dotnet-core).
 
-O exemplo fixa Npgsql 8.0.9 e Microsoft.Extensions.Identity.Core 8.0.22 para reprodução. Não significam “últimas versões”; o professor deve verificar atualizações e vulnerabilidades compatíveis antes de cada turma. As [fontes oficiais](REFERENCIAS.md) sustentam as decisões técnicas.
+O exemplo fixa Npgsql 10.0.3 e Microsoft.Extensions.Identity.Core 10.0.15 para reprodução. Não significam “últimas versões”; o professor deve verificar atualizações e vulnerabilidades compatíveis antes de cada turma. As [fontes oficiais](REFERENCIAS.md) sustentam as decisões técnicas.

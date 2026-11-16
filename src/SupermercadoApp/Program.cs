@@ -34,6 +34,13 @@ internal static class Program
             {
                 using var login = new FormLogin(autenticacao);
                 if (login.ShowDialog() != DialogResult.OK || login.SessaoAutenticada is not { } sessao) break;
+                if (args.Contains("--preparar-caixa"))
+                {
+                    Permissoes.ExigirAdministrador(sessao);
+                    using var cadastro = new FormUsuarios(sessao, autenticacao);
+                    cadastro.ShowDialog();
+                    return;
+                }
                 using Form principal = sessao.Perfil == Perfil.Administrador
                     ? new FormAdministrador(sessao, produtoService, autenticacao, vendaService)
                     : new FormCaixa(sessao, vendaService);

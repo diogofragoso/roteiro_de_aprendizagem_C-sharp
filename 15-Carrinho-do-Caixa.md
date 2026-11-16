@@ -53,6 +53,15 @@ No `Program`, componha esse serviço mínimo e passe-o ao caixa. Configure a cul
 
 ## 4. Faça as contas antes de executar
 
+Transforme a conta conhecida em verificação executável, depois de montar os itens:
+
+```csharp
+if (carrinho.Itens.Count != 2 || carrinho.Total != 60.30m)
+    throw new Exception("Carrinho deveria agrupar e totalizar R$ 60,30.");
+```
+
+Em uma cópia do exercício, troque a quantidade do arroz e confirme que a verificação detecta a diferença; restaure ao terminar. Não provoque erro na referência compartilhada. Guarde o caso para a aula 20. Explique também `with` (novo record com outra quantidade), `[]` (lista vazia neste contexto) e `checked` (detecta excesso do inteiro); A15.03/A15.04 isolam essas experiências sem estoque enorme no banco.
+
 Prepare arroz a R$ 25,90 com estoque 10 e feijão a R$ 8,50 com estoque 10. Adicione arroz duas vezes, uma unidade por clique, e feijão uma vez. Devem aparecer duas linhas e total **R$ 60,30**. Remova feijão: **R$ 51,80**. Cancele: zero linhas e total zero.
 
 ## Verifique antes de encerrar
@@ -66,3 +75,7 @@ Prepare arroz a R$ 25,90 com estoque 10 e feijão a R$ 8,50 com estoque 10. Adic
 Na próxima aula vamos persistir a venda. Por enquanto, não mostre “venda realizada”: nada foi gravado.
 
 [Anterior: aula 14](14-Reposicao-de-Estoque.md) · [Próxima: aula 16](16-Venda-com-Transacao.md)
+
+## Atividades por conceito
+
+Realize as atividades da [aula 15 no caderno complementar](ATIVIDADES-POR-CONCEITO.md#aula-15). Cada conceito tem enunciado e critério de aceite. Reúna as evidências em uma entrega por aula, usando os IDs no [caderno de evidências](CADERNO-DE-EVIDENCIAS.md). Essas tarefas integram a prática e a verificação já previstas no encontro.

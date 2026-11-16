@@ -1,11 +1,11 @@
 # Implementação de referência
 
-Este é o resultado final do roteiro, em **C# / .NET 8 / Windows Forms**, para **Visual Studio 2022**. Não há arquivos de credenciais e nenhuma tabela é criada automaticamente ao abrir o programa.
+Este é o resultado final do roteiro, em **C# / .NET 10 / Windows Forms**, para **Visual Studio 2026**. Não há arquivos de credenciais e nenhuma tabela é criada automaticamente ao abrir o programa.
 
 ## Abrir e executar
 
-1. Abra [Supermercado.sln](../Supermercado.sln) no VS 2022 17.14 atualizado, com desenvolvimento desktop .NET e SDK 8.0.4xx. O `global.json` seleciona SDK 8.0.4xx para manter a reprodução no VS 2022; instale essa faixa se o terminal informar que não encontrou SDK compatível. O console de verificações não deve ser o projeto de inicialização; selecione **SupermercadoApp**.
-2. Restaure os pacotes NuGet. O projeto fixa Npgsql 8.0.9 e Identity.Core 8.0.22. Confira atualizações compatíveis e vulnerabilidades antes de uma nova turma.
+1. Abra [Supermercado.sln](../Supermercado.sln) no VS 2026 18.11 atualizado, com desenvolvimento desktop .NET e SDK 10.0.4xx. O `global.json` seleciona SDK 10.0.4xx para manter a reprodução no VS 2026; instale essa faixa se o terminal informar que não encontrou SDK compatível. O console de verificações não deve ser o projeto de inicialização; selecione **SupermercadoApp**.
+2. Restaure os pacotes NuGet. O projeto fixa Npgsql 10.0.3 e Identity.Core 10.0.15. Confira atualizações compatíveis e vulnerabilidades antes de uma nova turma.
 3. No ambiente Neon **vazio e separado para laboratório**, execute em ordem e uma única vez [001](../database/001-usuarios.sql), [002](../database/002-produtos.sql) e [003](../database/003-vendas.sql). Na sequência didática, cada um entra na aula correspondente; para executar a referência final agora, todos são necessários.
 4. Nas variáveis de ambiente da sua conta Windows, configure `SUPERMERCADO_DB` com uma conexão Npgsql, sem publicá-la. Reabra a IDE.
 5. Em propriedades do projeto → Depurar → perfil de inicialização, acrescente o argumento `--preparar-admin`. Execute, informe o nome e uma senha de 12 a 128 caracteres. Isso só funciona com a tabela de usuários vazia.
@@ -21,6 +21,8 @@ Host=SEU_HOST;Database=SEU_BANCO;Username=SEU_ROLE;Password=SUA_SENHA;SSL Mode=V
 Não use uma URI `postgresql://` nesse campo. Credenciais com caracteres especiais precisam ser representadas conforme o formato de conexão Npgsql; use os campos .NET fornecidos pelo painel. Não desative a verificação TLS para fazer o teste passar.
 
 ## Estrutura e localização por aula
+
+As [versões de recuperação](../ensino/README.md) são geradas em `artifacts/checkpoints/00` a `20`. Cada uma contém apenas os membros da etapa e um inventário; início da aula N é a versão N−1. A referência final continua servindo à comparação de nomes e implementações.
 
 | Aula | Arquivos/métodos apresentados |
 | --- | --- |
@@ -54,6 +56,20 @@ dotnet run --project src/SupermercadoApp
 ```
 
 Não execute a preparação toda vez. Depois que existe um usuário, ela deve recusar a execução. A senha é informada por campo oculto, não por argumentos de linha de comando.
+
+Para o professor preparar uma conta Caixa nas etapas anteriores à aula 19, use `dotnet run --project src/SupermercadoApp -- --preparar-caixa`. A aplicação exige login administrativo e abre o formulário de criação; remova o argumento ao retomar a aula. Não há credencial ou acesso padrão.
+
+## Verificações de integração isoladas
+
+O projeto `tests/SupermercadoApp.Integracao` só conecta com `SUPERMERCADO_TEST_DB` e argumento explícito `--executar`. Configure a variável localmente em um banco didático com permissão de criar esquemas, usando conexão direta. Não publique seu valor. Execute na raiz:
+
+```powershell
+dotnet run --project tests/SupermercadoApp.Integracao -c Release -- --executar
+```
+
+Cada execução cria um esquema único `lab_<guid>`, aplica os três scripts nesse esquema, testa último item concorrente, repetição da mesma operação, rollback após escrita, histórico e fronteiras do relatório; ao terminar, remove somente esse esquema. O runner não usa `SUPERMERCADO_DB`. Sem configuração ou argumento, sai com código 2 e estado pendente, sem conexão. Falha encerra com código 1. Se o processo for interrompido à força, o esquema pode permanecer: confira o identificador no banco antes de uma limpeza manual. Não execute essa suíte em banco de operação real.
+
+Compilar o runner ou executar sua proteção sem conexão não comprova que os testes PostgreSQL passaram. Registre sua execução remota separadamente, como no [roteiro manual](../VALIDACAO-MANUAL.md).
 
 ## Limites intencionais
 

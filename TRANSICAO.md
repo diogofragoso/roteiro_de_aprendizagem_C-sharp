@@ -4,6 +4,8 @@ A versão anterior terminava no login e usava tabelas `TipoUsuario` e `Usuario`,
 
 Faça esta preparação antes de iniciar a aula 09. Ela ocupa as aulas 07 e 08 de recuperação; não deve ser somada à aula 09 como trabalho obrigatório extra.
 
+Nesta edição o ambiente também passou para .NET 10 LTS, SDK 10.0.404 e Visual Studio 2026 18.11. Atualize a IDE e instale o SDK antes de abrir a solução; .NET 8/VS 2022 não são o ambiente de execução desta edição. Os projetos usam `net10.0-windows`, Npgsql 10.0.3 e Identity.Core 10.0.15. Consulte a aula 05 e execute as verificações após restaurar os pacotes. Os checkpoints podem ser gerados pelo [apoio ao professor](ensino/README.md).
+
 1. Guarde uma cópia do código antigo. Remova credenciais de arquivos versionados e troque no Neon qualquer senha de banco que tenha sido publicada. Excluir uma linha de código não retira o segredo do histórico do Git.
 2. Crie no Neon uma **branch didática separada** para a turma. Confira nome da branch, banco e usuário antes de executar SQL. A tabela antiga `Usuario` sem aspas vira `usuario` no PostgreSQL e conflita com o novo nome. Uma branch derivada com o esquema antigo ainda contém essa tabela: use um banco vazio nessa branch ou uma branch com esquema vazio, conforme as opções do painel.
 3. Siga a aula 07 no banco vazio. Não execute `DROP TABLE` para “resolver” o conflito e não rode os scripts novos em dados reais. Esta transição é para dados descartáveis de laboratório; dados que precisem ser preservados exigem migração própria e validação antes da execução.

@@ -47,6 +47,15 @@ O arquivo também envolve a criação em `BEGIN` e `COMMIT`. Se houver erro e a 
 
 Usamos um conjunto pequeno de perfis em vez de uma tabela separada de cargos. Isso evita dependência em IDs mágicos como “gerente = 1” e combina com o `enum Perfil` do C#.
 
+| Coluna | Tipo | Significado e integridade |
+| --- | --- | --- |
+| id | integer identity | Identificador interno e chave primária; não é o login. |
+| username | varchar(50) | Login obrigatório, único e em minúsculas. |
+| senha_hash | text | Representação produzida pela biblioteca; nunca senha aberta. |
+| perfil | varchar(20) | Administrador ou Caixa; CHECK restringe o conjunto. |
+
+Use a tabela como início do seu dicionário; acrescente exemplos fictícios sem incluir hash ou senha nas evidências.
+
 Execute:
 
 ```sql
@@ -59,6 +68,12 @@ WHERE table_schema = 'public' AND table_name = 'usuario';
 A primeira consulta retorna **zero usuários**, o que é correto. O administrador será criado pelo aplicativo na aula 09. O script não deve ser reaplicado como se fosse uma consulta: se a tabela já existe, confira o ambiente e o histórico em vez de apagá-la.
 
 ## 3. Prepare os dados de conexão
+
+### Exercite as restrições sem criar contas inválidas
+
+Use [o laboratório de restrições](database/laboratorio/07-restricoes.sql) em uma sessão com conexão direta. Ele usa tabelas temporárias e testa duplicidade, ausência, maiúsculas e perfil inválido sem tocar em `usuario`. Execute o arquivo inteiro para manter a mesma sessão; tabelas temporárias não são compartilhadas entre conexões.
+
+Entregue um dicionário com coluna, tipo, significado e restrição. Diferencie `NULL` de texto vazio: `NOT NULL` sozinho permite `''`. O resultado de cada violação deve apontar a restrição correspondente. Ao final, compare inserção revertida e confirmada; não espere sequência de IDs sem lacunas.
 
 No painel **Connect**, selecione **.NET/C#**, branch, banco e role. Copie os campos adequados ao Npgsql. Uma URI `postgresql://...` não deve ser colada diretamente no construtor que espera os pares abaixo:
 
@@ -80,3 +95,7 @@ Guarde a conexão apenas no ambiente local conforme a aula 08. A senha do **role
 Fontes: [conexão Neon/.NET](https://neon.com/docs/guides/dotnet-npgsql) e [TLS no Npgsql](https://www.npgsql.org/doc/security.html).
 
 [Anterior: aula 06](06-Criando-Interface-Login.md) · [Próxima: aula 08](08-Conectando-Banco-Dados.md)
+
+## Atividades por conceito
+
+Realize as atividades da [aula 07 no caderno complementar](ATIVIDADES-POR-CONCEITO.md#aula-07). Cada conceito tem enunciado e critério de aceite. Reúna as evidências em uma entrega por aula, usando os IDs no [caderno de evidências](CADERNO-DE-EVIDENCIAS.md). Essas tarefas integram a prática e a verificação já previstas no encontro.

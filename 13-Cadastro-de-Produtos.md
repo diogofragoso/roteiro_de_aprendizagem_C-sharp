@@ -51,6 +51,8 @@ Antes de inativar, mostre uma confirmação com o nome do produto. Cancelar essa
 
 ## Verifique antes de encerrar
 
+Use a mesma sequência no registro: incluir → anotar ID/saldo → editar → tentar duplicar → cancelar inativação → confirmar → reabrir. Identifique a evidência de A13.01–A13.06. Para cada recusa, mostre que os dados anteriores foram preservados; uma captura da mensagem sozinha não demonstra isso.
+
 1. Cadastre “000123 / Arroz / 25,90”; confira estoque 0 e ativo verdadeiro.
 2. Edite nome e preço, preservando o ID e o código.
 3. Tente outro produto com o mesmo código: mensagem de duplicidade, sem encerrar o aplicativo.
@@ -61,3 +63,7 @@ Antes de inativar, mostre uma confirmação com o nome do produto. Cancelar essa
 Remova os botões temporários de preparo das aulas 11 e 12. A próxima aula dará entrada no estoque com histórico, sem editar diretamente a coluna de saldo.
 
 [Anterior: aula 12](12-Consulta-de-Produtos.md) · [Próxima: aula 14](14-Reposicao-de-Estoque.md)
+
+## Atividades por conceito
+
+Realize as atividades da [aula 13 no caderno complementar](ATIVIDADES-POR-CONCEITO.md#aula-13). Cada conceito tem enunciado e critério de aceite. Reúna as evidências em uma entrega por aula, usando os IDs no [caderno de evidências](CADERNO-DE-EVIDENCIAS.md). Essas tarefas integram a prática e a verificação já previstas no encontro.
