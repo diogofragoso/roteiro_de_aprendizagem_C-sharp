@@ -2,8 +2,6 @@
 
 Roteiro para estudantes iniciantes construírem o **MarketFlow**, um aplicativo Windows Forms com áreas separadas para **Administrador** e **Caixa**, utilizando **Visual Studio 2026** e **Neon PostgreSQL**.
 
-São **20 aulas práticas de 3h30 (210 minutos), totalizando 70 horas**. Cada aula começa com o resultado da anterior, explica as decisões e termina com uma entrega verificável. As oito aulas existentes foram revisadas e a continuação vai até a venda com estoque, relatórios e publicação local.
-
 ## Por onde começar
 
 Para preparar as entregas da turma, consulte o [caderno de atividades por conceito](ATIVIDADES-POR-CONCEITO.md), com enunciados e critérios de aceite para as 20 aulas. A [análise pedagógica](ANALISE-PEDAGOGICA.md) apresenta lacunas, prioridades e recomendações para o professor.
