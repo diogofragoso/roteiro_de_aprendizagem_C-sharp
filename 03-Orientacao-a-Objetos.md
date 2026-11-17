@@ -13,15 +13,15 @@
 
 Esta aula é uma **revisão aplicada ao supermercado**. Para aprender os conceitos pela primeira vez, siga [classes e referências](fundamentos/04-Classes-e-Objetos.md), [construtores e encapsulamento](fundamentos/05-Construtores-e-Encapsulamento.md), [composição](fundamentos/06-Composicao-e-Colecoes.md) e [interfaces e polimorfismo](fundamentos/07-Interfaces-e-Transicao.md), nessa ordem. Os exemplos resumidos abaixo não substituem essa prática.
 
-Na programação orientada a objetos, organizamos dados e comportamentos em objetos que colaboram para resolver um problema. O modelo seleciona os conceitos relevantes para o programa; não precisa reproduzir todos os detalhes do mundo real.
+O [laboratório de POO em C#](fundamentos/POO-na-Pratica.md) permite praticar os conceitos no console antes de aplicá-los ao supermercado.
+
+Na programação orientada a objetos, organizamos dados e comportamentos em objetos que colaboram para resolver um problema. O modelo seleciona os conceitos relevantes para o programa.
 
 No nosso **Sistema de Supermercado**, coisas do mundo real se transformam em partes do código: `Produto`, `Usuario`, `CarrinhoDeCompra`, `Pagamento`.
 
 ## 1. Classes vs Objetos
 
-Esses são os dois conceitos que mais confundem iniciantes, mas a diferença é simples:
-- **Classe:** É o "Molde" (a teoria). É a planta baixa de uma casa. Ela define quais características algo *vai ter*, mas não possui dados reais.
-- **Objeto (Instância):** É o "Produto final" (a prática). É a casa já construída com base na planta. Ele ocupa espaço na memória e contém os dados reais de um caso específico.
+Uma classe é como a planta de uma casa. Ela define a estrutura e os comportamentos disponíveis para suas instâncias. Um objeto é como uma casa construída a partir dessa planta. Cada instância tem seu próprio estado.
 
 ```csharp
 // A CLASSE (O Molde)
@@ -103,7 +103,7 @@ public class Funcionario : Pessoa
 ```
 
 ### Pilar 4: Polimorfismo ("Muitas Formas")
-Permite que classes diferentes tenham o mesmo nome de método, mas executem lógicas diferentes de acordo com a sua classe. Muito usado com **Interfaces** (contratos).
+Permite chamar uma operação por um tipo comum e executar a implementação correspondente ao objeto que recebe a chamada. Neste exemplo, a interface `IPagamento` é o contrato comum.
 
 ```csharp
 // A interface é um contrato. Quem implementá-la deve oferecer Processar.

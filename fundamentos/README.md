@@ -6,6 +6,8 @@ Ao concluir, você deve conseguir criar uma classe, construir dois objetos, expl
 
 ## Como estudar
 
+Depois de F03, use o [laboratório de POO em C#](POO-na-Pratica.md) como prática complementar aos encontros F04–F07. Os exemplos de leitura e avisos incluem saídas esperadas e um exercício de modelagem independente.
+
 Em cada encontro: leia o problema, preveja a saída no papel, digite o exemplo, execute, altere uma entrada e explique o resultado. Em seguida, resolva a atividade sem copiar a solução do exemplo. Erros fazem parte da prática: leia a mensagem, localize a linha e altere uma coisa por vez.
 
 Cada capítulo indica exatamente quais arquivos criar e quando substituir o código. Use um projeto de console separado por capítulo. Os exemplos são exercícios independentes da aplicação final: as classes de treino não devem ser copiadas sobre os modelos do supermercado.

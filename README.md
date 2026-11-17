@@ -6,6 +6,8 @@ Roteiro para estudantes iniciantes construírem o **MarketFlow**, um aplicativo 
 
 **Se você ainda não programa ou não conhece orientação a objetos, comece pelo [guia preparatório de fundamentos](fundamentos/README.md).** São oito etapas em console: primeiro programa, variáveis, decisões, repetições, métodos, classes, construtores, encapsulamento, composição e interfaces. Cada etapa inclui exemplos, exercícios e um critério de avanço. Só depois inicie a sequência do supermercado.
 
+Se você já conhece variáveis, laços e métodos, o [laboratório de POO em C#](fundamentos/POO-na-Pratica.md) apresenta classes, objetos e os quatro pilares com exercícios de console independentes do supermercado.
+
 O planejamento sugerido passa a ser **28 horas de fundamentos + 70 horas do projeto = 98 horas**. As aulas 01–03 do projeto retomam os conceitos no contexto do supermercado; não substituem a preparação de uma turma iniciante.
 
 Para preparar as entregas da turma, consulte o [caderno de atividades por conceito](ATIVIDADES-POR-CONCEITO.md), com enunciados e critérios de aceite para as 20 aulas. A [análise pedagógica](ANALISE-PEDAGOGICA.md) apresenta lacunas, prioridades e recomendações para o professor.
