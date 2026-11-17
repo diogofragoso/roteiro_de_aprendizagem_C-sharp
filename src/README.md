@@ -2,6 +2,8 @@
 
 Este é o resultado final do roteiro, em **C# / .NET 10 / Windows Forms**, para **Visual Studio 2026**. Não há arquivos de credenciais e nenhuma tabela é criada automaticamente ao abrir o programa.
 
+Para estudantes que escolherem MySQL/MariaDB pelo XAMPP, consulte a [trilha alternativa](../INTEGRACAO-MYSQL-XAMPP.md). Esta implementação usa Npgsql e SQL PostgreSQL; siga as adaptações do complemento no projeto do estudante antes de conectar ao banco local.
+
 ## Abrir e executar
 
 1. Abra [Supermercado.sln](../Supermercado.sln) no VS 2026 18.11 atualizado, com desenvolvimento desktop .NET e SDK 10.0.4xx. O `global.json` seleciona SDK 10.0.4xx para manter a reprodução no VS 2026; instale essa faixa se o terminal informar que não encontrou SDK compatível. O console de verificações não deve ser o projeto de inicialização; selecione **SupermercadoApp**.

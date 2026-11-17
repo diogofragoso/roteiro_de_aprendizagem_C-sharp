@@ -1,4 +1,6 @@
-# Aula 07 — Banco Neon e usuários
+# Aula 07 — Banco de dados e usuários
+
+**Escolha do banco:** esta página apresenta Neon/PostgreSQL. Para usar MySQL/MariaDB local, siga as etapas 1 e 2 da [trilha XAMPP](INTEGRACAO-MYSQL-XAMPP.md) no lugar da preparação e dos scripts desta página. As entregas e o tempo da aula são os mesmos; nessa opção, não é necessária uma conta Neon.
 
 **Duração:** 3h30. **Pré-requisito:** aula 06, internet e conta de laboratório. **Entrega:** banco com a tabela `usuario` criada, sem contas com senha aberta.
 

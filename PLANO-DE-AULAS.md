@@ -4,6 +4,10 @@
 
 **Público:** estudantes com pouca experiência. É suficiente saber criar pastas, digitar e usar o Windows. A instalação do Visual Studio e o acesso às contas devem ser preparados pelo professor antes do primeiro encontro. Na aula 05 os estudantes aprendem a reproduzir e conferir essa instalação; assim as aulas 01 a 04 conseguem usar o console desde o início.
 
+## Opção de banco de dados
+
+Defina a escolha antes da aula 07: Neon/PostgreSQL ou [MySQL/MariaDB pelo XAMPP](INTEGRACAO-MYSQL-XAMPP.md). A trilha local substitui a preparação das aulas 07/08 e orienta os ajustes de persistência posteriores, preservando as 20 aulas, os tempos e as entregas. O professor deve preparar o conector, validar os scripts e executar os cenários de transação no servidor escolhido. Os checkpoints e o runner de integração existentes são PostgreSQL.
+
 ## Rotina de cada encontro
 
 | Etapa | Minutos | O que se faz |
@@ -28,7 +32,7 @@ Cada capítulo especifica o conteúdo desses blocos. Desafios extras são opcion
 | 04 | 03 | Regra no serviço e dados em repositório em memória |
 | 05 | 04 | `SupermercadoApp` abre uma janela e compila |
 | 06 | 05 | Login com nomes de controles, senha oculta e Tab/Enter |
-| 07 | 06, conta Neon | Tabela `usuario` criada; restrições explicadas |
+| 07 | 06, conta Neon ou XAMPP local preparado | Tabela `usuario` criada; restrições explicadas |
 | 08 | 07 | `SELECT 1` assíncrono e falha de rede tratada |
 | 09 | 08 | Admin criado com hash; senha correta e incorreta verificadas |
 | 10 | 09 | Cada perfil acessa sua janela; sair retorna ao login |

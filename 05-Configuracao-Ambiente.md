@@ -22,6 +22,8 @@
 
 Esta edição usa .NET 10 LTS com SDK 10.0.404 e VS 2026 18.11, combinação indicada na [página oficial de download](https://dotnet.microsoft.com/en-us/download/dotnet/10.0). O .NET 8 da edição anterior encerrou suporte em 10/11/2026. O professor deve preparar o novo ambiente antes da turma e manter seus patches atualizados.
 
+Para as aulas de persistência, escolha com o professor entre Neon/PostgreSQL e [MySQL/MariaDB pelo XAMPP](INTEGRACAO-MYSQL-XAMPP.md). Na opção local, prepare o XAMPP antes da aula 07; a aplicação C# usa MySqlConnector e não exige PHP.
+
 ## 2. Crie a solução
 
 1. Clique em **Criar um novo projeto**.

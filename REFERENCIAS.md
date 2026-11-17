@@ -14,3 +14,13 @@ Referências iniciais em 16/10/2026; suporte, SDK, IDE e versões NuGet conferid
 - [Publicar aplicativos .NET](https://learn.microsoft.com/en-us/dotnet/core/deploying/): diferenças entre publicação dependente de runtime e autocontida.
 
 Evite apresentar hash como criptografia reversível. O `PasswordHasher` gera um formato com parâmetros e salt; o aplicativo verifica a senha com a biblioteca. Não implemente seu próprio esquema de senhas e não use MD5.
+
+## Alternativa MySQL/MariaDB com XAMPP
+
+- [XAMPP: FAQ para Windows](https://www.apachefriends.org/faq_windows.html): serviço MySQL do painel, distribuição MariaDB e uso local.
+- [MySqlConnector: API básica](https://mysqlconnector.net/tutorials/basic-api/): conexões, parâmetros e consultas assíncronas.
+- [MySqlConnector: opções de conexão](https://mysqlconnector.net/connection-options/): porta, TLS, pool e DateTimeKind.
+- [MySqlConnector: MySqlDataSourceBuilder](https://mysqlconnector.net/api/mysqlconnector/mysqldatasourcebuildertype/): construção da fonte de dados.
+- [MySqlConnector: LastInsertedId](https://mysqlconnector.net/api/mysqlconnector/mysqlcommand/lastinsertedid/): obtenção do identificador após INSERT.
+- [MariaDB: restrições](https://mariadb.com/docs/server/reference/sql-statements/data-definition/constraint): chaves e CHECK.
+- [MariaDB: GET_LOCK](https://mariadb.com/docs/server/reference/sql-functions/secondary-functions/miscellaneous-functions/get_lock): bloqueio de sessão e necessidade de liberação explícita.

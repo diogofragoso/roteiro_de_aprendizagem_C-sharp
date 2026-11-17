@@ -1,6 +1,6 @@
 # C# na prática: supermercado desktop
 
-Roteiro para estudantes iniciantes construírem o **MarketFlow**, um aplicativo Windows Forms com áreas separadas para **Administrador** e **Caixa**, utilizando **Visual Studio 2026** e **Neon PostgreSQL**.
+Roteiro para estudantes iniciantes construírem o **MarketFlow**, um aplicativo Windows Forms com áreas separadas para **Administrador** e **Caixa**, utilizando **Visual Studio 2026** e **Neon PostgreSQL** ou **MySQL/MariaDB pelo XAMPP**.
 
 ## Por onde começar
 
@@ -13,6 +13,10 @@ O [apoio ao professor](ensino/README.md) traz preparação do laboratório e ger
 3. Consulte o [código de referência e a execução](src/README.md) para comparar seu trabalho; ele representa o resultado final, não um projeto inicial que deve ser copiado inteiro na primeira aula.
 4. Registre as verificações no [caderno de evidências](CADERNO-DE-EVIDENCIAS.md). Consulte também o [registro de validação das melhorias](VALIDACAO-MELHORIAS.md); o [registro anterior](VALIDACAO.md) foi preservado como histórico.
 
+## Escolha do banco de dados
+
+A trilha principal usa Neon/PostgreSQL. Quem escolher o banco local deve seguir a [opção MySQL/MariaDB com XAMPP](INTEGRACAO-MYSQL-XAMPP.md), com preparação, scripts próprios, conexão C# e adaptações das aulas 09 a 20. O código de referência e os checkpoints existentes usam PostgreSQL; a opção local orienta a adaptação no projeto do estudante.
+
 ## Sequência das práticas
 
 | Aula | Prática | Entrega ao final de 3h30 |
@@ -23,7 +27,7 @@ O [apoio ao professor](ensino/README.md) traz preparação do laboratório e ger
 | 04 | [Arquitetura e contratos](04-Arquitetura-e-Padroes.md) | Responsabilidades e repositório em memória |
 | 05 | [Ambiente e solução](05-Configuracao-Ambiente.md) | Aplicativo Windows Forms compilando |
 | 06 | [Interface de login](06-Criando-Interface-Login.md) | Tela navegável pelo teclado |
-| 07 | [Banco Neon](07-Criando-Banco-Dados-Neon.md) | Tabela de usuários sem senha em texto puro |
+| 07 | [Banco Neon ou XAMPP](07-Criando-Banco-Dados-Neon.md) | Tabela de usuários sem senha em texto puro |
 | 08 | [Conexão assíncrona](08-Conectando-Banco-Dados.md) | Consulta ao banco sem congelar a tela |
 | 09 | [Autenticação](09-Autenticacao-Segura.md) | Primeiro administrador e login por hash |
 | 10 | [Sessão e perfis](10-Sessao-e-Perfis.md) | Menus separados e troca de usuário |

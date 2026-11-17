@@ -1,4 +1,6 @@
-# Aula 08 — Conexão assíncrona com o Neon
+# Aula 08 — Conexão assíncrona com o banco
+
+**Opção MySQL/MariaDB:** se você escolheu XAMPP, use as etapas 3 a 5 da [trilha alternativa](INTEGRACAO-MYSQL-XAMPP.md) no lugar do Npgsql e do Banco.cs abaixo. O diagnóstico e os critérios de entrega continuam iguais.
 
 **Duração:** 3h30. **Pré-requisito:** aula 07 e login visual. **Entrega:** botão de diagnóstico que executa `SELECT 1` sem bloquear a interface, sem credenciais no código.
 
