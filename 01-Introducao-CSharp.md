@@ -1,6 +1,6 @@
 # Aula 01 — Lógica e tipos
 
-**Duração:** 3h30. **Pré-requisito:** Laboratório com Visual Studio preparado pelo professor. **Entrega:** Calcular uma compra, aplicar uma decisão e percorrer uma lista.
+**Duração:** 3h30. **Pré-requisito:** percurso [F00–F07](fundamentos/README.md) concluído ou demonstrado em diagnóstico, e laboratório com Visual Studio preparado pelo professor. **Entrega:** Calcular uma compra, aplicar uma decisão e percorrer uma lista.
 
 | Bloco | Minutos | Atividade |
 | --- | ---: | --- |
@@ -18,6 +18,8 @@ O **C# (C-Sharp)** é uma linguagem de programação moderna, fortemente tipada 
 > Significa que o C# é rigoroso com o tipo de dado que uma variável pode armazenar. Se você criar uma variável para guardar números inteiros, você não poderá guardar um texto nela. Isso evita muitos "bugs" invisíveis que ocorrem em linguagens mais flexíveis (como JavaScript).
 
 ---
+
+Esta aula inicia a aplicação dos fundamentos ao supermercado. Se ainda não sabe executar um console, acompanhar variáveis ou escrever métodos, faça primeiro o [guia preparatório](fundamentos/README.md). Não é necessário aprender toda a sintaxe desta página em um primeiro contato.
 
 ## 1. Variáveis e Tipos de Dados
 

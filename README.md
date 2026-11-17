@@ -4,6 +4,10 @@ Roteiro para estudantes iniciantes construírem o **MarketFlow**, um aplicativo 
 
 ## Por onde começar
 
+**Se você ainda não programa ou não conhece orientação a objetos, comece pelo [guia preparatório de fundamentos](fundamentos/README.md).** São oito etapas em console: primeiro programa, variáveis, decisões, repetições, métodos, classes, construtores, encapsulamento, composição e interfaces. Cada etapa inclui exemplos, exercícios e um critério de avanço. Só depois inicie a sequência do supermercado.
+
+O planejamento sugerido passa a ser **28 horas de fundamentos + 70 horas do projeto = 98 horas**. As aulas 01–03 do projeto retomam os conceitos no contexto do supermercado; não substituem a preparação de uma turma iniciante.
+
 Para preparar as entregas da turma, consulte o [caderno de atividades por conceito](ATIVIDADES-POR-CONCEITO.md), com enunciados e critérios de aceite para as 20 aulas. A [análise pedagógica](ANALISE-PEDAGOGICA.md) apresenta lacunas, prioridades e recomendações para o professor.
 
 O [apoio ao professor](ensino/README.md) traz preparação do laboratório e geração de 21 checkpoints, do console inicial à entrega final. Para conferir documentação, compilar as etapas e executar as verificações locais, use `tools/Validar-Material.ps1`.
@@ -17,7 +21,7 @@ O [apoio ao professor](ensino/README.md) traz preparação do laboratório e ger
 
 A trilha principal usa Neon/PostgreSQL. Quem escolher o banco local deve seguir a [opção MySQL/MariaDB com XAMPP](INTEGRACAO-MYSQL-XAMPP.md), com preparação, scripts próprios, conexão C# e adaptações das aulas 09 a 20. O código de referência e os checkpoints existentes usam PostgreSQL; a opção local orienta a adaptação no projeto do estudante.
 
-## Sequência das práticas
+## Sequência das práticas do projeto — após os fundamentos
 
 | Aula | Prática | Entrega ao final de 3h30 |
 | --- | --- | --- |

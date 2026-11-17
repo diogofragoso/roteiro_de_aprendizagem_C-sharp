@@ -1,6 +1,6 @@
 # Caderno de evidências
 
-Copie o modelo abaixo para cada aula, de 01 a 20. Não inclua senhas, credenciais do Neon ou dados reais de clientes. Capturas devem ocultar o painel de conexão.
+Na etapa preparatória, use o [registro F00–F07](fundamentos/README.md#evidências-e-recuperação), com os critérios de cada capítulo. Ao iniciar o projeto, copie o modelo abaixo para cada aula, de 01 a 20. Não inclua senhas, credenciais do Neon ou dados reais de clientes. Capturas devem ocultar o painel de conexão.
 
 ## Aula NN — título
 

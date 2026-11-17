@@ -1,6 +1,6 @@
 # Aula 03 — Orientação a objetos
 
-**Duração:** 3h30. **Pré-requisito:** Aula 02. **Entrega:** Classes Produto e ItemDeCompra instanciadas, com subtotal calculado.
+**Duração:** 3h30. **Pré-requisito:** aula 02 e fundamentos F03–F07 demonstrados. **Entrega:** Classes Produto e ItemDeCompra instanciadas, com subtotal calculado.
 
 | Bloco | Minutos | Atividade |
 | --- | ---: | --- |
@@ -11,7 +11,9 @@
 | Prática | 60 | Implementar subtotal e percorrer objetos |
 | Entrega | 30 | Demonstrar casos normal/inválido e registrar evidências |
 
-A Programação Orientada a Objetos (POO) não é apenas uma funcionalidade da linguagem; é uma **forma de pensar**. No início da programação de computadores, o código era uma lista gigante de comandos descendo a tela (programação procedural). Com a POO, nós modelamos o nosso software para se parecer com o mundo real.
+Esta aula é uma **revisão aplicada ao supermercado**. Para aprender os conceitos pela primeira vez, siga [classes e referências](fundamentos/04-Classes-e-Objetos.md), [construtores e encapsulamento](fundamentos/05-Construtores-e-Encapsulamento.md), [composição](fundamentos/06-Composicao-e-Colecoes.md) e [interfaces e polimorfismo](fundamentos/07-Interfaces-e-Transicao.md), nessa ordem. Os exemplos resumidos abaixo não substituem essa prática.
+
+Na programação orientada a objetos, organizamos dados e comportamentos em objetos que colaboram para resolver um problema. O modelo seleciona os conceitos relevantes para o programa; não precisa reproduzir todos os detalhes do mundo real.
 
 No nosso **Sistema de Supermercado**, coisas do mundo real se transformam em partes do código: `Produto`, `Usuario`, `CarrinhoDeCompra`, `Pagamento`.
 
@@ -46,7 +48,7 @@ prod2.Preco = 4.00m;
 
 ## 2. Os 4 Pilares da Orientação a Objetos
 
-Todo sistema profissional (especialmente em .NET) se baseia nestes quatro conceitos. Ignorá-los resulta em códigos difíceis de dar manutenção.
+Os conceitos abaixo ajudam a discutir diferentes formas de modelar o programa. Eles não precisam aparecer todos em cada classe. Estude primeiro objetos e encapsulamento; use composição e interfaces quando a relação exigir, sem criar herança apenas para cumprir uma lista de pilares.
 
 ### Pilar 1: Abstração
 É a capacidade de ignorar detalhes que não importam e focar apenas no essencial para o seu sistema.

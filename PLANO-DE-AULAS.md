@@ -1,8 +1,14 @@
-# Plano de ensino: 20 práticas de 3h30
+# Plano de ensino: fundamentos e projeto
 
-**Carga horária:** 70 horas, em 20 encontros de 210 minutos, incluindo 15 minutos de intervalo por encontro. Se a instituição contabiliza apenas tempo de atividade, cada encontro contém 195 minutos de atividade e 15 de intervalo; ajuste o calendário institucional antes da oferta.
+**Carga horária sugerida para iniciantes:** 98 horas: 28 horas de preparação, em oito encontros, mais 70 horas do projeto, em 20 encontros. Cada encontro tem 210 minutos, incluindo 15 minutos de intervalo. Se a instituição contabiliza apenas tempo de atividade, cada encontro contém 195 minutos de atividade e 15 de intervalo; ajuste o calendário institucional antes da oferta.
 
-**Público:** estudantes com pouca experiência. É suficiente saber criar pastas, digitar e usar o Windows. A instalação do Visual Studio e o acesso às contas devem ser preparados pelo professor antes do primeiro encontro. Na aula 05 os estudantes aprendem a reproduzir e conferir essa instalação; assim as aulas 01 a 04 conseguem usar o console desde o início.
+**Público:** estudantes iniciantes. Quem ainda não conhece programação e orientação a objetos começa pelo [percurso preparatório F00–F07](fundamentos/README.md), com explicações, exemplos executáveis, exercícios e critérios de avanço. Saber usar o Windows é suficiente para iniciar F00, mas não para pular diretamente para a arquitetura do projeto.
+
+O professor prepara Visual Studio e SDK antes de F00. A aula 05 do projeto retoma a configuração ao criar o Windows Forms. Contas e ferramentas de banco só são necessárias antes da aula 07. As aulas 01–03 do projeto passam a ser revisão aplicada, depois da preparação. Uma turma com experiência pode demonstrar os critérios F00–F07 em diagnóstico; registre as evidências antes de dispensar etapas.
+
+## Etapa preparatória — antes das 20 aulas
+
+Siga a [sequência de oito encontros](fundamentos/README.md#sequência-e-tempo). Trabalhe primeiro execução e valores; depois controle de fluxo e métodos; em seguida objetos, construtores, encapsulamento, composição e contratos. Não antecipe banco, interfaces gráficas ou repositórios para explicar o primeiro objeto. Use os critérios de cada capítulo para decidir o avanço e reserve recuperação quando necessário. O calendário de 98 horas é uma previsão, não uma garantia de domínio em tempo fixo.
 
 ## Opção de banco de dados
 

@@ -17,7 +17,7 @@ foreach ($n in 1..20) {
     $soma = ($tempos | ForEach-Object { [int]$_.Groups[1].Value } | Measure-Object -Sum).Sum
     if ($soma -ne 210) { $falhas.Add("Aula $num soma $soma minutos") }
 }
-$documentos = @(Get-ChildItem -File -Filter '*.md') + @(Get-ChildItem ensino -Recurse -File -Filter '*.md') + @(Get-Item src/README.md)
+$documentos = @(Get-ChildItem -File -Filter '*.md') + @(Get-ChildItem ensino -Recurse -File -Filter '*.md') + @(Get-ChildItem fundamentos -Recurse -File -Filter '*.md') + @(Get-Item src/README.md)
 foreach ($arquivo in $documentos) {
     $texto = [IO.File]::ReadAllText($arquivo.FullName)
     if ($texto.Contains([char]0xFFFD)) { $falhas.Add("UTF-8 invalido: $($arquivo.Name)") }

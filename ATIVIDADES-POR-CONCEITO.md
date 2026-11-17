@@ -1,6 +1,6 @@
 # Caderno de atividades por conceito — C# e MarketFlow
 
-Material para entregar aos estudantes, complementar às [20 aulas](README.md). Cada linha é uma atividade com ID, conceito, enunciado e critério de aceite. Agrupe as linhas da aula em **uma única entrega**, reutilizando código e evidências. Não é necessário criar um projeto para cada atividade.
+Material para entregar aos estudantes, complementar às [20 aulas do projeto](README.md). Para iniciantes, essas aulas vêm depois do [guia preparatório F00–F07](fundamentos/README.md), que tem exercícios e critérios próprios; os IDs A01–A20 desta página não substituem essa preparação. Cada linha é uma atividade com ID, conceito, enunciado e critério de aceite. Agrupe as linhas da aula em **uma única entrega**, reutilizando código e evidências. Não é necessário criar um projeto para cada atividade.
 
 Para cada ID, indique o arquivo/método ou resposta, preparação, resultado esperado e observado e uma explicação curta com suas palavras. Use o [modelo de evidências](CADERNO-DE-EVIDENCIAS.md). Prints sozinhos não substituem código nem explicação. Não envie credenciais, senhas, hashes completos ou dados pessoais reais; use dados fictícios. Os exemplos de cartão, Pix e balança são apenas simulações.
 

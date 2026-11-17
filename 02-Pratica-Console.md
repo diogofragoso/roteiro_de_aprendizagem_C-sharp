@@ -134,7 +134,7 @@ Console.WriteLine("ALERTA: Estoque vazio! Solicitar reposição.");
 </code></pre>
 </details>
 
-Agora que você dominou a sintaxe e a lógica escrevendo códigos estruturados no Console, você está preparado para elevar o nível com a Orientação a Objetos.
+Antes de avançar, demonstre a validação e a depuração com uma entrada diferente do exemplo. Se métodos, classes ou objetos ainda forem novidade, retome o [percurso preparatório](fundamentos/README.md), especialmente F03–F06; executar este console sozinho não comprova domínio de orientação a objetos.
 
 
 ## Entrega prática: valide e depure

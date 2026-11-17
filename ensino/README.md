@@ -2,6 +2,12 @@
 
 Este material acompanha as [atividades dos estudantes](../ATIVIDADES-POR-CONCEITO.md). Prepare os checkpoints antes da turma. Eles contêm somente os tipos, métodos e controles da etapa correspondente; não são a aplicação final com menus escondidos.
 
+## Antes de desenvolver o projeto
+
+Para estudantes sem programação ou POO, comece pelo [guia preparatório F00–F07](../fundamentos/README.md). São oito encontros sugeridos, totalizando 28 horas antes das 70 horas do projeto. Prepare apenas IDE e SDK para essa etapa. Cada capítulo informa os arquivos, os exemplos, as atividades e o critério de avanço; peça explicação individual e uma alteração não copiada.
+
+Não apresente os quatro pilares em um único primeiro contato. Verifique primeiro se o estudante compreende chamada, parâmetro e retorno; depois trabalhe classe, objeto e referência; em seguida construtor, proteção de estado, composição e contrato. Ao entrar no projeto, use as aulas 01–03 para revisão aplicada. Os checkpoints 00–20 abaixo pertencem à etapa do projeto e não geram os exercícios F00–F07.
+
 ## Gerar as versões de início e fim
 
 Na raiz, com PowerShell e o SDK indicado em `global.json`:
