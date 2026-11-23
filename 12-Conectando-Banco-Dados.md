@@ -1,13 +1,13 @@
-# Aula 08 — Conexão Assíncrona, Pool de Conexões e Descarte Seguro
+# Aula 12 — Conexão Assíncrona, Pool de Conexões e Descarte Seguro
 
 > [!NOTE]
 > **Opção MySQL/MariaDB (XAMPP):** se você escolheu banco local, utilize as Etapas 3 a 5 da [trilha alternativa XAMPP](INTEGRACAO-MYSQL-XAMPP.md) no lugar de `Npgsql` e `NpgsqlDataSource`. Todos os conceitos de assincronia (`async`/`await`), descarte (`await using`), `try/catch/finally` e segurança permanecem idênticos.
 
-**Duração:** 3h30. **Pré-requisito:** [Aula 07](07-Criando-Banco-Dados-Neon.md) e `FormLogin` da Aula 06. **Entrega:** infraestrutura `Banco.cs` construída por você usando variável de ambiente, mais botão temporário de diagnóstico que executa `SELECT 1` sem travar a janela e trata falhas de rede com segurança.
+**Duração:** 3h30. **Pré-requisito:** [Aula 11](11-Criando-Banco-Dados-Neon.md) e `FormLogin` da Aula 10. **Entrega:** infraestrutura `Banco.cs` construída por você usando variável de ambiente, mais botão temporário de diagnóstico que executa `SELECT 1` sem travar a janela e trata falhas de rede com segurança.
 
 | Bloco | Minutos | Atividade |
 | --- | ---: | --- |
-| Retomada | 15 | Conferir branch/tabela da Aula 07 e projeto `SupermercadoApp` no VS 2022 |
+| Retomada | 15 | Conferir branch/tabela da Aula 11 e projeto `SupermercadoApp` no VS 2022 |
 | Explicação | 30 | NuGet, variáveis de ambiente, Pool (`NpgsqlDataSource`), `async/await` e `finally` |
 | Construção | 60 | Instalar Npgsql, configurar `SUPERMERCADO_DB` e construir `Infrastructure/Banco.cs` |
 | Intervalo | 15 | Pausa |
@@ -61,17 +61,17 @@ sequenceDiagram
 
 ## 2. Passo a Passo no Visual Studio 2022: NuGet e Variável de Ambiente
 
-### Passo 1 — Instalar o pacote `Npgsql` (`A08.01`)
+### Passo 1 — Instalar o pacote `Npgsql` (`A12.01`)
 1. No **Gerenciador de Soluções** do Visual Studio 2022, clique com o botão direito no projeto **`SupermercadoApp`** → **Gerenciar Pacotes do NuGet...**.
 2. Clique na aba **Procurar**, verifique se a **Origem do pacote** no canto superior direito é `nuget.org` e pesquise por **`Npgsql`**.
 3. Selecione o pacote oficial **Npgsql** (do autor *Npgsql*), escolha a versão compatível com o SDK da turma (conforme definido pelo professor; consulte [REFERENCIAS.md](REFERENCIAS.md)) e clique em **Instalar**.
 4. Expanda **Dependências → Pacotes** no Gerenciador de Soluções e confirme que `Npgsql` aparece listado. Pressione `Ctrl+Shift+B` para validar a compilação.
 
-### Passo 2 — Configurar a variável `SUPERMERCADO_DB` no Windows (`A08.02`)
+### Passo 2 — Configurar a variável `SUPERMERCADO_DB` no Windows (`A12.02`)
 1. Abra o menu Iniciar do Windows e digite **Editar as variáveis de ambiente da sua conta**.
 2. Na seção superior (**Variáveis de usuário**), clique em **Novo...**.
 3. Nome da variável: **`SUPERMERCADO_DB`**.
-4. Valor da variável: cole a sua string de conexão Npgsql da Aula 07 (com `SSL Mode=VerifyFull;`).
+4. Valor da variável: cole a sua string de conexão Npgsql da Aula 11 (com `SSL Mode=VerifyFull;`).
 5. Clique em **OK** em todas as janelas e **feche e reabra o Visual Studio 2022**.
 
 *(Prefira sempre a janela gráfica do Windows em vez de digitar a senha no terminal, para que a senha não fique salva no histórico de comandos.)*
@@ -82,7 +82,7 @@ sequenceDiagram
 
 Construa cada peça abaixo **sem copiar código pronto de `src/`**:
 
-### Construção 1 — Classe `Infrastructure/Banco.cs` (`A08.03`)
+### Construção 1 — Classe `Infrastructure/Banco.cs` (`A12.03`)
 1. No **Gerenciador de Soluções**, clique com o botão direito na pasta **`Infrastructure`** → **Adicionar → Classe...** (`Shift+Alt+C`) → nomeie como **`Banco.cs`**.
 2. Adicione `using Npgsql;` no topo e confirme `namespace SupermercadoApp.Infrastructure;`.
 3. Declare uma classe pública estática **`public static class Banco`** (estática porque atua apenas como fábrica de configuração, sem estado de instância).
@@ -106,8 +106,8 @@ Construa cada peça abaixo **sem copiar código pronto de `src/`**:
      - No `try`: crie a fonte de dados com **`using var banco = SupermercadoApp.Infrastructure.Banco.Criar();`** (o `using` garante que o pool seja fechado ao sair do aplicativo) e passe-a ao login: `Application.Run(new SupermercadoApp.Views.FormLogin(banco));`.
      - No `catch`: mostre `MessageBox.Show(erro.Message, "Configuração");` para orientar o usuário caso a variável de ambiente falte.
 
-### Construção 3 — Botão Temporário de Diagnóstico `SELECT 1` (`A08.04` e `A08.05`)
-*(Este botão será removido na Aula 09, quando a tela deixar de falar direto com o banco e passar a falar com o `AutenticacaoService`.)*
+### Construção 3 — Botão Temporário de Diagnóstico `SELECT 1` (`A12.04` e `A12.05`)
+*(Este botão será removido na Aula 13, quando a tela deixar de falar direto com o banco e passar a falar com o `AutenticacaoService`.)*
 
 1. Abra **`Views/FormLogin.cs`** no Designer (`Shift+F7`), arraste um `Button`, configure `(Name)` como **`btnTestarConexao`** e `Text` como **`Testar conexão`**.
 2. Dê duplo clique no botão para gerar o manipulador no `FormLogin.cs` e adicione a palavra-chave **`async`** à assinatura (`private async void btnTestarConexao_Click(object sender, EventArgs e)`).
@@ -123,13 +123,13 @@ Construa cada peça abaixo **sem copiar código pronto de `src/`**:
 
 ---
 
-## 4. Roteiro de Testes, Rastreamento e Evidências (`A08.01`–`A08.05`)
+## 4. Roteiro de Testes, Rastreamento e Evidências (`A12.01`–`A12.05`)
 
 1. **Rastreamento no papel antes de rodar:** trace os 3 caminhos possíveis: (a) sucesso (`try` → `finally`), (b) erro de rede (`try` → `catch` → `finally`) e (c) variável ausente (falha em `Banco.Criar()` antes mesmo da tela abrir). Desenhe quais objetos são descartados em cada caminho.
-2. **Teste de responsividade da janela (`A08.04`):** adicione temporariamente `await Task.Delay(2000);` logo antes do `CreateCommand`, rode com `F5`, clique no botão e **arraste a janela pela tela durante os 2 segundos de espera** — confirme que ela não congela e que o botão fica desabilitado impedindo clique duplo. **Remova o `Task.Delay` ao concluir!**
+2. **Teste de responsividade da janela (`A12.04`):** adicione temporariamente `await Task.Delay(2000);` logo antes do `CreateCommand`, rode com `F5`, clique no botão e **arraste a janela pela tela durante os 2 segundos de espera** — confirme que ela não congela e que o botão fica desabilitado impedindo clique duplo. **Remova o `Task.Delay` ao concluir!**
 3. **Teste real de `SELECT 1`:** clique em **Testar conexão** com a internet ligada → deve exibir `1` e reabilitar o botão.
-4. **Teste sem configuração (`A08.02`):** remova/renomeie temporariamente `SUPERMERCADO_DB`, reabra o VS 2022, rode e confirme a mensagem amigável de configuração ausente. Restaure a variável e reabra o VS 2022.
-5. **Teste de rede indisponível (`A08.05`):** com orientação do professor, teste sem rede e confirme que nenhuma senha/host vaza na mensagem e que o botão volta a habilitar após o timeout.
+4. **Teste sem configuração (`A12.02`):** remova/renomeie temporariamente `SUPERMERCADO_DB`, reabra o VS 2022, rode e confirme a mensagem amigável de configuração ausente. Restaure a variável e reabra o VS 2022.
+5. **Teste de rede indisponível (`A12.05`):** com orientação do professor, teste sem rede e confirme que nenhuma senha/host vaza na mensagem e que o botão volta a habilitar após o timeout.
 
 ---
 
@@ -141,8 +141,8 @@ Construa cada peça abaixo **sem copiar código pronto de `src/`**:
 | "Configure a variável SUPERMERCADO_DB..." mesmo depois de criar no Windows | Você criou a variável com o Visual Studio 2022 já aberto. | Feche todas as janelas do VS 2022 e abra novamente. |
 | Designer do `FormLogin` não abre mais | Alguns cenários do Designer visual procuram um construtor sem parâmetros ou falham se houver código extra antes de `InitializeComponent()`. | Mantenha `InitializeComponent()` na primeira linha do construtor e evite código que acesse rede dentro do construtor. |
 
-[Anterior: Aula 07](07-Criando-Banco-Dados-Neon.md) · [Próxima: Aula 09 — Autenticação segura](09-Autenticacao-Segura.md) · [Índice](README.md)
+[Anterior: Aula 11](11-Criando-Banco-Dados-Neon.md) · [Próxima: Aula 13 — Autenticação segura](13-Autenticacao-Segura.md) · [Índice](README.md)
 
 ## Atividades por conceito
 
-Realize as atividades da [aula 08 no caderno complementar](ATIVIDADES-POR-CONCEITO.md#aula-08). Cada conceito tem enunciado e critério de aceite. Reúna as evidências em uma entrega por aula, usando os IDs no [caderno de evidências](CADERNO-DE-EVIDENCIAS.md). Essas tarefas integram a prática e a verificação já previstas no encontro.
+Realize as atividades da [aula 12 no caderno complementar](ATIVIDADES-POR-CONCEITO.md#aula-12). Cada conceito tem enunciado e critério de aceite. Reúna as evidências em uma entrega por aula, usando os IDs no [caderno de evidências](CADERNO-DE-EVIDENCIAS.md). Essas tarefas integram a prática e a verificação já previstas no encontro.

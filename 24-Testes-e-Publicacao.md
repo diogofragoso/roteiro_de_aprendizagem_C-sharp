@@ -1,6 +1,6 @@
-# Aula 20 — Verificação Automatizada, Roteiro Manual e Publicação no VS 2022
+# Aula 24 — Verificação Automatizada, Roteiro Manual e Publicação no VS 2022
 
-**Duração:** 3h30. **Pré-requisito:** [Aula 19](19-Cadastro-de-Usuarios.md). **Entrega:** projeto de verificações com Fakes construído e executado com suas próprias asserções, compilação limpa em modo `Release`, roteiro manual conferido em dupla e pasta executável autocontida (`win-x64`) rodando fora do Visual Studio 2022.
+**Duração:** 3h30. **Pré-requisito:** [Aula 23](23-Cadastro-de-Usuarios.md). **Entrega:** projeto de verificações com Fakes construído e executado com suas próprias asserções, compilação limpa em modo `Release`, roteiro manual conferido em dupla e pasta executável autocontida (`win-x64`) rodando fora do Visual Studio 2022.
 
 | Bloco | Minutos | Atividade |
 | --- | ---: | --- |
@@ -13,7 +13,7 @@
 
 ---
 
-## 1. O Que Cada Tipo de Verificação Comprova (E O Que NÃO Comprova!) (`A20.01`)
+## 1. O Que Cada Tipo de Verificação Comprova (E O Que NÃO Comprova!) (`A24.01`)
 
 Um erro frequente de iniciantes é achar que *"compilou sem erro = sistema sem bugs"*. Cada camada de verificação comprova uma coisa diferente:
 
@@ -28,7 +28,7 @@ Um erro frequente de iniciantes é achar que *"compilou sem erro = sistema sem b
 
 ---
 
-## 2. Entendendo `Debug` vs `Release` e Publicação Autocontida (`A20.04`)
+## 2. Entendendo `Debug` vs `Release` e Publicação Autocontida (`A24.04`)
 
 Quando você aperta `F5` durante as aulas, o Visual Studio 2022 compila em modo **`Debug`** (inclui informações extras para Breakpoints e desativa otimizações). Para entregar um aplicativo para uso:
 
@@ -42,22 +42,22 @@ Quando você aperta `F5` durante as aulas, o Visual Studio 2022 compila em modo 
 
 ## 3. Roteiro de Construção Guiada: Suas Verificações e Publicação no VS 2022
 
-### Passo 1 — Construir um Projeto Console de Verificações com Fakes (`A20.02`)
+### Passo 1 — Construir um Projeto Console de Verificações com Fakes (`A24.02`)
 Na sua solução `Supermercado` no **Visual Studio 2022**:
 1. Clique com o botão direito na **Solução `Supermercado`** (no topo do Gerenciador de Soluções) → **Adicionar → Novo Projeto...** → **Aplicativo de Console** (C#) → nomeie **`SupermercadoApp.Verificacoes`**.
 2. Clique com o botão direito nas **Dependências** de `SupermercadoApp.Verificacoes` → **Adicionar Referência de Projeto...** → marque **`SupermercadoApp`** e clique em **OK**.
    - *(Atenção: mantenha `SupermercadoApp` como Projeto de Inicialização padrão; clique com o botão direito em `SupermercadoApp` → **Definir como Projeto de Inicialização**.)*
-3. Dentro de `SupermercadoApp.Verificacoes`, reaproveite os casos das Aulas 11 e 15 e construa **suas próprias verificações automatizadas** com classes Fake implementando `IProdutoRepository`, `IUsuarioRepository` e `IVendaRepository`:
+3. Dentro de `SupermercadoApp.Verificacoes`, reaproveite os casos das Aulas 15 e 19 e construa **suas próprias verificações automatizadas** com classes Fake implementando `IProdutoRepository`, `IUsuarioRepository` e `IVendaRepository`:
    - Crie uma função auxiliar `Conferir(bool condicao, string descricao)` que lança `Exception` se a condição for falsa;
    - Teste agrupamento e total `60,30` no `Carrinho`, recusa de preço `0` / `1.999m` / sessão de `Caixa` no `ProdutoService`, preservação de espaços na senha e salt no `AutenticacaoService`, e bloqueio de intervalo invertido no `VendaService`.
-4. **Prova de regressão (teste que detecta bug real — `A20.02`):** em uma cópia local controlada, introduza deliberadamente um pequeno defeito em uma regra (ex.: alterar `<= 0` para `< 0`), execute seu console de verificações e **comprove que sua asserção falha avisando o defeito**. Restaure a regra correta e execute novamente comprovando aprovação!
+4. **Prova de regressão (teste que detecta bug real — `A24.02`):** em uma cópia local controlada, introduza deliberadamente um pequeno defeito em uma regra (ex.: alterar `<= 0` para `< 0`), execute seu console de verificações e **comprove que sua asserção falha avisando o defeito**. Restaure a regra correta e execute novamente comprovando aprovação!
 
 *(Para referência docente, a solução do repositório também traz uma suíte de verificações em `tests/SupermercadoApp.Verificacoes` e um runner opt-in de integração PostgreSQL em `tests/SupermercadoApp.Integracao` — consulte [VALIDACAO-MANUAL.md](VALIDACAO-MANUAL.md) e [src/README.md](src/README.md) para detalhes de execução de laboratório.)*
 
-### Passo 2 — Verificação Manual em Dupla (`A20.03`)
+### Passo 2 — Verificação Manual em Dupla (`A24.03`)
 Siga o [**Roteiro Manual Completo**](VALIDACAO-MANUAL.md) trabalhando em dupla: uma pessoa opera a aplicação no papel de Administrador e a outra confere os resultados no banco e anota evidências; depois troquem os papéis para operar como Caixa. Qualquer teste que não puder ser executado por falta de rede/ambiente deve ser marcado honestamente como **pendente**, nunca como "passou".
 
-### Passo 3 — Publicar pelo Assistente do Visual Studio 2022 (`A20.04`)
+### Passo 3 — Publicar pelo Assistente do Visual Studio 2022 (`A24.04`)
 1. No **Gerenciador de Soluções**, clique com o botão direito no projeto **`SupermercadoApp`** (e **não** na solução!) → **Publicar...**.
 2. Escolha destino **Pasta** → **Pasta** → informe o caminho local `artifacts\publish` e clique em **Concluir**.
 3. Clique em **Mostrar todas as configurações** e ajuste exatamente:
@@ -69,7 +69,7 @@ Siga o [**Roteiro Manual Completo**](VALIDACAO-MANUAL.md) trabalhando em dupla: 
 
 *(Equivalente opcional pelo Terminal do Visual Studio 2022: `dotnet publish src/SupermercadoApp/SupermercadoApp.csproj -c Release -r win-x64 --self-contained true -o artifacts/publish`, ajustando o caminho para o `.csproj` do seu projeto.)*
 
-### Passo 4 — Executar Fora do Visual Studio 2022 (`A20.05`)
+### Passo 4 — Executar Fora do Visual Studio 2022 (`A24.05`)
 1. **Feche completamente o Visual Studio 2022.**
 2. Confirme que a variável de ambiente `SUPERMERCADO_DB` está configurada na conta Windows (nunca coloque arquivos de credenciais dentro da pasta `publish`!).
 3. Abra a pasta `artifacts\publish` pelo Explorador de Arquivos do Windows e execute **`SupermercadoApp.exe`** com duplo clique.
@@ -77,7 +77,7 @@ Siga o [**Roteiro Manual Completo**](VALIDACAO-MANUAL.md) trabalhando em dupla: 
 
 ---
 
-## 4. Critérios Finais de Entrega e Limites Conhecidos (`A20.06`)
+## 4. Critérios Finais de Entrega e Limites Conhecidos (`A24.06`)
 
 Sua entrega final deve reunir:
 - Solução e scripts SQL organizados (sem pastas `bin`, `obj`, `.vs` e **sem credenciais**).
@@ -92,8 +92,8 @@ Sua entrega final deve reunir:
 
 Consulte a documentação oficial sobre [Implantação de Aplicativos .NET](https://learn.microsoft.com/en-us/dotnet/core/deploying/).
 
-[Anterior: Aula 19](19-Cadastro-de-Usuarios.md) · [Índice Geral](README.md)
+[Anterior: Aula 23](23-Cadastro-de-Usuarios.md) · [Índice Geral](README.md)
 
 ## Atividades por conceito
 
-Realize as atividades da [aula 20 no caderno complementar](ATIVIDADES-POR-CONCEITO.md#aula-20). Cada conceito tem enunciado e critério de aceite. Reúna as evidências em uma entrega por aula, usando os IDs no [caderno de evidências](CADERNO-DE-EVIDENCIAS.md). Essas tarefas integram a prática e a verificação já previstas no encontro.
+Realize as atividades da [aula 24 no caderno complementar](ATIVIDADES-POR-CONCEITO.md#aula-24). Cada conceito tem enunciado e critério de aceite. Reúna as evidências em uma entrega por aula, usando os IDs no [caderno de evidências](CADERNO-DE-EVIDENCIAS.md). Essas tarefas integram a prática e a verificação já previstas no encontro.

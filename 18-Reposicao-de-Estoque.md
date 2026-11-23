@@ -1,21 +1,21 @@
-# Aula 14 — Reposição de Estoque com Transação Atômica e Auditoria
+# Aula 18 — Reposição de Estoque com Transação Atômica e Auditoria
 
-**Duração:** 3h30. **Pré-requisito:** [Aula 13](13-Cadastro-de-Produtos.md) e ao menos um produto ativo cadastrado. **Entrega:** operação de reposição que atualiza `produto.estoque` e registra o histórico em `movimento_estoque` dentro da mesma transação de banco de dados, atribuindo automaticamente o administrador logado como responsável.
+**Duração:** 3h30. **Pré-requisito:** [Aula 17](17-Cadastro-de-Produtos.md) e ao menos um produto ativo cadastrado. **Entrega:** operação de reposição que atualiza `produto.estoque` e registra o histórico em `movimento_estoque` dentro da mesma transação de banco de dados, atribuindo automaticamente o administrador logado como responsável.
 
 | Bloco | Minutos | Atividade |
 | --- | ---: | --- |
-| Retomada | 15 | Conferir saldo inicial `0` dos produtos cadastrados na Aula 13 |
+| Retomada | 15 | Conferir saldo inicial `0` dos produtos cadastrados na Aula 17 |
 | Explicação | 30 | Transação ACID, rollback automático no descarte e incremento atômico no SQL |
 | Construção | 60 | Construir `ReporAsync` no contrato, repositório e serviço |
 | Intervalo | 15 | Pausa |
 | Prática | 60 | Adicionar controles de reposição no `FormProdutos` e auditar no SQL Editor |
-| Entrega | 30 | Demonstrar conciliação matemática (`A14.01`–`A14.05`) e acesso negado |
+| Entrega | 30 | Demonstrar conciliação matemática (`A18.01`–`A18.05`) e acesso negado |
 
 ---
 
 ## 1. Dois Problemas Críticos Que Esta Aula Resolve (Entenda o "Por Quê")
 
-### 1.1 Por que usar Transação (`BeginTransactionAsync` + `CommitAsync`)? (`A14.02`)
+### 1.1 Por que usar Transação (`BeginTransactionAsync` + `CommitAsync`)? (`A18.02`)
 Uma reposição de mercadoria executa **duas gravações** em tabelas diferentes:
 1. Aumentar o saldo em `produto`;
 2. Gravar o registro de auditoria (`+quantidade`, `usuario_id`, `'Reposicao'`) em `movimento_estoque`.
@@ -27,7 +27,7 @@ Com uma **Transação**, ambas as gravações formam uma unidade indivisível (*
 > [!IMPORTANT]
 > **Regra obrigatória em C# / Npgsql:** todos os comandos que fazem parte da mesma transação precisam receber **a mesma `conexao`** e **a mesma `transacao`** (`new NpgsqlCommand(sql, conexao, transacao)`). Usar `banco.CreateCommand(...)` criaria comandos fora da transação e destruiria a atomicidade!
 
-### 1.2 Por que somar no SQL (`estoque = estoque + @q`) em vez de somar no C#? (`A14.01`)
+### 1.2 Por que somar no SQL (`estoque = estoque + @q`) em vez de somar no C#? (`A18.01`)
 Imagine o saldo inicial `0` e dois funcionários repondo mercadoria ao mesmo tempo (Funcionário A repõe `+10`, Funcionário B repõe `+3`):
 
 - **❌ Estratégia errada (ler para o C#, somar e sobrescrever `SET estoque = @novo`):**
@@ -38,7 +38,7 @@ Imagine o saldo inicial `0` e dois funcionários repondo mercadoria ao mesmo tem
   `UPDATE produto SET estoque = estoque + @q WHERE id = @id AND ativo`
   O PostgreSQL trava brevemente a linha durante o `UPDATE`, soma `+10` (vira `10`) e na sequência o segundo comando soma `+3` sobre `10` (vira **`13`**)!
 
-### 1.3 Por que o `usuarioId` vem da `Sessao` e não de um campo digitado na tela? (`A14.03`)
+### 1.3 Por que o `usuarioId` vem da `Sessao` e não de um campo digitado na tela? (`A18.03`)
 O operador nunca pode digitar *"quem fez a reposição"* em uma caixa de texto. O `ProdutoService` extrai `sessao.Id` do administrador autenticado e repassa ao repositório. Além disso, reposição é uma ação separada do botão **Salvar**: nunca permitimos digitar quantidade negativa para "corrigir" estoque (inventário e estorno exigem regras próprias de auditoria).
 
 ---
@@ -68,7 +68,7 @@ Implemente `public async Task ReporAsync(int id, int quantidade, int usuarioId)`
 5. **Confirmação única:** somente após os dois comandos terem sucesso, execute **`await transacao.CommitAsync();`**.
 
 ### Passo 3 — Adicionar o Bloco de Reposição em `Views/FormProdutos.cs`
-No construtor de `FormProdutos.cs`, logo após os botões CRUD da Aula 13 e **antes** da linha `Shown += ...`:
+No construtor de `FormProdutos.cs`, logo após os botões CRUD da Aula 17 e **antes** da linha `Shown += ...`:
 1. Adicione um rótulo: `painel.Controls.Add(Ui.Rotulo("Quantidade para repor no produto selecionado"));`.
 2. Adicione um `NumericUpDown` chamado `quantidade` configurado com `Minimum = 1`, `Maximum = 1000000`, `Value = 1`, `Width = 180`.
 3. Adicione o botão **`"Registrar reposição"`** com evento `async (sender, _) =>`:
@@ -78,24 +78,24 @@ No construtor de `FormProdutos.cs`, logo após os botões CRUD da Aula 13 e **an
 
 ---
 
-## 3. Auditoria Matemática no Banco e Verificação (`A14.01`–`A14.05`)
+## 3. Auditoria Matemática no Banco e Verificação (`A18.01`–`A18.05`)
 
-1. **Linha do tempo no papel (`A14.01`):** desenhe o comparativo entre duas reposições (`+10` e `+3`) por leitura/sobrescrita vs incremento atômico no SQL.
+1. **Linha do tempo no papel (`A18.01`):** desenhe o comparativo entre duas reposições (`+10` e `+3`) por leitura/sobrescrita vs incremento atômico no SQL.
 2. **Teste prático no Visual Studio 2022 (`F5`):**
    - Cadastre um produto novo (nasce com saldo `0`).
    - Tente clicar em **Registrar reposição** sem selecionar nenhuma linha → deve recusar pedindo seleção.
    - Selecione o produto, reponha **`10`** unidades e depois reponha **`3`** unidades → a grade deve atualizar para **`13`**.
-3. **Conciliação no SQL Editor (`A14.03`):** execute:
+3. **Conciliação no SQL Editor (`A18.03`):** execute:
    ```sql
    SELECT id, codigo, estoque FROM produto ORDER BY id;
    SELECT produto_id, usuario_id, quantidade, motivo, criado_em
    FROM movimento_estoque ORDER BY id;
    ```
    Confirme que o saldo é `13`, existem exatamente dois movimentos (`+10` e `+3`), a soma dos movimentos bate com o saldo e o `usuario_id` é o do administrador conectado!
-4. **Testes de recusa (`A14.04`):** verifique que quantidade `0`/negativa, produto **inativo** e sessão de **`Caixa`** são recusados sem alterar saldo nem criar movimento.
+4. **Testes de recusa (`A18.04`):** verifique que quantidade `0`/negativa, produto **inativo** e sessão de **`Caixa`** são recusados sem alterar saldo nem criar movimento.
 
-[Anterior: Aula 13](13-Cadastro-de-Produtos.md) · [Próxima: Aula 15 — Carrinho do caixa](15-Carrinho-do-Caixa.md) · [Índice](README.md)
+[Anterior: Aula 17](17-Cadastro-de-Produtos.md) · [Próxima: Aula 19 — Carrinho do caixa](19-Carrinho-do-Caixa.md) · [Índice](README.md)
 
 ## Atividades por conceito
 
-Realize as atividades da [aula 14 no caderno complementar](ATIVIDADES-POR-CONCEITO.md#aula-14). Cada conceito tem enunciado e critério de aceite. Reúna as evidências em uma entrega por aula, usando os IDs no [caderno de evidências](CADERNO-DE-EVIDENCIAS.md). Essas tarefas integram a prática e a verificação já previstas no encontro.
+Realize as atividades da [aula 18 no caderno complementar](ATIVIDADES-POR-CONCEITO.md#aula-18). Cada conceito tem enunciado e critério de aceite. Reúna as evidências em uma entrega por aula, usando os IDs no [caderno de evidências](CADERNO-DE-EVIDENCIAS.md). Essas tarefas integram a prática e a verificação já previstas no encontro.

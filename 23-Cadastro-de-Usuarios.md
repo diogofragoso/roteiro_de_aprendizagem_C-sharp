@@ -1,25 +1,25 @@
-# Aula 19 — Cadastro de Usuários, Reuso de Serviços e `ComboBox` com `Enum`
+# Aula 23 — Cadastro de Usuários, Reuso de Serviços e `ComboBox` com `Enum`
 
-**Duração:** 3h30. **Pré-requisito:** [Aula 18](18-Relatorio-de-Vendas.md) e administrador autenticado. **Entrega:** tela definitiva `FormUsuarios` conectada ao menu do administrador, reutilizando `AutenticacaoService.CriarAsync` sem duplicar lógica de hash nem SQL, permitindo criar novos administradores e caixas com validação completa.
+**Duração:** 3h30. **Pré-requisito:** [Aula 22](22-Relatorio-de-Vendas.md) e administrador autenticado. **Entrega:** tela definitiva `FormUsuarios` conectada ao menu do administrador, reutilizando `AutenticacaoService.CriarAsync` sem duplicar lógica de hash nem SQL, permitindo criar novos administradores e caixas com validação completa.
 
 | Bloco | Minutos | Atividade |
 | --- | ---: | --- |
-| Retomada | 15 | Revisar `AutenticacaoService.CriarAsync` criado na Aula 09 |
+| Retomada | 15 | Revisar `AutenticacaoService.CriarAsync` criado na Aula 13 |
 | Explicação | 30 | Reuso da camada de serviço, `ComboBox` vinculado a `Enum`, unboxing e limites de sessão |
 | Construção | 60 | Construir `FormUsuarios.cs` e finalizar o menu de `FormAdministrador.cs` |
 | Intervalo | 15 | Pausa |
 | Prática | 60 | Cadastrar novas contas, testar fronteiras de username/senha e login real |
-| Entrega | 30 | Demonstrar criação, normalização, duplicidade e bloqueio de `Caixa` (`A19.01`–`A19.06`) |
+| Entrega | 30 | Demonstrar criação, normalização, duplicidade e bloqueio de `Caixa` (`A23.01`–`A23.06`) |
 
 ---
 
-## 1. Por Que a Tela de Cadastro É Tão Pequena? (O Poder da Arquitetura) (`A19.01`)
+## 1. Por Que a Tela de Cadastro É Tão Pequena? (O Poder da Arquitetura) (`A23.01`)
 
-Observe o retorno do investimento que você fez na Aula 04 e na Aula 09:
+Observe o retorno do investimento que você fez na Aula 08 e na Aula 13:
 - **Todo o trabalho pesado já está pronto e protegido em `AutenticacaoService.CriarAsync`:** verificação de permissão administrativa, normalização do username para minúsculas, validação de caracteres ASCII (`3` a `50`), validação de senha (`12` a `128`, preservando espaços!), validação de enum (`Enum.IsDefined`) e geração segura de **Hash + Salt** com `PasswordHasher`.
 - **A tela `FormUsuarios` NUNCA importa `PasswordHasher` nem escreve SQL!** Ela apenas coleta os 3 valores da interface, chama `await usuarios.CriarAsync(...)` dentro de `Ui.ExecutarAsync` e mostra a confirmação.
 
-### Vinculando um `ComboBox` Diretamente a um `Enum` (`A19.04`)
+### Vinculando um `ComboBox` Diretamente a um `Enum` (`A23.04`)
 Como evitar que o administrador digite livremente `"Gerente"` ou `"Caixaa"` no perfil?
 Usamos um `ComboBox` configurado assim:
 ```csharp
@@ -68,18 +68,18 @@ Crie **`Views/FormUsuarios.cs`** em `namespace SupermercadoApp.Views;` (`public 
 
 ---
 
-## 3. Verificação das Regras de Fronteira e Fluxo Completo (`A19.01`–`A19.06`)
+## 3. Verificação das Regras de Fronteira e Fluxo Completo (`A23.01`–`A23.06`)
 
 Execute com **`F5`** no Visual Studio 2022 e comprove cada cenário (registrando evidências **sem jamais anotar senhas reais**):
 
-1. **Fronteiras de `username` (`A19.02`):** teste `2` caracteres (recusa), `3` caracteres (aceita), `51` caracteres (recusa), acentos como `"joão"` (recusa) e ponto como `"caixa.novo"` (aceita). Em seguida tente cadastrar `"CAIXA.NOVO"` → deve ser recusado por unicidade (`23505`), sem criar conta duplicada!
-2. **Fronteiras de `senha` e espaços (`A19.03`):** teste `11` caracteres (recusa), `12` caracteres (aceita) e `129` caracteres (recusa). Cadastre uma conta de teste usando uma senha fictícia com espaços nas bordas e comprove que o login só funciona com os espaços preservados!
-3. **Login real das novas contas (`A19.05`):** crie `caixa.novo` (perfil `Caixa`), clique em **Sair / trocar usuário**, entre com `caixa.novo` e confirme que abre a janela de **Caixa** (e tente senha incorreta para confirmar recusa). Volte como Administrador e crie uma segunda conta `Administrador`.
+1. **Fronteiras de `username` (`A23.02`):** teste `2` caracteres (recusa), `3` caracteres (aceita), `51` caracteres (recusa), acentos como `"joão"` (recusa) e ponto como `"caixa.novo"` (aceita). Em seguida tente cadastrar `"CAIXA.NOVO"` → deve ser recusado por unicidade (`23505`), sem criar conta duplicada!
+2. **Fronteiras de `senha` e espaços (`A23.03`):** teste `11` caracteres (recusa), `12` caracteres (aceita) e `129` caracteres (recusa). Cadastre uma conta de teste usando uma senha fictícia com espaços nas bordas e comprove que o login só funciona com os espaços preservados!
+3. **Login real das novas contas (`A23.05`):** crie `caixa.novo` (perfil `Caixa`), clique em **Sair / trocar usuário**, entre com `caixa.novo` e confirme que abre a janela de **Caixa** (e tente senha incorreta para confirmar recusa). Volte como Administrador e crie uma segunda conta `Administrador`.
 4. **Conferência no SQL Editor:** execute `SELECT username, perfil FROM usuario ORDER BY id;` e confirme que bate com seus cadastros.
-5. **Reflexão de arquitetura (`A19.06`):** registre no caderno por que sair da janela renova a sessão no nosso aplicativo e quais mecanismos seriam necessários em uma versão comercial para suportar *revogação imediata de sessão* ou *recuperação de senha esquecida* (funcionalidades de unidades futuras).
+5. **Reflexão de arquitetura (`A23.06`):** registre no caderno por que sair da janela renova a sessão no nosso aplicativo e quais mecanismos seriam necessários em uma versão comercial para suportar *revogação imediata de sessão* ou *recuperação de senha esquecida* (funcionalidades de unidades futuras).
 
-[Anterior: Aula 18](18-Relatorio-de-Vendas.md) · [Próxima: Aula 20 — Testes e publicação](20-Testes-e-Publicacao.md) · [Índice](README.md)
+[Anterior: Aula 22](22-Relatorio-de-Vendas.md) · [Próxima: Aula 24 — Testes e publicação](24-Testes-e-Publicacao.md) · [Índice](README.md)
 
 ## Atividades por conceito
 
-Realize as atividades da [aula 19 no caderno complementar](ATIVIDADES-POR-CONCEITO.md#aula-19). Cada conceito tem enunciado e critério de aceite. Reúna as evidências em uma entrega por aula, usando os IDs no [caderno de evidências](CADERNO-DE-EVIDENCIAS.md). Essas tarefas integram a prática e a verificação já previstas no encontro.
+Realize as atividades da [aula 23 no caderno complementar](ATIVIDADES-POR-CONCEITO.md#aula-23). Cada conceito tem enunciado e critério de aceite. Reúna as evidências em uma entrega por aula, usando os IDs no [caderno de evidências](CADERNO-DE-EVIDENCIAS.md). Essas tarefas integram a prática e a verificação já previstas no encontro.

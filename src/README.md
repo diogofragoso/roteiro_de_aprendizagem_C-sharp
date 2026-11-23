@@ -28,20 +28,20 @@ As [versões de recuperação](../ensino/README.md) são geradas em `artifacts/c
 
 | Aula | Arquivos/métodos apresentados |
 | --- | --- |
-| 05–06 | Projeto e login pelo Designer do estudante |
-| 08 | Infrastructure/Banco.cs |
-| 09 | Models/Perfil, Credencial, Sessao; IUsuarioRepository, UsuarioRepository; AutenticacaoService; FormLogin |
-| 10 | Permissoes; fluxo de sessão no Program; FormAdministrador e FormCaixa mínimos |
-| 11 | Produto; IProdutoRepository.SalvarAsync; ProdutoService.SalvarAsync; script 002 |
-| 12 | ProdutoRepository.Ler/ListarAsync/SalvarAsync; ProdutoService.ListarAsync; FormProdutos mínimo |
-| 13 | ProdutoRepository/Service.InativarAsync; campos e ações do FormProdutos |
-| 14 | ProdutoRepository/Service.ReporAsync; controles de reposição |
-| 15 | ItemCarrinho, Carrinho; BuscarCodigoAsync; FormCaixa sem pagamento |
-| 16 | PedidoItem, VendaConfirmada, ResumoVenda; IVendaRepository; VendaRepository; VendaService; script 003 |
-| 17 | Pagamento e estados de FormCaixa |
-| 18 | RelatorioAsync e FormRelatorio |
-| 19 | FormUsuarios e menu administrativo completo |
-| 20 | Projeto de verificações e publicação |
+| 09–10 | Projeto e login pelo Designer do estudante |
+| 12 | Infrastructure/Banco.cs |
+| 13 | Models/Perfil, Credencial, Sessao; IUsuarioRepository, UsuarioRepository; AutenticacaoService; FormLogin |
+| 14 | Permissoes; fluxo de sessão no Program; FormAdministrador e FormCaixa mínimos |
+| 15 | Produto; IProdutoRepository.SalvarAsync; ProdutoService.SalvarAsync; script 002 |
+| 16 | ProdutoRepository.Ler/ListarAsync/SalvarAsync; ProdutoService.ListarAsync; FormProdutos mínimo |
+| 17 | ProdutoRepository/Service.InativarAsync; campos e ações do FormProdutos |
+| 18 | ProdutoRepository/Service.ReporAsync; controles de reposição |
+| 19 | ItemCarrinho, Carrinho; BuscarCodigoAsync; FormCaixa sem pagamento |
+| 20 | PedidoItem, VendaConfirmada, ResumoVenda; IVendaRepository; VendaRepository; VendaService; script 003 |
+| 21 | Pagamento e estados de FormCaixa |
+| 22 | RelatorioAsync e FormRelatorio |
+| 23 | FormUsuarios e menu administrativo completo |
+| 24 | Projeto de verificações e publicação |
 
 Os formulários da referência criam o layout em código por meio de `Views/Ui.cs`, para que todos os arquivos necessários estejam no repositório. O login das aulas 05/06 ensina o Designer. Se mantiver seu Designer, não cole o construtor de layout completo: preserve `InitializeComponent` e adapte os eventos, campos e dependências conforme as aulas 08 e 09. Não mantenha dois eventos de clique para a mesma ação.
 

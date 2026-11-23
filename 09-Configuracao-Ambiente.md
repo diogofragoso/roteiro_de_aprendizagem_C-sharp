@@ -1,6 +1,6 @@
-# Aula 05 — Ambiente, Solução e Primeiro Windows Forms no Visual Studio 2022
+# Aula 09 — Ambiente, Solução e Primeiro Windows Forms no Visual Studio 2022
 
-**Duração:** 3h30. **Pré-requisito:** [Aula 04](04-Arquitetura-e-Padroes.md). **Entrega:** solução `Supermercado` e projeto Windows Forms `SupermercadoApp` organizados em 5 pastas, com `FormLogin` abrindo, fechando e compilando sem erros no Visual Studio 2022.
+**Duração:** 3h30. **Pré-requisito:** [Aula 08](08-Arquitetura-e-Padroes.md). **Entrega:** solução `Supermercado` e projeto Windows Forms `SupermercadoApp` organizados em 5 pastas, com `FormLogin` abrindo, fechando e compilando sem erros no Visual Studio 2022.
 
 | Bloco | Minutos | Atividade |
 | --- | ---: | --- |
@@ -24,7 +24,7 @@ Antes de criar o projeto visual, entenda **por que** precisamos conferir o ambie
 | **.NET Runtime** | Motor que executa o programa compilado no Windows. | Já vem incluído dentro do SDK no computador de desenvolvimento. |
 | **Workload Desktop .NET** | Pacote de ferramentas dentro do Visual Studio Installer para Windows Forms e WPF. | Sem essa carga de trabalho marcada, os modelos de *Aplicativo do Windows Forms* nem aparecem na tela de novo projeto! |
 
-### Passo a passo: Conferindo o Visual Studio 2022 no Laboratório (`A05.01`)
+### Passo a passo: Conferindo o Visual Studio 2022 no Laboratório (`A09.01`)
 1. Abra o menu Iniciar do Windows e procure por **Visual Studio Installer**.
 2. Localize **Visual Studio Community 2022** e clique em **Modificar**.
 3. Na aba **Cargas de trabalho (Workloads)**, confirme que **Desenvolvimento para desktop com .NET** está marcada. Se não estiver, marque e conclua a instalação.
@@ -36,13 +36,13 @@ Antes de criar o projeto visual, entenda **por que** precisamos conferir o ambie
    Confirme que há um SDK moderno do .NET instalado (ex.: `8.0.xxx` nativo do VS 2022, ou a versão definida pelo professor para a turma) e registre a saída no caderno.
 
 > [!NOTE]
-> **Escolha do banco de dados:** combine com o professor antes da Aula 07 se a turma seguirá pela trilha principal (**Neon/PostgreSQL**) ou pela trilha local ([**MySQL/MariaDB pelo XAMPP**](INTEGRACAO-MYSQL-XAMPP.md)). Hoje não precisamos de nenhum banco configurado ainda.
+> **Escolha do banco de dados:** combine com o professor antes da Aula 11 se a turma seguirá pela trilha principal (**Neon/PostgreSQL**) ou pela trilha local ([**MySQL/MariaDB pelo XAMPP**](INTEGRACAO-MYSQL-XAMPP.md)). Hoje não precisamos de nenhum banco configurado ainda.
 
 ---
 
 ## 2. Criando a Solução `Supermercado` e o Projeto `SupermercadoApp` no VS 2022
 
-Siga cada tela com atenção (`A05.02`):
+Siga cada tela com atenção (`A09.02`):
 
 1. No **Visual Studio 2022**, clique em **Criar um novo projeto**.
 2. Na barra de pesquisa, digite `Windows Forms` e selecione a linguagem **C#** nos filtros.
@@ -52,7 +52,7 @@ Siga cada tela com atenção (`A05.02`):
 5. Preencha exatamente assim:
    - **Nome do projeto:** `SupermercadoApp`
    - **Nome da solução:** `Supermercado`
-   - **Por que nomes diferentes?** A Solução (`Supermercado.sln`) representa o sistema inteiro (que na Aula 20 pode agrupar também projetos de teste), enquanto `SupermercadoApp` é o projeto do executável Windows Forms.
+   - **Por que nomes diferentes?** A Solução (`Supermercado.sln`) representa o sistema inteiro (que na Aula 24 pode agrupar também projetos de teste), enquanto `SupermercadoApp` é o projeto do executável Windows Forms.
 6. Clique em **Próximo**, selecione a versão moderna do **.NET** da turma (ex.: **.NET 8.0 (Suporte de Longo Prazo)** no VS 2022) e clique em **Criar**.
 
 ![Exemplo de criação de projeto no Visual Studio 2022](assets/vs2022_new_project_1791481163568.jpg)
@@ -86,7 +86,7 @@ Antes de sair clicando, entenda o papel de cada arquivo e janela que o Visual St
 
 ---
 
-## 4. Roteiro de Construção Guiada: Organizando a Arquitetura no VS 2022 (`A05.03`–`A05.05`)
+## 4. Roteiro de Construção Guiada: Organizando a Arquitetura no VS 2022 (`A09.03`–`A09.05`)
 
 Organizar as pastas logo no início evita ter de consertar dezenas de `namespace` e `using` depois. Siga passo a passo:
 
@@ -117,7 +117,7 @@ No **Gerenciador de Soluções**, clique com o botão direito sobre o projeto **
 1. Pressione **`Ctrl+Shift+B`** e confirme zero erros na **Lista de Erros**.
 2. Abra `Views/FormLogin.cs` em modo código (`F7`), coloque um **Breakpoint (`F9`)** na linha `InitializeComponent();` dentro do construtor `public FormLogin()`.
 3. Execute com **`F5`**, observe a pausa no construtor, pressione **`F10`** para executar `InitializeComponent()` e depois **`F5`** para a janela abrir. Feche a janela e confirme que o aplicativo encerra normalmente.
-4. **Cópia limpa de entrega (`A05.05`):** com o Visual Studio 2022 fechado, localize a pasta do projeto no Explorador de Arquivos. Ao preparar um backup ou envio de código-fonte, **nunca** inclua as pastas `bin`, `obj` e `.vs` (elas contêm arquivos temporários pesados gerados automaticamente na compilação). Se utilizar Git, adote o arquivo `.gitignore` da raiz deste repositório.
+4. **Cópia limpa de entrega (`A09.05`):** com o Visual Studio 2022 fechado, localize a pasta do projeto no Explorador de Arquivos. Ao preparar um backup ou envio de código-fonte, **nunca** inclua as pastas `bin`, `obj` e `.vs` (elas contêm arquivos temporários pesados gerados automaticamente na compilação). Se utilizar Git, adote o arquivo `.gitignore` da raiz deste repositório.
 
 ---
 
@@ -129,8 +129,8 @@ No **Gerenciador de Soluções**, clique com o botão direito sobre o projeto **
 | `CS0246: O nome do tipo ou do namespace 'FormLogin' não pode ser encontrado` | `Program.cs` não tem `using SupermercadoApp.Views;` após você mover o formulário para `Views`. | Adicione `using SupermercadoApp.Views;` no topo do `Program.cs`. |
 | O arquivo abre em código em vez do desenho da tela | Você usou `F7` ou abriu `.Designer.cs`. | Clique com o botão direito em `FormLogin.cs` → **Exibir Designer** (`Shift+F7`). |
 
-[Anterior: Aula 04](04-Arquitetura-e-Padroes.md) · [Próxima: Aula 06 — Interface de login](06-Criando-Interface-Login.md) · [Índice](README.md)
+[Anterior: Aula 08](08-Arquitetura-e-Padroes.md) · [Próxima: Aula 10 — Interface de login](10-Criando-Interface-Login.md) · [Índice](README.md)
 
 ## Atividades por conceito
 
-Realize as atividades da [aula 05 no caderno complementar](ATIVIDADES-POR-CONCEITO.md#aula-05). Cada conceito tem enunciado e critério de aceite. Reúna as evidências em uma entrega por aula, usando os IDs no [caderno de evidências](CADERNO-DE-EVIDENCIAS.md). Essas tarefas integram a prática e a verificação já previstas no encontro.
+Realize as atividades da [aula 09 no caderno complementar](ATIVIDADES-POR-CONCEITO.md#aula-09). Cada conceito tem enunciado e critério de aceite. Reúna as evidências em uma entrega por aula, usando os IDs no [caderno de evidências](CADERNO-DE-EVIDENCIAS.md). Essas tarefas integram a prática e a verificação já previstas no encontro.

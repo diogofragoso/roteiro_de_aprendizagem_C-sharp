@@ -1,10 +1,10 @@
-# Aula 10 — Sessão, Autorização por Perfil e Ciclo de Vida de Janelas
+# Aula 14 — Sessão, Autorização por Perfil e Ciclo de Vida de Janelas
 
-**Duração:** 3h30. **Pré-requisito:** [Aula 09](09-Autenticacao-Segura.md). **Entrega:** menus mínimos separados para `Administrador` e `Caixa`, verificação obrigatória de permissão fora da interface e laço de sessão no `Program.cs` permitindo trocar de usuário sem vazar dados da sessão anterior.
+**Duração:** 3h30. **Pré-requisito:** [Aula 13](13-Autenticacao-Segura.md). **Entrega:** menus mínimos separados para `Administrador` e `Caixa`, verificação obrigatória de permissão fora da interface e laço de sessão no `Program.cs` permitindo trocar de usuário sem vazar dados da sessão anterior.
 
 | Bloco | Minutos | Atividade |
 | --- | ---: | --- |
-| Retomada | 15 | Demonstrar login do administrador criado na Aula 09 |
+| Retomada | 15 | Demonstrar login do administrador criado na Aula 13 |
 | Explicação | 30 | Autenticação vs Autorização, layout em código (`FlowLayoutPanel`), lambdas e `ShowDialog` |
 | Construção | 60 | Expandir `Ui.cs` e construir `FormAdministrador` e `FormCaixa` mínimos |
 | Intervalo | 15 | Pausa |
@@ -13,12 +13,12 @@
 
 ---
 
-## 1. Autenticação vs Autorização — Por Que Esconder um Botão Não Basta (`A10.01` e `A10.02`)
+## 1. Autenticação vs Autorização — Por Que Esconder um Botão Não Basta (`A14.01` e `A14.02`)
 
 Dois conceitos que nunca devem ser confundidos em segurança de software:
 
-- **Autenticação ("Quem é você?"):** provar identidade com usuário e senha (Aula 09).
-- **Autorização ("O que você tem permissão para fazer?"):** decidir se a sessão autenticada pode executar determinada operação (Aula 10 em diante).
+- **Autenticação ("Quem é você?"):** provar identidade com usuário e senha (Aula 13).
+- **Autorização ("O que você tem permissão para fazer?"):** decidir se a sessão autenticada pode executar determinada operação (Aula 14 em diante).
 
 ### Matriz de Permissões do MarketFlow
 
@@ -32,13 +32,13 @@ Dois conceitos que nunca devem ser confundidos em segurança de software:
 *(Decisão didática do curso: se a mesma pessoa atua como caixa e administrador, utiliza duas contas separadas para manter a rastreabilidade de auditoria.)*
 
 **Por que chamamos `Permissoes.ExigirAdministrador(sessao)` dentro dos Serviços e dos Construtores das janelas?**
-Apenas esconder um botão no menu não protege a regra de negócio: se um futuro formulário ou teste chamar o método diretamente com uma sessão de `Caixa`, a camada de serviço barra imediatamente lançando `UnauthorizedAccessException`. *(Lembre-se também do limite de laboratório discutido na Aula 04: em distribuição comercial, essa autorização precisa viver em uma API no servidor.)*
+Apenas esconder um botão no menu não protege a regra de negócio: se um futuro formulário ou teste chamar o método diretamente com uma sessão de `Caixa`, a camada de serviço barra imediatamente lançando `UnauthorizedAccessException`. *(Lembre-se também do limite de laboratório discutido na Aula 08: em distribuição comercial, essa autorização precisa viver em uma API no servidor.)*
 
 ---
 
-## 2. Entendendo a Transição: Do Designer Visual ao Layout em Código (`Ui.cs`) (`A10.03`)
+## 2. Entendendo a Transição: Do Designer Visual ao Layout em Código (`Ui.cs`) (`A14.03`)
 
-Nas Aulas 05–09 você construiu `FormLogin` usando o **Designer visual** do Visual Studio 2022. A partir desta aula, as telas internas (`FormAdministrador`, `FormCaixa`, `FormProdutos`, `FormRelatorio`, `FormUsuarios`) serão construídas em código C# limpo com apoio de métodos auxiliares em **`Views/Ui.cs`** e do componente **`FlowLayoutPanel`**.
+Nas Aulas 09–13 você construiu `FormLogin` usando o **Designer visual** do Visual Studio 2022. A partir desta aula, as telas internas (`FormAdministrador`, `FormCaixa`, `FormProdutos`, `FormRelatorio`, `FormUsuarios`) serão construídas em código C# limpo com apoio de métodos auxiliares em **`Views/Ui.cs`** e do componente **`FlowLayoutPanel`**.
 
 **Por que aprender também a criar telas em código?**
 1. Você enxerga **exatamente** o que o Designer do Visual Studio 2022 faz por baixo dos panos no `.Designer.cs` — não existe mágica!
@@ -71,7 +71,7 @@ botao.Click += AoSair;
 
 ---
 
-## 3. Ciclo de Vida de Janelas: Por Que Usar `while (true)`, `ShowDialog()` e `using`? (`A10.04`)
+## 3. Ciclo de Vida de Janelas: Por Que Usar `while (true)`, `ShowDialog()` e `using`? (`A14.04`)
 
 Imagine um supermercado onde o turno da manhã termina: o caixa João clica em **Sair / trocar usuário**, e a caixa Maria precisa fazer login no mesmo computador.
 
@@ -89,7 +89,7 @@ Imagine um supermercado onde o turno da manhã termina: o caixa João clica em *
 ## 4. Roteiro de Construção Guiada (Sua Vez no Visual Studio 2022!)
 
 ### Passo 1 — Expandir `Views/Ui.cs` com Helpers de Layout
-Abra **`Views/Ui.cs`** (onde você criou `ExecutarAsync` na Aula 09) e adicione estes três métodos públicos estáticos:
+Abra **`Views/Ui.cs`** (onde você criou `ExecutarAsync` na Aula 13) e adicione estes três métodos públicos estáticos:
 1. **`Preparar(Form form, string titulo, int largura = 960, int altura = 650)` → retorna `FlowLayoutPanel`:**
    - Configure `form.Text = titulo;`, `form.Size = new Size(largura, altura);` e `form.StartPosition = FormStartPosition.CenterScreen;`.
    - Crie um `FlowLayoutPanel` com `Dock = DockStyle.Fill`, `AutoScroll = true`, `FlowDirection = FlowDirection.TopDown`, `WrapContents = false` e `Padding = new Padding(16)`.
@@ -111,14 +111,14 @@ Crie ambos os arquivos na pasta `Views/` (`Shift+Alt+C`), em `namespace Supermer
      - Chame `var painel = Ui.Preparar(this, "MarketFlow — Administração", 480, 300);`.
      - Adicione um rótulo de boas-vindas com `sessao.Username`.
      - Adicione um botão `"Sair / trocar usuário"` que chame `Close()`.
-     - **Atividade `A10.03`:** teste escrever o manipulador desse botão **das duas formas** — primeiro com método nomeado (`void AoSair(object? sender, EventArgs e) { Close(); }`) e depois com lambda `(_, _) => Close()`, confirmando que ambos fecham a janela com um único clique.
+     - **Atividade `A14.03`:** teste escrever o manipulador desse botão **das duas formas** — primeiro com método nomeado (`void AoSair(object? sender, EventArgs e) { Close(); }`) e depois com lambda `(_, _) => Close()`, confirmando que ambos fecham a janela com um único clique.
 2. **`FormCaixa.cs`:**
    - Declare `public sealed class FormCaixa : Form` com construtor recebendo **`Sessao sessao`**.
    - **Primeira linha obrigatória:** `Permissoes.ExigirCaixa(sessao);`.
    - Prepare a tela com título `"MarketFlow — Caixa"`, rótulo com `sessao.Username` e botão `"Sair / trocar usuário"` chamando `Close()`.
 
 ### Passo 3 — Atualizar o Laço de Sessão no `Program.cs`
-Substitua a abertura única do login da Aula 09 pelo ciclo completo:
+Substitua a abertura única do login da Aula 13 pelo ciclo completo:
 1. Mantenha o modo `--preparar-admin` **fora** do laço: se `args.Contains("--preparar-admin")`, abra `FormLogin(autenticacao, true)` com `ShowDialog()` e encerre com `return;`.
 2. Abaixo dele, construa o laço `while (true)` explicado na Seção 3:
    - Abra `using var login = new FormLogin(autenticacao);`.
@@ -127,18 +127,18 @@ Substitua a abertura única do login da Aula 09 pelo ciclo completo:
 
 ---
 
-## 5. Preparação da Conta Caixa e Verificações Obrigatórias (`A10.01`–`A10.04`)
+## 5. Preparação da Conta Caixa e Verificações Obrigatórias (`A14.01`–`A14.04`)
 
 > [!NOTE]
-> **Como obter uma conta de `Caixa` antes da Aula 19?** Não crie botões provisórios de cadastro no seu projeto. O professor preparará a conta `Caixa` de teste no banco da sua dupla usando a ferramenta docente `--preparar-caixa` descrita em [ensino/README.md](ensino/README.md).
+> **Como obter uma conta de `Caixa` antes da Aula 23?** Não crie botões provisórios de cadastro no seu projeto. O professor preparará a conta `Caixa` de teste no banco da sua dupla usando a ferramenta docente `--preparar-caixa` descrita em [ensino/README.md](ensino/README.md).
 
 Execute com **`F5`** no Visual Studio 2022 e verifique:
 1. Entrar como Administrador abre apenas **"Administração"**; entrar como Caixa abre apenas **"Caixa"**.
-2. **Teste de autorização independente de menu (`A10.02`):** no depurador do VS 2022 (ou em um teste temporário antes de abrir a janela), chame `Permissoes.ExigirAdministrador(sessaoDeCaixa)` e comprove o lançamento de `UnauthorizedAccessException`. Remova qualquer linha temporária após testar.
-3. **Três ciclos completos (`A10.04`):** faça `Admin → Sair → Caixa → Sair → Admin → Sair → fechar Login pelo X`. Confira que a senha volta sempre vazia e que o aplicativo encerra completamente no Visual Studio 2022 (o botão vermelho *Parar* volta a virar verde *Iniciar*).
+2. **Teste de autorização independente de menu (`A14.02`):** no depurador do VS 2022 (ou em um teste temporário antes de abrir a janela), chame `Permissoes.ExigirAdministrador(sessaoDeCaixa)` e comprove o lançamento de `UnauthorizedAccessException`. Remova qualquer linha temporária após testar.
+3. **Três ciclos completos (`A14.04`):** faça `Admin → Sair → Caixa → Sair → Admin → Sair → fechar Login pelo X`. Confira que a senha volta sempre vazia e que o aplicativo encerra completamente no Visual Studio 2022 (o botão vermelho *Parar* volta a virar verde *Iniciar*).
 
-[Anterior: Aula 09](09-Autenticacao-Segura.md) · [Próxima: Aula 11 — Modelo de produtos](11-Modelo-de-Produtos.md) · [Índice](README.md)
+[Anterior: Aula 13](13-Autenticacao-Segura.md) · [Próxima: Aula 15 — Modelo de produtos](15-Modelo-de-Produtos.md) · [Índice](README.md)
 
 ## Atividades por conceito
 
-Realize as atividades da [aula 10 no caderno complementar](ATIVIDADES-POR-CONCEITO.md#aula-10). Cada conceito tem enunciado e critério de aceite. Reúna as evidências em uma entrega por aula, usando os IDs no [caderno de evidências](CADERNO-DE-EVIDENCIAS.md). Essas tarefas integram a prática e a verificação já previstas no encontro.
+Realize as atividades da [aula 14 no caderno complementar](ATIVIDADES-POR-CONCEITO.md#aula-14). Cada conceito tem enunciado e critério de aceite. Reúna as evidências em uma entrega por aula, usando os IDs no [caderno de evidências](CADERNO-DE-EVIDENCIAS.md). Essas tarefas integram a prática e a verificação já previstas no encontro.

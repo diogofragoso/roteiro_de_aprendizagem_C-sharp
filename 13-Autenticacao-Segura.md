@@ -1,6 +1,6 @@
-# Aula 09 — Autenticação Segura com Hash, Salt e SQL Parametrizado
+# Aula 13 — Autenticação Segura com Hash, Salt e SQL Parametrizado
 
-**Duração:** 3h30. **Pré-requisito:** [Aula 08](08-Conectando-Banco-Dados.md), tabela `usuario` vazia e `SELECT 1` funcionando. **Entrega:** primeiro administrador cadastrado com hash seguro e tela de login autenticando credenciais reais via `AutenticacaoService` e `UsuarioRepository`, sem jamais expor senhas ou hashes para a interface.
+**Duração:** 3h30. **Pré-requisito:** [Aula 12](12-Conectando-Banco-Dados.md), tabela `usuario` vazia e `SELECT 1` funcionando. **Entrega:** primeiro administrador cadastrado com hash seguro e tela de login autenticando credenciais reais via `AutenticacaoService` e `UsuarioRepository`, sem jamais expor senhas ou hashes para a interface.
 
 | Bloco | Minutos | Atividade |
 | --- | ---: | --- |
@@ -17,7 +17,7 @@
 
 Esta é uma das aulas mais importantes do curso. Trabalharemos em **4 paradas com compilação intermediária (`Ctrl+Shift+B`)** para que você domine cada peça antes de avançar.
 
-### 1.1 `enum`, `record` e Separação de Dados Sensíveis (`A09.01`)
+### 1.1 `enum`, `record` e Separação de Dados Sensíveis (`A13.01`)
 - **`enum` (Enumeração):** define um conjunto fixo e fechado de opções nomeadas (ex.: `public enum Turno { Manha, Tarde }`). **Por que usar `enum Perfil` em vez de `string`?** Com `string`, alguém poderia digitar `"Admnistrador"` errado e só descobrir um bug depois. Com `enum`, o compilador do Visual Studio 2022 valida cada uso!
 - **`record` (Registro):** uma forma moderna e concisa de criar classes focadas em carregar dados imutáveis. Exemplo genérico:
   ```csharp
@@ -29,8 +29,8 @@ Esta é uma das aulas mais importantes do curso. Trabalharemos em **4 paradas co
   - `Credencial` carrega `SenhaHash` e existe **apenas** entre o `UsuarioRepository` e o `AutenticacaoService` para conferir a senha.
   - `Sessao` carrega **apenas** `Id`, `Username` e `Perfil` (**sem `SenhaHash`**!) e é o único objeto devolvido para as telas (`Views`). Assim, nenhuma tela consegue vazar um hash por acidente!
 
-### 1.2 Construtor Primário e Nulabilidade Assíncrona (`A09.02` e `A09.03`)
-- **Construtor Primário (C# 12+):** em vez de escrever campo + construtor longo como na Aula 04, você pode declarar o parâmetro direto ao lado do nome da classe:
+### 1.2 Construtor Primário e Nulabilidade Assíncrona (`A13.02` e `A13.03`)
+- **Construtor Primário (C# 12+):** em vez de escrever campo + construtor longo como na Aula 08, você pode declarar o parâmetro direto ao lado do nome da classe:
   ```csharp
   public sealed class MeuServico(IMeuRepositorio repo)
   {
@@ -40,7 +40,7 @@ Esta é uma das aulas mais importantes do curso. Trabalharemos em **4 paradas co
   Ele cumpre exatamente o mesmo papel de injeção de dependência pelo construtor tradicional (você pode usar qualquer uma das duas formas).
 - **`Task<Credencial?>`:** significa *"esta operação assíncrona vai entregar um objeto `Credencial` **ou `null`** (se o usuário não existir no banco)"*. O ponto de interrogação `?` obriga o chamador a testar `if (usuario is null)` antes de acessar propriedades.
 
-### 1.3 SQL Parametrizado vs SQL Injection (`A09.04`)
+### 1.3 SQL Parametrizado vs SQL Injection (`A13.04`)
 **Por que JAMAIS concatenar texto digitado pelo usuário dentro de uma string SQL?**
 - **❌ Vulnerável (SQL Injection):** `$"SELECT ... WHERE username = '{username}'"` → Se um invasor digitar `' OR '1'='1`, a string altera a lógica do comando SQL no banco!
 - **✅ Seguro (Parametrizado):**
@@ -53,7 +53,7 @@ Esta é uma das aulas mais importantes do curso. Trabalharemos em **4 paradas co
   - As três aspas (`"""`) delimitam uma **string bruta multilinha**, mantendo o SQL legível sem concatenações.
   - `@cod` é um marcador de parâmetro: o driver envia o SQL e o valor **separadamente** ao PostgreSQL. Mesmo que alguém digite um apóstrofo `'` ou `OR 1=1`, o banco trata aquilo puramente como texto comum de busca!
 
-### 1.4 Hash, Salt e `PasswordHasher<string>` (`A09.05` e `A09.06`)
+### 1.4 Hash, Salt e `PasswordHasher<string>` (`A13.05` e `A13.06`)
 **Por que buscar no SQL somente pelo `username` e verificar a senha em C#?**
 Porque **não existe "descriptografar" um hash!**
 - Um **hash criptográfico com salt** transforma a senha em uma assinatura irreversível combinada com um tempero aleatório (**salt**) diferente a cada usuário.
@@ -117,7 +117,7 @@ Crie dois arquivos em `Repositories/`, ambos em `namespace SupermercadoApp.Repos
        5. Chame `await usuarios.CriarAsync(username, hasher.HashPassword(username, senha), perfil)`.
      - **`PrepararAdministradorAsync(string username, string senha)`:** verifique `if (await usuarios.ExisteAsync())` → lance `InvalidOperationException` (*"A preparação exige a tabela de usuários vazia."*). Só se estiver vazia, chame `await CadastrarAsync(username, senha, Perfil.Administrador)`.
      - **`CriarAsync(Sessao administrador, string username, string senha, Perfil perfil)`:** chame `Permissoes.ExigirAdministrador(administrador);` e depois `await CadastrarAsync(username, senha, perfil)`.
-   - **Classe estática `Permissoes`** (no mesmo arquivo ou em `Services/Permissoes.cs`, usada na Aula 10):
+   - **Classe estática `Permissoes`** (no mesmo arquivo ou em `Services/Permissoes.cs`, usada na Aula 14):
      - `ExigirAdministrador(Sessao sessao)`: se `sessao.Perfil != Perfil.Administrador`, lance `UnauthorizedAccessException`.
      - `ExigirCaixa(Sessao sessao)`: se `sessao.Perfil != Perfil.Caixa`, lance `UnauthorizedAccessException`.
 
@@ -127,7 +127,7 @@ Crie dois arquivos em `Repositories/`, ambos em `namespace SupermercadoApp.Repos
    - `catch (Exception e) when (e is ArgumentException or InvalidOperationException or UnauthorizedAccessException)`: mostre `MessageBox.Show(e.Message, "Verifique os dados");`.
    - `catch (Exception e)`: registre apenas `System.Diagnostics.Trace.WriteLine($"Falha: {e.GetType().Name}");` (nunca a senha ou conexão!) e mostre mensagem amigável de falha de comunicação.
    - Retorne `false` ao final em caso de erro.
-2. **Adaptar seu `Views/FormLogin.cs` (mantendo o Designer da Aula 06!):**
+2. **Adaptar seu `Views/FormLogin.cs` (mantendo o Designer da Aula 10!):**
    - No Designer (`Shift+F7`), **remova o botão temporário `btnTestarConexao`** e o evento dele.
    - No código (`F7`): remova o campo `NpgsqlDataSource`! Agora a tela depende **apenas** de `AutenticacaoService` (camada `Services`).
    - Declare os campos `private readonly AutenticacaoService autenticacao;`, `private readonly bool prepararAdmin;` e a propriedade pública `public Sessao? SessaoAutenticada { get; private set; }`.
@@ -146,7 +146,7 @@ Crie dois arquivos em `Repositories/`, ambos em `namespace SupermercadoApp.Repos
 
 ---
 
-## 3. Como Preparar o Primeiro Administrador no Visual Studio 2022 (`A09.07` e `A09.08`)
+## 3. Como Preparar o Primeiro Administrador no Visual Studio 2022 (`A13.07` e `A13.08`)
 
 **Por que não criamos um admin com senha padrão no SQL?** Porque senhas padrão hardcoded são a causa número 1 de invasões em sistemas reais!
 
@@ -164,8 +164,8 @@ Crie dois arquivos em `Repositories/`, ambos em `namespace SupermercadoApp.Repos
    SELECT username, perfil, length(senha_hash) AS tamanho_hash FROM usuario;
    ```
 
-[Anterior: Aula 08](08-Conectando-Banco-Dados.md) · [Próxima: Aula 10 — Sessão e perfis](10-Sessao-e-Perfis.md) · [Índice](README.md)
+[Anterior: Aula 12](12-Conectando-Banco-Dados.md) · [Próxima: Aula 14 — Sessão e perfis](14-Sessao-e-Perfis.md) · [Índice](README.md)
 
 ## Atividades por conceito
 
-Realize as atividades da [aula 09 no caderno complementar](ATIVIDADES-POR-CONCEITO.md#aula-09). Cada conceito tem enunciado e critério de aceite. Reúna as evidências em uma entrega por aula, usando os IDs no [caderno de evidências](CADERNO-DE-EVIDENCIAS.md). Essas tarefas integram a prática e a verificação já previstas no encontro.
+Realize as atividades da [aula 13 no caderno complementar](ATIVIDADES-POR-CONCEITO.md#aula-13). Cada conceito tem enunciado e critério de aceite. Reúna as evidências em uma entrega por aula, usando os IDs no [caderno de evidências](CADERNO-DE-EVIDENCIAS.md). Essas tarefas integram a prática e a verificação já previstas no encontro.

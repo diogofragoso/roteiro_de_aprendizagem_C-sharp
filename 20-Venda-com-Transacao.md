@@ -1,10 +1,10 @@
-# Aula 16 — Persistência da Venda: Transação Atômica, Bloqueios e Idempotência
+# Aula 20 — Persistência da Venda: Transação Atômica, Bloqueios e Idempotência
 
-**Duração:** 3h30. **Pré-requisito:** [Aula 15](15-Carrinho-do-Caixa.md). **Entrega:** tabelas `venda` e `venda_item` criadas, serviço e repositório transacional de venda construídos por você, com provas reais de atomicidade (rollback após escrita), disputa concorrente pelo último item e idempotência por `Guid` (o fluxo visual definitivo de pagamento/troco entra na Aula 17).
+**Duração:** 3h30. **Pré-requisito:** [Aula 19](19-Carrinho-do-Caixa.md). **Entrega:** tabelas `venda` e `venda_item` criadas, serviço e repositório transacional de venda construídos por você, com provas reais de atomicidade (rollback após escrita), disputa concorrente pelo último item e idempotência por `Guid` (o fluxo visual definitivo de pagamento/troco entra na Aula 21).
 
 | Bloco | Minutos | Atividade |
 | --- | ---: | --- |
-| Retomada | 15 | Relembrar que o carrinho da Aula 15 não reserva estoque no banco |
+| Retomada | 15 | Relembrar que o carrinho da Aula 19 não reserva estoque no banco |
 | Explicação | 30 | Snapshot histórico, idempotência (`Guid`), `advisory lock`, `FOR UPDATE` e deadlock |
 | Construção | 60 | Paradas 1 e 2: aplicar script 003, construir modelos, contrato, serviço e bloqueios |
 | Intervalo | 15 | Pausa |
@@ -17,21 +17,21 @@
 
 Esta é a aula tecnicamente mais rica do curso. Antes de abrir o Visual Studio 2022, entenda **por que** uma venda profissional precisa de cada uma dessas 5 defesas:
 
-### 1.1 Snapshot Histórico em `venda_item` (`A16.01`)
+### 1.1 Snapshot Histórico em `venda_item` (`A20.01`)
 Abra [database/003-vendas.sql](database/003-vendas.sql). Note que `venda_item` grava `nome` e `preco_unitario` além de `produto_id`.
 **Por quê?** Se hoje você vende Arroz a `R$ 25,90` e amanhã o administrador sobe o preço do Arroz para `R$ 30,00`, o comprovante da venda de ontem **não pode mudar para R$ 30,00**! Copiar nome e preço no item congela o retrato histórico daquele momento.
 
-### 1.2 Autoridade do Preço no Banco (`PedidoItem`) (`A16.02`)
+### 1.2 Autoridade do Preço no Banco (`PedidoItem`) (`A20.02`)
 `VendaService` converte o carrinho em um array de `PedidoItem(ProdutoId, Quantidade)` — **sem enviar o preço da tela** para o `VendaRepository`!
 **Por quê?** Entre o momento em que o caixa bipou o item e clicou em Finalizar, o administrador pode ter atualizado o preço (ou alguém pode ter alterado a memória do cliente). O repositório lê o preço oficial direto da tabela `produto` dentro da transação.
 
-### 1.3 Idempotência com `Guid` + `pg_advisory_xact_lock` (`A16.03` e `A16.08`)
+### 1.3 Idempotência com `Guid` + `pg_advisory_xact_lock` (`A20.03` e `A20.08`)
 Imagine que o caixa clique em Finalizar, a internet oscile e o caixa tente enviar a mesma venda de novo.
 - Cada intenção de compra recebe um identificador único universal (**`Guid` / `uuid`**) chamado `operacao`.
 - No início da transação, chamamos **`SELECT pg_advisory_xact_lock(hashtextextended(@op, 0))`**: se duas requisições chegarem no **mesmo milissegundo** com o **mesmo `Guid`**, a segunda fica esperando em fila até a primeira terminar.
 - Logo depois, consultamos `SELECT id, total, recebido FROM venda WHERE operacao=@op AND usuario_id=@usuario`. Se a venda já foi gravada, devolvemos imediatamente o resultado existente **sem gravar de novo nem baixar estoque duas vezes**! Isso é **Idempotência**.
 
-### 1.4 Concorrência pelo Último Item (`FOR UPDATE`) e Prevenção de Deadlock (`A16.04` e `A16.06`)
+### 1.4 Concorrência pelo Último Item (`FOR UPDATE`) e Prevenção de Deadlock (`A20.04` e `A20.06`)
 
 ```mermaid
 sequenceDiagram
@@ -51,7 +51,7 @@ sequenceDiagram
 - **Por que ordenar os itens por `ProdutoId` crescente (`itens.OrderBy(i => i.ProdutoId)`) antes do `FOR UPDATE`?**
   Se o Caixa 1 travasse o Produto `10` e pedisse o Produto `2`, enquanto o Caixa 2 travasse o Produto `2` e pedisse o Produto `10`, os dois ficariam esperando um pelo outro para sempre (**Deadlock**!). Quando todos os caixas sempre bloqueiam os produtos em ordem crescente (`2` primeiro, depois `10`), o bloqueio circular fica eliminado!
 
-### 1.5 Por Que `INSERT ... RETURNING id` e NUNCA `SELECT MAX(id)`? (`A16.07`)
+### 1.5 Por Que `INSERT ... RETURNING id` e NUNCA `SELECT MAX(id)`? (`A20.07`)
 Se dois caixas inserem vendas quase juntos, `SELECT MAX(id)` pode devolver ao Caixa 1 o ID da venda que o Caixa 2 acabou de criar! Já `INSERT INTO venda(...) VALUES (...) RETURNING id` devolve atomicamente o ID exato da linha que **este** comando inseriu.
 
 ---
@@ -65,8 +65,8 @@ Trabalhe nas 4 paradas abaixo, compilando (`Ctrl+Shift+B`) ao final de cada uma:
 2. Crie os 3 records em **`Models/`** (`namespace SupermercadoApp.Models;`):
    - **`PedidoItem.cs`:** `public sealed record PedidoItem(int ProdutoId, int Quantidade);`
    - **`VendaConfirmada.cs`:** `public sealed record VendaConfirmada(int Id, decimal Total, decimal Recebido)` com a propriedade calculada `public decimal Troco => Recebido - Total;`.
-   - **`ResumoVenda.cs`:** `public sealed record ResumoVenda(int Id, DateTime DataUtc, string Operador, decimal Total);` *(será usado no relatório da Aula 18)*.
-3. Crie **`Repositories/IVendaRepository.cs`** com os 2 métodos desta aula (deixe `RelatorioAsync` para a Aula 18):
+   - **`ResumoVenda.cs`:** `public sealed record ResumoVenda(int Id, DateTime DataUtc, string Operador, decimal Total);` *(será usado no relatório da Aula 22)*.
+3. Crie **`Repositories/IVendaRepository.cs`** com os 2 métodos desta aula (deixe `RelatorioAsync` para a Aula 22):
    - `Task<VendaConfirmada?> BuscarAsync(Guid operacao);`
    - `Task<VendaConfirmada> FinalizarAsync(Guid operacao, int usuarioId, IReadOnlyList<PedidoItem> itens, decimal recebido);`
 
@@ -100,19 +100,19 @@ Crie **`Repositories/VendaRepository.cs`** (`public sealed class VendaRepository
       - `INSERT INTO movimento_estoque(produto_id, usuario_id, quantidade, motivo) VALUES (@produto, @usuario, -@q, 'Venda')`
    8. Execute **`await transacao.CommitAsync();`** uma única vez ao final e retorne `new VendaConfirmada(vendaId, total, recebido)`.
 
-### Parada 4 — Chamada Controlada e Ensaios de Laboratório (`A16.01`–`A16.08`)
-Adicione temporariamente em `FormCaixa` um campo `private Guid operacao = Guid.NewGuid();` e um botão de teste que chama `vendas.FinalizarAsync(sessao, operacao, carrinho.Itens, 100m)` exibindo `resultado.Id`, `resultado.Total` e `operacao` *(esse botão será substituído pelo pagamento completo na Aula 17)*.
+### Parada 4 — Chamada Controlada e Ensaios de Laboratório (`A20.01`–`A20.08`)
+Adicione temporariamente em `FormCaixa` um campo `private Guid operacao = Guid.NewGuid();` e um botão de teste que chama `vendas.FinalizarAsync(sessao, operacao, carrinho.Itens, 100m)` exibindo `resultado.Id`, `resultado.Total` e `operacao` *(esse botão será substituído pelo pagamento completo na Aula 21)*.
 
 Execute e registre evidências reais (contagens e saldos antes/depois no SQL Editor):
-1. **Repetição com o mesmo `Guid` (`A16.03`):** clique duas vezes no botão de teste com o mesmo carrinho → deve devolver o **mesmo ID** e apenas **uma** baixa de estoque!
-2. **Snapshot histórico (`A16.01`):** após confirmar uma venda, altere o preço do produto como Administrador e consulte `venda_item` → o preço histórico da venda permanece o antigo!
-3. **Concorrência no último item (`A16.06`):** com um produto de estoque `1` e duas instâncias abertas com contas de `Caixa` diferentes (chaves distintas), finalize ambos → exatamente 1 confirma, 1 recusa, saldo final `0`, sem cabeçalho órfão!
-4. **Rollback real após escrita (`A16.05`):** siga com o professor o procedimento [Rollback após alteração real](VALIDACAO-MANUAL.md#rollback-após-alteração-real) (gatilho que falha **depois** de inserir cabeçalho, item e atualizar estoque). Comprove que todas as tabelas voltaram às contagens iniciais, remova o gatilho e confirme a venda.
+1. **Repetição com o mesmo `Guid` (`A20.03`):** clique duas vezes no botão de teste com o mesmo carrinho → deve devolver o **mesmo ID** e apenas **uma** baixa de estoque!
+2. **Snapshot histórico (`A20.01`):** após confirmar uma venda, altere o preço do produto como Administrador e consulte `venda_item` → o preço histórico da venda permanece o antigo!
+3. **Concorrência no último item (`A20.06`):** com um produto de estoque `1` e duas instâncias abertas com contas de `Caixa` diferentes (chaves distintas), finalize ambos → exatamente 1 confirma, 1 recusa, saldo final `0`, sem cabeçalho órfão!
+4. **Rollback real após escrita (`A20.05`):** siga com o professor o procedimento [Rollback após alteração real](VALIDACAO-MANUAL.md#rollback-após-alteração-real) (gatilho que falha **depois** de inserir cabeçalho, item e atualizar estoque). Comprove que todas as tabelas voltaram às contagens iniciais, remova o gatilho e confirme a venda.
 
 Consulte também a documentação oficial de [Bloqueios no PostgreSQL](https://www.postgresql.org/docs/current/explicit-locking.html).
 
-[Anterior: Aula 15](15-Carrinho-do-Caixa.md) · [Próxima: Aula 17 — Finalização e troco](17-Finalizacao-e-Troco.md) · [Índice](README.md)
+[Anterior: Aula 19](19-Carrinho-do-Caixa.md) · [Próxima: Aula 21 — Finalização e troco](21-Finalizacao-e-Troco.md) · [Índice](README.md)
 
 ## Atividades por conceito
 
-Realize as atividades da [aula 16 no caderno complementar](ATIVIDADES-POR-CONCEITO.md#aula-16). Cada conceito tem enunciado e critério de aceite. Reúna as evidências em uma entrega por aula, usando os IDs no [caderno de evidências](CADERNO-DE-EVIDENCIAS.md). Essas tarefas integram a prática e a verificação já previstas no encontro.
+Realize as atividades da [aula 20 no caderno complementar](ATIVIDADES-POR-CONCEITO.md#aula-20). Cada conceito tem enunciado e critério de aceite. Reúna as evidências em uma entrega por aula, usando os IDs no [caderno de evidências](CADERNO-DE-EVIDENCIAS.md). Essas tarefas integram a prática e a verificação já previstas no encontro.

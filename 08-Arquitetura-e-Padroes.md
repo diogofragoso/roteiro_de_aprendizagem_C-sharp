@@ -1,6 +1,6 @@
-# Aula 04 — Arquitetura em Camadas, Contratos e Injeção de Dependência
+# Aula 08 — Arquitetura em Camadas, Contratos e Injeção de Dependência
 
-**Duração:** 3h30. **Pré-requisito:** [Aula 03](03-Orientacao-a-Objetos.md). **Entrega:** consulta de produtos em memória no console em que o `Program` conecta um Serviço a duas implementações diferentes de uma Interface de Repositório — provando a troca sem alterar o serviço.
+**Duração:** 3h30. **Pré-requisito:** [Aula 07](07-Namespaces-Interfaces-Heranca-e-Polimorfismo.md). **Entrega:** consulta de produtos em memória no console em que o `Program` conecta um Serviço a duas implementações diferentes de uma Interface de Repositório — provando a troca sem alterar o serviço.
 
 | Bloco | Minutos | Atividade |
 | --- | ---: | --- |
@@ -89,7 +89,7 @@ Antes de construir, compreenda duas realidades do mercado de software:
 
 No projeto console `TreinoSupermercado` (mantendo a classe `Produto.cs` com `Nome` e `Preco`), construa passo a passo os arquivos abaixo usando **Adicionar → Classe / Interface** (`Shift+Alt+C`) no **Visual Studio 2022**:
 
-### Passo 1 — Construir o Contrato `IConsultaProdutos.cs` (`A04.02`)
+### Passo 1 — Construir o Contrato `IConsultaProdutos.cs` (`A08.02`)
 1. Crie o arquivo **`IConsultaProdutos.cs`**.
 2. Declare `public interface IConsultaProdutos` contendo um único método:
    - Nome: `Listar`
@@ -101,16 +101,16 @@ No projeto console `TreinoSupermercado` (mantendo a classe `Produto.cs` com `Nom
 2. Implemente o método `public IReadOnlyList<Produto> Listar()` retornando uma `new List<Produto>` com dois produtos fictícios: `"Arroz"` (`25.90m`) e `"Feijão"` (`8.50m`).
 3. *(Opcional)* Lembre-se que esse repositório funciona 100% offline, sem internet e sem banco de dados!
 
-### Passo 3 — Construir o Serviço: `ConsultaProdutosService.cs` (`A04.03` e `A04.04`)
+### Passo 3 — Construir o Serviço: `ConsultaProdutosService.cs` (`A08.03` e `A08.04`)
 1. Crie o arquivo **`ConsultaProdutosService.cs`** declarando `public class ConsultaProdutosService`.
 2. Declare um campo privado somente leitura: `private readonly IConsultaProdutos produtos;`.
 3. Crie o construtor público `ConsultaProdutosService(IConsultaProdutos produtos)` guardando o parâmetro no campo com `this.produtos = produtos;`.
 4. Crie o método `public IReadOnlyList<Produto> Executar()` que chama `produtos.Listar()` e devolve o resultado.
 5. Crie o método `public void ValidarPreco(decimal preco)`:
    - Se `preco <= 0`, lance `ArgumentException` com a mensagem `"Preço deve ser positivo."`.
-   - *(Por que `ValidarPreco` está separado de `Executar` hoje? Para você exercitar uma regra de negócio isolada no serviço sem nenhuma tela gráfica. A partir da Aula 11, a validação ficará integrada dentro de `SalvarAsync`.)*
+   - *(Por que `ValidarPreco` está separado de `Executar` hoje? Para você exercitar uma regra de negócio isolada no serviço sem nenhuma tela gráfica. A partir da Aula 15, a validação ficará integrada dentro de `SalvarAsync`.)*
 
-### Passo 4 — Construir a Segunda Implementação: `ProdutosPromocionais.cs` (`A04.03`)
+### Passo 4 — Construir a Segunda Implementação: `ProdutosPromocionais.cs` (`A08.03`)
 1. Crie o arquivo **`ProdutosPromocionais.cs`** também assinando o mesmo contrato (`: IConsultaProdutos`).
 2. Implemente `Listar()` retornando uma lista diferente — por exemplo, apenas `"Café"` por `12.90m`.
 
@@ -119,9 +119,9 @@ No `Program.cs` (mantendo apenas instruções de execução):
 1. Instancie `IConsultaProdutos repositorio = new ProdutosEmMemoria();`.
 2. Crie `var servico = new ConsultaProdutosService(repositorio);` (injeção manual!).
 3. Percorra `servico.Executar()` com `foreach` e exiba cada produto e preço formatado com `:C`.
-4. **Teste de proteção do contrato (`A04.02`):** tente chamar temporariamente `servico.Executar().Add(new Produto());`, observe o erro do compilador (`CS1061`, pois `IReadOnlyList` não possui `Add`) e apague a linha.
-5. **Teste de regra independente de tela (`A04.04`):** chame `servico.ValidarPreco` com `25.90m`, `0m` e `-1m` usando `try / catch (ArgumentException erro)` para exibir a recusa sem travar o console.
-6. **Prova real da troca de dependência (`A04.03`):** no `Program.cs`, troque **apenas** `new ProdutosEmMemoria()` por `new ProdutosPromocionais()` e execute com `Ctrl+F5`.
+4. **Teste de proteção do contrato (`A08.02`):** tente chamar temporariamente `servico.Executar().Add(new Produto());`, observe o erro do compilador (`CS1061`, pois `IReadOnlyList` não possui `Add`) e apague a linha.
+5. **Teste de regra independente de tela (`A08.04`):** chame `servico.ValidarPreco` com `25.90m`, `0m` e `-1m` usando `try / catch (ArgumentException erro)` para exibir a recusa sem travar o console.
+6. **Prova real da troca de dependência (`A08.03`):** no `Program.cs`, troque **apenas** `new ProdutosEmMemoria()` por `new ProdutosPromocionais()` e execute com `Ctrl+F5`.
    - **Observe:** a saída muda para `"Café"` sem que você tenha tocado em **uma única linha** de `ConsultaProdutosService.cs`! (Simplesmente alterar o preço dentro da mesma lista **não** demonstra troca de implementação.)
 
 ---
@@ -131,10 +131,10 @@ No `Program.cs` (mantendo apenas instruções de execução):
 Registre no seu caderno:
 - Por que um repositório (`Repositories`) **jamais** deve chamar `MessageBox.Show` ou `Console.WriteLine`?
 - Quais arquivos continuarão iguais e quais precisarão mudar quando conectarmos o PostgreSQL (Neon) ou MySQL (XAMPP) nas próximas aulas?
-- O que precisaria mudar para levar credenciais e autorização para uma API comercial (`A04.05`)?
+- O que precisaria mudar para levar credenciais e autorização para uma API comercial (`A08.05`)?
 
-[Anterior: Aula 03](03-Orientacao-a-Objetos.md) · [Próxima: Aula 05 — Ambiente e solução no VS 2022](05-Configuracao-Ambiente.md) · [Índice](README.md)
+[Anterior: Aula 07](07-Namespaces-Interfaces-Heranca-e-Polimorfismo.md) · [Próxima: Aula 09 — Ambiente e solução no VS 2022](09-Configuracao-Ambiente.md) · [Índice](README.md)
 
 ## Atividades por conceito
 
-Realize as atividades da [aula 04 no caderno complementar](ATIVIDADES-POR-CONCEITO.md#aula-04). Cada conceito tem enunciado e critério de aceite. Reúna as evidências em uma entrega por aula, usando os IDs no [caderno de evidências](CADERNO-DE-EVIDENCIAS.md). Essas tarefas integram a prática e a verificação já previstas no encontro.
+Realize as atividades da [aula 08 no caderno complementar](ATIVIDADES-POR-CONCEITO.md#aula-08). Cada conceito tem enunciado e critério de aceite. Reúna as evidências em uma entrega por aula, usando os IDs no [caderno de evidências](CADERNO-DE-EVIDENCIAS.md). Essas tarefas integram a prática e a verificação já previstas no encontro.

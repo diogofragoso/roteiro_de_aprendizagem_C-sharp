@@ -95,6 +95,6 @@ Essa proteção vale para o fluxo normal do cliente. O teste não comprova segur
 
 ## Registro
 
-Para a aula 07, use o [laboratório de restrições](database/laboratorio/07-restricoes.sql), com tabelas temporárias em uma sessão direta. Para a aula 18, use a [massa de fronteiras](database/laboratorio/18-fronteiras.sql): duas das quatro vendas devem entrar no dia fixo 16/10/2026, somando 17,00 quando não há outras vendas nesse período. As massas não são executadas automaticamente ao abrir o aplicativo.
+Para a aula 11, use o [laboratório de restrições](database/laboratorio/07-restricoes.sql), com tabelas temporárias em uma sessão direta. Para a aula 22, use a [massa de fronteiras](database/laboratorio/18-fronteiras.sql): duas das quatro vendas devem entrar no dia fixo 16/10/2026, somando 17,00 quando não há outras vendas nesse período. As massas não são executadas automaticamente ao abrir o aplicativo.
 
 Para cada caso, preencha: data, branch, preparação, ação, esperado, observado, estado e evidência. Não registre segredos. Um teste pendente de rede, conta ou segunda máquina permanece pendente no relatório da turma.
