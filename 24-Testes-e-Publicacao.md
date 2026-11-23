@@ -45,12 +45,15 @@ Quando você aperta `F5` durante as aulas, o Visual Studio 2022 compila em modo 
 ### Passo 1 — Construir um Projeto Console de Verificações com Fakes (`A24.02`)
 Na sua solução `Supermercado` no **Visual Studio 2022**:
 1. Clique com o botão direito na **Solução `Supermercado`** (no topo do Gerenciador de Soluções) → **Adicionar → Novo Projeto...** → **Aplicativo de Console** (C#) → nomeie **`SupermercadoApp.Verificacoes`**.
-2. Clique com o botão direito nas **Dependências** de `SupermercadoApp.Verificacoes` → **Adicionar Referência de Projeto...** → marque **`SupermercadoApp`** e clique em **OK**.
+2. **Ajuste obrigatório do `.csproj` antes de referenciar o Windows Forms:** dê duplo clique sobre `SupermercadoApp.Verificacoes` no Gerenciador de Soluções para abrir o `.csproj`. Como `SupermercadoApp` usa Windows Forms (`net8.0-windows`), um console comum (`net8.0`) acusará erro de incompatibilidade (`NU1201`) ao referenciá-lo! Ajuste `<PropertyGroup>` para casar com o target do seu `SupermercadoApp`:
+   - Altere `<TargetFramework>net8.0</TargetFramework>` para **`<TargetFramework>net8.0-windows</TargetFramework>`** (usando a mesma versão `.NET` do seu `SupermercadoApp`);
+   - Adicione **`<UseWindowsForms>true</UseWindowsForms>`** logo abaixo e salve (`Ctrl+S`).
+3. Agora clique com o botão direito nas **Dependências** de `SupermercadoApp.Verificacoes` → **Adicionar Referência de Projeto...** → marque **`SupermercadoApp`** e clique em **OK**.
    - *(Atenção: mantenha `SupermercadoApp` como Projeto de Inicialização padrão; clique com o botão direito em `SupermercadoApp` → **Definir como Projeto de Inicialização**.)*
-3. Dentro de `SupermercadoApp.Verificacoes`, reaproveite os casos das Aulas 15 e 19 e construa **suas próprias verificações automatizadas** com classes Fake implementando `IProdutoRepository`, `IUsuarioRepository` e `IVendaRepository`:
+4. Dentro de `SupermercadoApp.Verificacoes`, reaproveite os casos das Aulas 15 e 19 e construa **suas próprias verificações automatizadas** com classes Fake implementando `IProdutoRepository`, `IUsuarioRepository` e `IVendaRepository`:
    - Crie uma função auxiliar `Conferir(bool condicao, string descricao)` que lança `Exception` se a condição for falsa;
    - Teste agrupamento e total `60,30` no `Carrinho`, recusa de preço `0` / `1.999m` / sessão de `Caixa` no `ProdutoService`, preservação de espaços na senha e salt no `AutenticacaoService`, e bloqueio de intervalo invertido no `VendaService`.
-4. **Prova de regressão (teste que detecta bug real — `A24.02`):** em uma cópia local controlada, introduza deliberadamente um pequeno defeito em uma regra (ex.: alterar `<= 0` para `< 0`), execute seu console de verificações e **comprove que sua asserção falha avisando o defeito**. Restaure a regra correta e execute novamente comprovando aprovação!
+5. **Prova de regressão (teste que detecta bug real — `A24.02`):** em uma cópia local controlada, introduza deliberadamente um pequeno defeito em uma regra (ex.: alterar `<= 0` para `< 0`), execute seu console de verificações e **comprove que sua asserção falha avisando o defeito**. Restaure a regra correta e execute novamente comprovando aprovação!
 
 *(Para referência docente, a solução do repositório também traz uma suíte de verificações em `tests/SupermercadoApp.Verificacoes` e um runner opt-in de integração PostgreSQL em `tests/SupermercadoApp.Integracao` — consulte [VALIDACAO-MANUAL.md](VALIDACAO-MANUAL.md) e [src/README.md](src/README.md) para detalhes de execução de laboratório.)*
 

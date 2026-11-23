@@ -67,11 +67,11 @@ Porque assim, com uma única linha (`edicao.Enabled = false;` ou `edicao.Enabled
    - No botão **Adicionar**, atualize também `executando = true; edicao.Enabled = false;` antes da consulta e restaure no `finally` (impedindo finalizar enquanto uma busca de produto ainda está em andamento!).
    - No botão **Cancelar carrinho**, além de `carrinho.Limpar()`, renove `operacao = Guid.NewGuid();`.
 3. Ainda dentro de `edicao`, adicione:
-   - Rótulo `"Valor recebido em dinheiro (pagamento simulado)"`;
-   - Controle `NumericUpDown recebido` com `DecimalPlaces = 2`, `Maximum = 9999999999.99m`, `Width = 200`.
+   - Rótulo `edicao.Controls.Add(Ui.Rotulo("Valor recebido em dinheiro (pagamento simulado)"));`;
+   - Controle `NumericUpDown recebido` com `DecimalPlaces = 2`, `Maximum = 9999999999.99m`, `Width = 200`, adicionando-o com `edicao.Controls.Add(recebido);`.
 4. **Fora** de `edicao` (diretamente no painel principal `p`, para continuar acessível mesmo quando `edicao` estiver travado!):
-   - Crie um rótulo de status: `var estado = Ui.Rotulo("Adicione produtos para iniciar.");`.
-   - Crie o botão **`"Finalizar / consultar tentativa pendente"`**.
+   - Crie e adicione o rótulo de status: `var estado = Ui.Rotulo("Adicione produtos para iniciar."); p.Controls.Add(estado);`.
+   - Crie o botão **`"Finalizar / consultar tentativa pendente"`** em `p`.
 
 ### Passo 3 — Construir o Evento do Botão Finalizar (`A21.02` e `A21.03`)
 No evento `async (sender, _) =>` do botão Finalizar, construa exatamente esta sequência:
@@ -88,7 +88,7 @@ No evento `async (sender, _) =>` do botão Finalizar, construa exatamente esta s
    - Defina `pendente = false;` e exiba `MessageBox.Show(e.Message);`.
 7. No segundo **`catch`** (erro de rede / comunicação incerta):
    - `catch (Exception e)`
-   - Registre apenas o nome do tipo de exceção em `Trace.WriteLine`.
+   - Registre apenas o nome do tipo de exceção com `System.Diagnostics.Trace.WriteLine($"Falha de venda: {e.GetType().Name}");`.
    - Atualize `estado.Text` exibindo o `Guid` `operacao` e peça para clicar em finalizar novamente (mantendo `pendente = true`!).
 8. No **`finally`**:
    - `executando = false; b.Enabled = true; edicao.Enabled = !pendente;`. *(Observe a elegância de `edicao.Enabled = !pendente;`: só destrava a edição se a operação não estiver em estado incerto!)*

@@ -117,20 +117,23 @@ Crie ambos os arquivos na pasta `Views/` (`Shift+Alt+C`), em `namespace Supermer
    - **Primeira linha obrigatória:** `Permissoes.ExigirCaixa(sessao);`.
    - Prepare a tela com título `"MarketFlow — Caixa"`, rótulo com `sessao.Username` e botão `"Sair / trocar usuário"` chamando `Close()`.
 
-### Passo 3 — Atualizar o Laço de Sessão no `Program.cs`
-Substitua a abertura única do login da Aula 13 pelo ciclo completo:
+### Passo 3 — Atualizar o Laço de Sessão e o `catch` no `Program.cs`
+Substitua a abertura única do login da Aula 13 pelo ciclo completo (adicione `using SupermercadoApp.Models;` se ainda não estiver no topo):
 1. Mantenha o modo `--preparar-admin` **fora** do laço: se `args.Contains("--preparar-admin")`, abra `FormLogin(autenticacao, true)` com `ShowDialog()` e encerre com `return;`.
 2. Abaixo dele, construa o laço `while (true)` explicado na Seção 3:
    - Abra `using var login = new FormLogin(autenticacao);`.
    - Se `login.ShowDialog() != DialogResult.OK || login.SessaoAutenticada is not { } sessao`, execute `break;`.
    - Instancie `using Form principal = ...` escolhendo `FormAdministrador` ou `FormCaixa` conforme `sessao.Perfil` e chame `principal.ShowDialog();`.
+3. Atualize o `catch` do `Program.cs` para `catch (Exception erro)` exibindo `erro.Message` quando `erro is InvalidOperationException or UnauthorizedAccessException` e uma mensagem genérica nos demais casos (sem expor a string de conexão).
 
 ---
 
 ## 5. Preparação da Conta Caixa e Verificações Obrigatórias (`A14.01`–`A14.04`)
 
 > [!NOTE]
-> **Como obter uma conta de `Caixa` antes da Aula 23?** Não crie botões provisórios de cadastro no seu projeto. O professor preparará a conta `Caixa` de teste no banco da sua dupla usando a ferramenta docente `--preparar-caixa` descrita em [ensino/README.md](ensino/README.md).
+> **Como obter uma conta de `Caixa` antes da Aula 23?**
+> - **Em laboratório com professor:** não crie botões provisórios de cadastro; o professor prepara a conta `Caixa` de teste no banco da dupla usando a ferramenta docente `--preparar-caixa` descrita em [ensino/README.md](ensino/README.md).
+> - **Se estiver estudando sozinho em casa:** como `AutenticacaoService.CriarAsync` já foi construído na Aula 13, você pode criar uma conta `Caixa` de teste chamando temporariamente `await autenticacao.CriarAsync(sessaoAdmin, "caixa.lab", "sua-senha-de-12-chars", Perfil.Caixa)` após autenticar como administrador (e remover essa linha logo em seguida) — **nunca** faça `INSERT` com senha em texto puro direto no SQL! Na Aula 23 você construirá a tela definitiva `FormUsuarios`.
 
 Execute com **`F5`** no Visual Studio 2022 e verifique:
 1. Entrar como Administrador abre apenas **"Administração"**; entrar como Caixa abre apenas **"Caixa"**.

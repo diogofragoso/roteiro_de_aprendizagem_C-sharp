@@ -91,7 +91,11 @@ Uma **variável** é um espaço nomeado na memória RAM com um **tipo** fixo. En
 
 No `Program.cs` do projeto `TreinoSupermercado`, construa passo a passo os blocos **`A01.01` a `A01.06`** seguindo as orientações abaixo:
 
-1. **Preparação inicial:** adicione `using System.Globalization;` na linha 1 e configure `CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("pt-BR");`.
+1. **Preparação inicial (configurando o idioma brasileiro):** adicione as duas linhas abaixo no topo do `Program.cs` para padronizar vírgula e `R$` em qualquer computador do laboratório *(explicaremos o funcionamento detalhado de `using` na Aula 07)*:
+   ```csharp
+   using System.Globalization;
+   CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("pt-BR");
+   ```
 2. **Bloco `A01.01` — Ordem de execução e erro de sintaxe:**
    - Escreva um comentário `//` no topo e três linhas `Console.WriteLine(...)` (início, nome do sistema e fim). Preveja a ordem no papel, rode com `Ctrl+F5`, depois inverta a primeira com a última e confirme.
    - **Experimento de erro:** remova de propósito uma aspa dupla `"`, pressione `Ctrl+Shift+B`, localize o código do erro na **Lista de Erros** do VS 2022, dê duplo clique para saltar à linha e corrija.

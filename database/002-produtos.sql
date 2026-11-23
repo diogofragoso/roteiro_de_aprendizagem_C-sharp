@@ -1,4 +1,4 @@
--- Aula 11. Depende de 001. Código é texto para preservar zeros à esquerda.
+-- Aula 15. Depende de 001. Código é texto para preservar zeros à esquerda.
 BEGIN;
 CREATE TABLE produto (
     id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,

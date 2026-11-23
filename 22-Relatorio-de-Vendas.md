@@ -72,8 +72,8 @@ grade.DataSource = vendasPeriodo
 1. Crie **`Views/FormRelatorio.cs`** (`public sealed class FormRelatorio : Form`) recebendo **`(Sessao sessao, VendaService vendas)`** no construtor:
    - Exija `Permissoes.ExigirAdministrador(sessao);`.
    - Prepare o painel com `Ui.Preparar(this, "Administração — Vendas por período")`.
-   - Crie dois controles **`DateTimePicker`** (`inicio` e `fim`), ambos configurados com `Format = DateTimePickerFormat.Short` e `Value = DateTime.Today`, com rótulos claros (*"Data inicial (horário local do Windows)"* e *"Data final (inclusive)"*).
-   - Crie `var grade = Ui.Grade(painel);` e `var resumo = Ui.Rotulo("Nenhuma consulta realizada.");`.
+   - Crie dois controles **`DateTimePicker`** (`inicio` e `fim`), ambos configurados com `Format = DateTimePickerFormat.Short` e `Value = DateTime.Today`, com rótulos claros (*"Data inicial (horário local do Windows)"* e *"Data final (inclusive)"*), **lembrando de adicionar cada rótulo e cada `DateTimePicker` ao painel com `painel.Controls.Add(...)`**.
+   - Crie `var grade = Ui.Grade(painel);` e `var resumo = Ui.Rotulo("Nenhuma consulta realizada."); painel.Controls.Add(resumo);`.
    - Crie o botão **`"Consultar"`** com evento `async (sender, _) =>`:
      1. Desabilite o botão antes do `try` e reabilite no `finally`.
      2. Dentro de `Ui.ExecutarAsync`:

@@ -96,22 +96,23 @@ Construa cada peça abaixo **sem copiar código pronto de `src/`**:
      - `builder.CommandTimeout = 30;` (máximo 30 segundos por consulta).
    - Retorne `NpgsqlDataSource.Create(builder.ConnectionString);`.
 
-### Construção 2 — Injetar a Fonte de Dados no `FormLogin` e no `Program.cs`
-1. Abra **`Views/FormLogin.cs`** no modo código (`F7`).
-2. Adicione `using Npgsql;` no topo.
-3. Declare um campo privado somente leitura: `private readonly NpgsqlDataSource banco;`.
-4. Altere o construtor existente de `FormLogin` para receber `NpgsqlDataSource banco` como parâmetro — **mantendo `InitializeComponent();`** na primeira linha do construtor e salvando `this.banco = banco;` logo abaixo!
-5. Abra **`Program.cs`** e proteja a inicialização após `ApplicationConfiguration.Initialize();`:
+### Construção 2 — Adicionar o Botão Temporário no Designer ANTES de Alterar o Construtor (`A12.04`)
+*(Este botão será removido na Aula 13, quando a tela deixar de falar direto com o banco e passar a falar com o `AutenticacaoService`. Adicioná-lo agora, enquanto `FormLogin` ainda possui o construtor padrão sem parâmetros, evita qualquer aviso no Designer do Visual Studio 2022!)*
+
+1. Abra **`Views/FormLogin.cs`** no Designer (`Shift+F7`), arraste um `Button` da Caixa de Ferramentas, pressione `F4` e configure `(Name)` como **`btnTestarConexao`** e `Text` como **`Testar conexão`**.
+2. Dê duplo clique no botão para o Visual Studio 2022 gerar o manipulador `btnTestarConexao_Click` em `FormLogin.cs` e salve (`Ctrl+S`).
+
+### Construção 3 — Injetar a Fonte de Dados no `FormLogin` e no `Program.cs`
+1. Com **`Views/FormLogin.cs`** aberto em modo código (`F7`), adicione `using Npgsql;` no topo.
+2. Declare um campo privado somente leitura: `private readonly NpgsqlDataSource banco;`.
+3. Altere o construtor existente de `FormLogin` para receber `NpgsqlDataSource banco` como parâmetro — **mantendo `InitializeComponent();`** na primeira linha do construtor e salvando `this.banco = banco;` logo abaixo!
+4. Abra **`Program.cs`** e proteja a inicialização após `ApplicationConfiguration.Initialize();`:
    - Envolva em um `try / catch (InvalidOperationException erro)`:
      - No `try`: crie a fonte de dados com **`using var banco = SupermercadoApp.Infrastructure.Banco.Criar();`** (o `using` garante que o pool seja fechado ao sair do aplicativo) e passe-a ao login: `Application.Run(new SupermercadoApp.Views.FormLogin(banco));`.
      - No `catch`: mostre `MessageBox.Show(erro.Message, "Configuração");` para orientar o usuário caso a variável de ambiente falte.
 
-### Construção 3 — Botão Temporário de Diagnóstico `SELECT 1` (`A12.04` e `A12.05`)
-*(Este botão será removido na Aula 13, quando a tela deixar de falar direto com o banco e passar a falar com o `AutenticacaoService`.)*
-
-1. Abra **`Views/FormLogin.cs`** no Designer (`Shift+F7`), arraste um `Button`, configure `(Name)` como **`btnTestarConexao`** e `Text` como **`Testar conexão`**.
-2. Dê duplo clique no botão para gerar o manipulador no `FormLogin.cs` e adicione a palavra-chave **`async`** à assinatura (`private async void btnTestarConexao_Click(object sender, EventArgs e)`).
-3. Construa o corpo do evento seguindo exatamente estes passos:
+### Construção 4 — Programar o Evento Assíncrono `SELECT 1` (`A12.04` e `A12.05`)
+Volte ao método `btnTestarConexao_Click` em **`Views/FormLogin.cs`**, adicione a palavra-chave **`async`** à assinatura (`private async void btnTestarConexao_Click(object sender, EventArgs e)`) e construa exatamente estes passos:
    - Desabilite o botão (`btnTestarConexao.Enabled = false;`).
    - Abra um bloco **`try / catch (Exception) / finally`**:
      - **No `try`:**

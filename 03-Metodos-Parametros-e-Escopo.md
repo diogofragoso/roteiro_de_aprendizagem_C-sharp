@@ -70,12 +70,12 @@ Quando um Breakpoint (`F9`) para em uma linha que **chama** uma função sua (ex
 
 ## 4. Roteiro de Construção Guiada (Sua Vez no Visual Studio 2022!)
 
-Crie um projeto console `Aula03Metodos` (ou evolua o seu `TreinoSupermercado`) no **Visual Studio 2022** mantendo as chamadas no topo de `Program.cs` e as declarações de funções locais na parte inferior:
+Continue evoluindo o projeto console **`TreinoSupermercado`** no **Visual Studio 2022** (mantendo as chamadas no topo de `Program.cs` e as declarações de funções locais na parte inferior):
 
 1. **Funções puras de cálculo (`A03.01` e `A03.02`):**
    - Construa `decimal CalcularSubtotal(decimal preco, int quantidade)` retornando `preco * quantidade`. Teste com `(12.50m, 2)` → `25` e `(5.50m, 3)` → `16,50`.
    - Construa `decimal CalcularMedia(decimal primeira, decimal segunda)` retornando `(primeira + segunda) / 2m`. Teste com `(6m, 8m)` → `7` (por que `2m` e parênteses são obrigatórios?).
-   - Construa `decimal CalcularDesconto(decimal valorCompra)` aplicando as faixas da Aula 02 (`>= 500m` → `50m`; `>= 200m` → `15m`; senão `0m`), retornando o valor **sem imprimir nada dentro da função**.
+   - Construa `decimal CalcularDesconto(decimal valorCompra)` implementando a nova regra de desconto progressivo do supermercado: compras `>= 500.00m` ganham `50.00m` de desconto; compras `>= 200.00m` ganham `15.00m`; abaixo disso, `0m`. Retorne apenas o valor calculado **sem imprimir nada dentro da função** (teste as fronteiras `199.99m`, `200.00m`, `499.99m` e `500.00m`).
 2. **Função booleana de validação (`A03.03`):**
    - Construa `bool EhQuantidadeValida(int quantidade)` retornando `quantidade > 0`.
    - Teste com `-1`, `0` e `2`, usando o retorno em um `if / else` no `Program.cs` para exibir a mensagem (mantendo a apresentação fora da função).

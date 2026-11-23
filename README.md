@@ -82,6 +82,19 @@ flowchart LR
 
 ---
 
+## Projeto Prático CRUD Completo (Onde Cada Operação É Construída)
+
+Ao final da trilha, o estudante terá construído do zero um **sistema CRUD completo e profissional** em Windows Forms + Banco Relacional (indo além de um CRUD básico, incluindo autenticação com hash, autorização por perfil, transações e relatório):
+
+| Operação CRUD | Onde é construída no MarketFlow | Destaque técnico aprendido |
+| --- | --- | --- |
+| **C — Create (Criar)** | [Aula 13](13-Autenticacao-Segura.md), [Aula 17](17-Cadastro-de-Produtos.md), [Aula 20](20-Venda-com-Transacao.md), [Aula 23](23-Cadastro-de-Usuarios.md) | `INSERT` parametrizado, tratamento de duplicidade (`23505`/`1062`), hash+salt e `RETURNING id` |
+| **R — Read (Ler / Consultar)** | [Aula 16](16-Consulta-de-Produtos.md), [Aula 19](19-Carrinho-do-Caixa.md), [Aula 22](22-Relatorio-de-Vendas.md) | `SELECT` com `ILIKE`/`LIMIT 200`, `DataGridView`, `JOIN` e intervalo semiaberto UTC |
+| **U — Update (Atualizar)** | [Aula 17](17-Cadastro-de-Produtos.md), [Aula 18](18-Reposicao-de-Estoque.md), [Aula 20](20-Venda-com-Transacao.md) | Edição por `DataBoundItem`, checagem de linhas afetadas e atualização atômica transacional de estoque |
+| **D — Delete (Exclusão Lógica)** | [Aula 17](17-Cadastro-de-Produtos.md) | Inativação (`ativo = false`) com confirmação, preservando a integridade do histórico de vendas |
+
+---
+
 ## Documentos de Apoio e Escolha do Banco de Dados
 
 - **Banco de Dados (a partir da Aula 11):** a trilha principal utiliza **Neon / PostgreSQL** (`Npgsql`). Para banco local sem nuvem, siga a [**Trilha Alternativa MySQL/MariaDB pelo XAMPP**](INTEGRACAO-MYSQL-XAMPP.md).

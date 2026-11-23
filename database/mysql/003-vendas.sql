@@ -1,4 +1,4 @@
--- Aula 16: depende de 001 e 002. Executar uma vez no mesmo banco.
+-- Aula 20: depende de 001 e 002. Executar uma vez no mesmo banco.
 CREATE TABLE venda (
     id int NOT NULL AUTO_INCREMENT PRIMARY KEY,
     operacao char(36) NOT NULL UNIQUE,

@@ -47,7 +47,7 @@ Crie **`Views/FormUsuarios.cs`** em `namespace SupermercadoApp.Views;` (`public 
 4. Crie os controles no painel:
    - `nome`: `Ui.Texto(painel, "Usuário (letras sem acentos, números ou ponto)")`;
    - `senha`: `Ui.Texto(painel, "Senha (12 a 128 caracteres)", senha: true)` *(com `UseSystemPasswordChar = true`)*;
-   - Rótulo `"Perfil de acesso"` e o `ComboBox perfil` configurado com `DropDownStyle.DropDownList` e `DataSource = Enum.GetValues<Perfil>()`.
+   - Rótulo `painel.Controls.Add(Ui.Rotulo("Perfil de acesso"));` e o `ComboBox perfil` configurado com `DropDownStyle.DropDownList`, `DataSource = Enum.GetValues<Perfil>()` e `Width = 260`, **adicionando-o ao painel com `painel.Controls.Add(perfil);`**.
 5. Crie o botão **`"Cadastrar"`** com evento `async (sender, _) =>`:
    - Desabilite o botão antes do `try` e reabilite no `finally`.
    - Dentro de `Ui.ExecutarAsync`:

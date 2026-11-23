@@ -86,10 +86,10 @@ Validar `acumulada <= produto.Estoque` ao adicionar ao carrinho melhora a experi
 2. Em **`Views/FormCaixa.cs`**:
    - Declare o campo `private readonly Carrinho carrinho = new();`.
    - Altere o construtor para `public FormCaixa(Sessao sessao, VendaService vendas)` mantendo `Permissoes.ExigirCaixa(sessao);`.
-   - Monte os controles no painel (usando `Ui.Preparar`, `Ui.Texto`, `NumericUpDown` mínimo 1, `Ui.Grade` e um `Label` para o total `"Total previsto: R$ 0,00"`).
+   - Monte os controles no painel: `Ui.Preparar`, `codigo` via `Ui.Texto`, rótulo `"Quantidade"` + `NumericUpDown quantidade` (`Minimum = 1`, `Maximum = 1000000`, `Value = 1`, adicionando ambos ao painel com `painel.Controls.Add(...)`), `grade` via `Ui.Grade` e `var total = Ui.Rotulo("Total previsto: R$ 0,00"); painel.Controls.Add(total);`.
    - Crie a função local `void Atualizar()`: atualiza `grade.DataSource = carrinho.Itens.ToList();` e `total.Text = $"Total previsto: {carrinho.Total:C}";`.
    - **Botão "Adicionar":** desabilite durante a consulta; dentro de `Ui.ExecutarAsync`, busque `var produto = await vendas.BuscarProdutoAsync(sessao, codigo.Text) ?? throw new InvalidOperationException("Produto não encontrado.");`, chame `carrinho.Adicionar(produto, (int)quantidade.Value);`, chame `Atualizar()`, limpe `codigo` e devolva o foco com `codigo.Focus();`. Reabilite no `finally`.
-   - **Botão "Remover selecionado":** se houver linha atual/selecionada cujo `DataBoundItem is ItemCarrinho item`, chame `carrinho.Remover(item.ProdutoId)` e `Atualizar()`.
+   - **Botão "Remover selecionado":** verifique `if (grade.SelectedRows.Count > 0 && grade.SelectedRows[0].DataBoundItem is ItemCarrinho item)` (mesmo padrão seguro da Aula 17!), chame `carrinho.Remover(item.ProdutoId)` e `Atualizar()`.
    - **Botão "Cancelar carrinho":** chame `carrinho.Limpar()` e `Atualizar()` (limpa apenas a memória RAM!).
    - Mantenha o botão `"Sair / trocar usuário"`.
 

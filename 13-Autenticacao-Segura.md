@@ -128,8 +128,8 @@ Crie dois arquivos em `Repositories/`, ambos em `namespace SupermercadoApp.Repos
    - `catch (Exception e)`: registre apenas `System.Diagnostics.Trace.WriteLine($"Falha: {e.GetType().Name}");` (nunca a senha ou conexão!) e mostre mensagem amigável de falha de comunicação.
    - Retorne `false` ao final em caso de erro.
 2. **Adaptar seu `Views/FormLogin.cs` (mantendo o Designer da Aula 10!):**
-   - No Designer (`Shift+F7`), **remova o botão temporário `btnTestarConexao`** e o evento dele.
-   - No código (`F7`): remova o campo `NpgsqlDataSource`! Agora a tela depende **apenas** de `AutenticacaoService` (camada `Services`).
+   - No Designer (`Shift+F7`), **selecione e apague o botão temporário `btnTestarConexao`** (`Delete`). *(Dica: se o Designer do VS 2022 reclamar do construtor com parâmetro da Aula 12, você pode apagar o campo/controle `btnTestarConexao` diretamente no `FormLogin.Designer.cs` e apagar o método `btnTestarConexao_Click` em `FormLogin.cs`.)*
+   - No código (`F7`): remova `using Npgsql;`, remova o método `btnTestarConexao_Click` e remova o campo `NpgsqlDataSource`! Adicione `using SupermercadoApp.Models;` e `using SupermercadoApp.Services;`: agora a tela depende **apenas** de `AutenticacaoService`.
    - Declare os campos `private readonly AutenticacaoService autenticacao;`, `private readonly bool prepararAdmin;` e a propriedade pública `public Sessao? SessaoAutenticada { get; private set; }`.
    - Atualize o construtor para `public FormLogin(AutenticacaoService autenticacao, bool prepararAdmin = false)` mantendo `InitializeComponent();`, guardando os campos e, se `prepararAdmin` for `true`, mudando `btnLogin.Text = "Criar administrador";`.
    - No evento **`private async void btnLogin_Click(object sender, EventArgs e)`**:
@@ -140,6 +140,7 @@ Crie dois arquivos em `Repositories/`, ambos em `namespace SupermercadoApp.Repos
         - Caso contrário (login normal): atribua `SessaoAutenticada = await autenticacao.EntrarAsync(txtUsuario.Text, txtSenha.Text);`. Se for `null`, exiba `"Usuário ou senha inválidos."` (mensagem genérica igual para usuário inexistente ou senha errada!); caso contrário, defina `DialogResult = DialogResult.OK;`.
      3. No bloco **`finally`**: limpe a senha (`txtSenha.Clear();`) e reabilite `btnLogin.Enabled = true;`.
 3. **Atualizar `Program.cs`:**
+   - Adicione no topo do arquivo os `using` das suas camadas: `SupermercadoApp.Infrastructure`, `SupermercadoApp.Repositories`, `SupermercadoApp.Services` e `SupermercadoApp.Views`.
    - Altere `Main()` para `Main(string[] args)` para ler argumentos de linha de comando.
    - Dentro do `try`: crie `using var banco = Banco.Criar();`, instancie `var autenticacao = new AutenticacaoService(new UsuarioRepository(banco));`, verifique `bool prepararAdmin = args.Contains("--preparar-admin");`, abra `using var login = new FormLogin(autenticacao, prepararAdmin);` com `login.ShowDialog();`.
    - Se `!prepararAdmin && login.SessaoAutenticada is { } sessao` (o padrão `is { } sessao` significa *"não é `null` e já guarda na variável `sessao`"*), exiba `MessageBox.Show($"Bem-vindo, {sessao.Username} ({sessao.Perfil})");`.

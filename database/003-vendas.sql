@@ -1,4 +1,4 @@
--- Aula 16. Depende de 001 e 002. Não apague produtos/usuários referenciados.
+-- Aula 20. Depende de 001 e 002. Não apague produtos/usuários referenciados.
 BEGIN;
 CREATE TABLE venda (
     id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,

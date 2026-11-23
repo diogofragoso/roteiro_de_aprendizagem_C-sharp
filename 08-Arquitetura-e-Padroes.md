@@ -87,7 +87,10 @@ Antes de construir, compreenda duas realidades do mercado de software:
 
 ## 4. Roteiro de Construção Guiada (Sua Vez no Visual Studio 2022!)
 
-No projeto console `TreinoSupermercado` (mantendo a classe `Produto.cs` com `Nome` e `Preco`), construa passo a passo os arquivos abaixo usando **Adicionar → Classe / Interface** (`Shift+Alt+C`) no **Visual Studio 2022**:
+Crie um novo **Aplicativo de Console** no **Visual Studio 2022** chamado **`Aula08Arquitetura`** e coloque `namespace Aula08Arquitetura;` em todos os arquivos de classe e interface criados abaixo (`Shift+Alt+C`), com `using Aula08Arquitetura;` no topo de `Program.cs`:
+
+### Passo 0 — Criar o Modelo `Produto.cs`
+1. Crie **`Produto.cs`** com `public class Produto` contendo `public string Nome { get; set; } = "";` e `public decimal Preco { get; set; }`.
 
 ### Passo 1 — Construir o Contrato `IConsultaProdutos.cs` (`A08.02`)
 1. Crie o arquivo **`IConsultaProdutos.cs`**.

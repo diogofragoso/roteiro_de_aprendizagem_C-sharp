@@ -1,4 +1,4 @@
--- Aula 07. Execute em uma branch didática vazia, uma única vez.
+-- Aula 11. Execute em uma branch didática vazia, uma única vez.
 BEGIN;
 CREATE TABLE usuario (
     id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,

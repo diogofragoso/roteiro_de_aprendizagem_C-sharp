@@ -87,7 +87,7 @@ segundo   ───────> [ Objeto #2: Titulo="Comédia", DuracaoMinutos=
 
 ## 4. Roteiro de Construção Guiada (Sua Vez no Visual Studio 2022!)
 
-Crie um Aplicativo de Console `Aula04Classes` (ou continue no projeto de console) no **Visual Studio 2022**:
+Crie um novo **Aplicativo de Console** chamado **`Aula04Classes`** no **Visual Studio 2022** *(a partir deste módulo de POO, cada aula usa seu próprio projeto limpo no console para manter os exercícios independentes)*:
 
 1. **Abstração no caderno (`A04.01`):** escolha 4 dados úteis para representar um produto no supermercado e 2 características reais que você decidiu descartar por não servirem ao sistema, justificando cada escolha.
 2. **Construir `Produto.cs` e objetos independentes (`A04.02`):**

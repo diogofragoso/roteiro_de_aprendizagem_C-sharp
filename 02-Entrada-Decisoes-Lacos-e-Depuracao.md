@@ -88,7 +88,8 @@ No projeto `TreinoSupermercado` (mantendo `using System.Globalization;` e `Cultu
    - Logo abaixo do comprovante, crie um `if / else if / else` sobre `total`: maior que `100.00m` ganha cupom de 10%; maior que `50.00m` ganha brinde; caso contrário, agradecimento.
    - Teste fronteiras exatas que gerem `50,00`, `50,01`, `100,00` e `100,01` (explicando `>` vs `>=`).
 3. **Menu de pagamento simulado (`A02.06`):**
-   - Peça uma opção inteira (`1`-Dinheiro, `2`-Cartão, `3`-Pix) e use `switch / case / break / default` para exibir a mensagem simulada correspondente ou opção inválida. Comprove as quatro saídas.
+   - Peça uma opção inteira (`1`-Dinheiro, `2`-Cartão, `3`-Pix) lendo com segurança via `int.TryParse(Console.ReadLine(), out int opcao)` *(se o usuário digitar texto inválido, `opcao` recebe `0` e cai automaticamente no `default:` sem travar o programa!)*.
+   - Use `switch (opcao)` com `case 1:`, `case 2:`, `case 3:`, `break;` em cada ramo e `default:` para opção inválida. Comprove as quatro saídas.
 4. **Três vias com `for`, balança com `while` e catálogo com `foreach` (`A02.07`):**
    - Use `for` para imprimir exatamente `"Via 1"`, `"Via 2"` e `"Via 3"`.
    - Use `while (!balancaEstavel && tentativas < 5)` simulando 5 verificações de balança (sem laço infinito!).

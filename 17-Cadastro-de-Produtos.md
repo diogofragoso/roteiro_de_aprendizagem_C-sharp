@@ -62,23 +62,24 @@ No método `Ui.ExecutarAsync`, adicione `using Npgsql;` no topo do arquivo e acr
 *(Na trilha MySQL/XAMPP, use `catch (MySqlException erro) when (erro.Number == 1062)`.)*
 
 ### Passo 3 — Ampliar `Views/FormProdutos.cs` com Campos e Ações CRUD (`A17.01`–`A17.06`)
-*(Deixe os controles de quantidade e reposição para a Aula 18!)*
+*(Nesta aula você completa as 4 operações do **CRUD de Produtos**: **C**reate = Salvar com ID `0`, **R**ead = Buscar/atualizar, **U**pdate = Editar selecionado + Salvar com ID `> 0` e **D**elete lógico = Inativar selecionado. Deixe os controles de quantidade e reposição para a Aula 18!)*
 
 No **`Views/FormProdutos.cs`**, adicione o campo `private int produtoId;` na classe e amplie o construtor seguindo estas orientações:
-1. **Campos de entrada abaixo da grade:**
+1. **Remover o botão `"Buscar"` isolado da Aula 16:** ele agora fará parte da barra horizontal `acoes` abaixo, evitando dois botões de busca duplicados na tela!
+2. **Campos de entrada abaixo da grade:**
    - `codigo`: `Ui.Texto(painel, "Código (texto, preserva zeros à esquerda)")`.
    - `nome`: `Ui.Texto(painel, "Nome")`.
-   - `preco`: adicione um rótulo `"Preço de venda"` e um controle **`NumericUpDown`** configurado com `DecimalPlaces = 2`, `Maximum = 99999999.99m` e `Width = 180` (por que `NumericUpDown`? Impede digitação de letras e já respeita as 2 casas decimais e o limite do banco!).
-2. **Barra horizontal de ações:** crie um `FlowLayoutPanel` secundário (`var acoes = new FlowLayoutPanel { AutoSize = true, WrapContents = false };`) para alinhar os botões lado a lado e adicione-o ao painel principal.
-3. **Funções locais auxiliares dentro do construtor:**
+   - `preco`: adicione o rótulo `painel.Controls.Add(Ui.Rotulo("Preço de venda"));`, crie um controle **`NumericUpDown`** configurado com `DecimalPlaces = 2`, `Maximum = 99999999.99m`, `Width = 180` e **adicione-o ao painel com `painel.Controls.Add(preco);`** (lembre-se: controles criados com `new` só aparecem na janela depois de adicionados a `Controls`!).
+3. **Barra horizontal de ações:** crie um `FlowLayoutPanel` secundário (`var acoes = new FlowLayoutPanel { AutoSize = true, WrapContents = false };`) para alinhar os botões lado a lado e adicione-o ao painel principal (`painel.Controls.Add(acoes);`).
+4. **Funções locais auxiliares dentro do construtor:**
    - `void Novo()`: zera `produtoId = 0;`, limpa `codigo` e `nome`, zera `preco.Value = 0;` e chama `grade.ClearSelection();`.
    - `Produto Selecionado()`: verifica `grade.SelectedRows.Count == 0 || grade.SelectedRows[0].DataBoundItem is not Produto produto` (lançando `InvalidOperationException("Selecione um produto na grade.")`) e devolve `produto`.
-4. **Os 5 botões na barra `acoes`:**
+5. **Os 5 botões na barra `acoes`:**
    - **"Buscar / atualizar":** executa `await Ui.ExecutarAsync(Carregar)`.
    - **"Novo":** chama `Novo()`.
    - **"Editar selecionado":** dentro de `Ui.ExecutarAsync`, pega `var atual = Selecionado();`, preenche `produtoId = atual.Id;`, `codigo.Text = atual.Codigo;`, `nome.Text = atual.Nome;` e `preco.Value = atual.Preco;` (retorne `Task.CompletedTask` se usar a lambda assíncrona).
    - **"Salvar":**
-     1. Pegue o botão via `var b = (Button)sender!;` e desabilite `b.Enabled = false;`.
+     1. Recupere o botão clicado via `var b = (Button)sender!;` *(aqui `(Button)` converte o `object? sender` de volta para `Button`, e `!` garante ao compilador que `sender` não é `null` num clique de botão)* e desabilite `b.Enabled = false;`.
      2. Em `try`, chame `await Ui.ExecutarAsync(async () => { await produtos.SalvarAsync(sessao, produtoId, codigo.Text, nome.Text, preco.Value); await Carregar(); Novo(); });`.
         - **Por que `Novo()` fica DENTRO da ação, só depois de `SalvarAsync` e `Carregar`?** Porque se houver erro (código duplicado ou falha de rede), `SalvarAsync` lança exceção, `Novo()` **não executa** e os dados digitados permanecem na tela para o usuário corrigir!
      3. No `finally`, reabilite `b.Enabled = true;`.

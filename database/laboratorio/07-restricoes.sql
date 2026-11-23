@@ -1,4 +1,4 @@
--- Aula 07. Execute inteiro numa nova sessão com conexão direta.
+-- Aula 11. Execute inteiro numa nova sessão com conexão direta.
 -- Tabelas temporárias; não cria contas nem modifica o esquema do aplicativo.
 CREATE TEMP TABLE lab07_usuario (
     id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,

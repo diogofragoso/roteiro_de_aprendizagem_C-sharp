@@ -130,7 +130,7 @@ Crie **`Services/ProdutoService.cs`** em `namespace SupermercadoApp.Services;`:
    if (fake.Chamadas != 1)
        throw new Exception("Validação falhou e chegou indevidamente ao repositório!");
    ```
-4. Remova o botão temporário após registrar as evidências (guarde o código do Fake como referência de aprendizado para a Aula 24).
+4. **Limpeza importante antes da Aula 16:** após registrar as evidências, remova o botão temporário e **remova `ProdutoEmMemoriaRepository.cs` de dentro do projeto `SupermercadoApp`** (guarde uma cópia do arquivo fora da pasta do projeto para reutilizar no projeto de verificações da Aula 24). **Por quê?** Na Aula 16 adicionaremos `ListarAsync` ao contrato `IProdutoRepository` — deixar um Fake antigo incompleto dentro de `SupermercadoApp` causaria erro de compilação `CS0535`!
 
 [Anterior: Aula 14](14-Sessao-e-Perfis.md) · [Próxima: Aula 16 — Consulta de produtos](16-Consulta-de-Produtos.md) · [Índice](README.md)
 

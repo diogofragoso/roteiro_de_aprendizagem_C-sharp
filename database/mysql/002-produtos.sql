@@ -1,4 +1,4 @@
--- Aula 11: depende de 001. Executar uma vez no mesmo banco.
+-- Aula 15: depende de 001. Executar uma vez no mesmo banco.
 CREATE TABLE produto (
     id int NOT NULL AUTO_INCREMENT PRIMARY KEY,
     codigo varchar(30) NOT NULL UNIQUE CHECK (length(trim(codigo)) > 0),

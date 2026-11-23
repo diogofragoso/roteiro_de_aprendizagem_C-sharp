@@ -70,7 +70,7 @@ Implemente `public async Task ReporAsync(int id, int quantidade, int usuarioId)`
 ### Passo 3 — Adicionar o Bloco de Reposição em `Views/FormProdutos.cs`
 No construtor de `FormProdutos.cs`, logo após os botões CRUD da Aula 17 e **antes** da linha `Shown += ...`:
 1. Adicione um rótulo: `painel.Controls.Add(Ui.Rotulo("Quantidade para repor no produto selecionado"));`.
-2. Adicione um `NumericUpDown` chamado `quantidade` configurado com `Minimum = 1`, `Maximum = 1000000`, `Value = 1`, `Width = 180`.
+2. Crie um `NumericUpDown` chamado `quantidade` configurado com `Minimum = 1`, `Maximum = 1000000`, `Value = 1`, `Width = 180` e adicione-o ao painel com `painel.Controls.Add(quantidade);`.
 3. Adicione o botão **`"Registrar reposição"`** com evento `async (sender, _) =>`:
    - Desabilite o botão (`var b = (Button)sender!; b.Enabled = false;`).
    - Dentro de `try`, chame `await Ui.ExecutarAsync(async () => { await produtos.ReporAsync(sessao, Selecionado().Id, (int)quantidade.Value); await Carregar(); });`.

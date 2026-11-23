@@ -71,7 +71,7 @@ Trabalhe nas 4 paradas abaixo, compilando (`Ctrl+Shift+B`) ao final de cada uma:
    - `Task<VendaConfirmada> FinalizarAsync(Guid operacao, int usuarioId, IReadOnlyList<PedidoItem> itens, decimal recebido);`
 
 ### Parada 2 — Evoluir `Services/VendaService.cs`
-Atualize o construtor primário para `public sealed class VendaService(IVendaRepository vendas, IProdutoRepository produtos)` (e atualize a composição no `Program.cs` passando `new VendaRepository(banco)`):
+Atualize o construtor primário para `public sealed class VendaService(IVendaRepository vendas, IProdutoRepository produtos)` *(aguarde até o fim da Parada 3 para atualizar `Program.cs`, depois que `VendaRepository` existir)*:
 1. Mantenha `BuscarProdutoAsync`.
 2. Adicione **`ConsultarAsync(Sessao sessao, Guid operacao)`:** exija `Permissoes.ExigirCaixa(sessao)` e retorne `vendas.BuscarAsync(operacao)`.
 3. Adicione **`FinalizarAsync(Sessao sessao, Guid operacao, IReadOnlyList<ItemCarrinho> itens, decimal recebido)`:**
@@ -81,7 +81,7 @@ Atualize o construtor primário para `public sealed class VendaService(IVendaRep
    - Valide `recebido`: não negativo, `<= 9999999999.99m` e no máximo 2 casas decimais (`decimal.Round(recebido, 2) == recebido`).
    - Projete apenas os IDs e quantidades com `itens.Select(i => new PedidoItem(i.ProdutoId, i.Quantidade)).ToArray()` e retorne `vendas.FinalizarAsync(operacao, sessao.Id, ..., recebido)`.
 
-### Parada 3 — Construir `Repositories/VendaRepository.cs` Passo a Passo
+### Parada 3 — Construir `Repositories/VendaRepository.cs` e Atualizar `Program.cs`
 Crie **`Repositories/VendaRepository.cs`** (`public sealed class VendaRepository(NpgsqlDataSource banco) : IVendaRepository`):
 1. **`BuscarAsync(Guid operacao)`:** execute `SELECT id, total, recebido FROM venda WHERE operacao=@op`, devolvendo `new VendaConfirmada(...)` se `ReadAsync()` for `true`, ou `null`.
 2. **`FinalizarAsync(Guid operacao, int usuarioId, IReadOnlyList<PedidoItem> itens, decimal recebido)`** — construa exatamente nesta ordem:
@@ -99,6 +99,7 @@ Crie **`Repositories/VendaRepository.cs`** (`public sealed class VendaRepository
       - `UPDATE produto SET estoque = estoque - @q WHERE id = @produto`
       - `INSERT INTO movimento_estoque(produto_id, usuario_id, quantidade, motivo) VALUES (@produto, @usuario, -@q, 'Venda')`
    8. Execute **`await transacao.CommitAsync();`** uma única vez ao final e retorne `new VendaConfirmada(vendaId, total, recebido)`.
+3. **Conectar em `Program.cs`:** agora que `VendaRepository` existe, atualize a composição para `var vendaService = new VendaService(new VendaRepository(banco), produtos);` e pressione `Ctrl+Shift+B` para confirmar compilação limpa!
 
 ### Parada 4 — Chamada Controlada e Ensaios de Laboratório (`A20.01`–`A20.08`)
 Adicione temporariamente em `FormCaixa` um campo `private Guid operacao = Guid.NewGuid();` e um botão de teste que chama `vendas.FinalizarAsync(sessao, operacao, carrinho.Itens, 100m)` exibindo `resultado.Id`, `resultado.Total` e `operacao` *(esse botão será substituído pelo pagamento completo na Aula 21)*.

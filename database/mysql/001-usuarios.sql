@@ -1,4 +1,4 @@
--- Aula 07: executar uma vez no banco MySQL/MariaDB de laboratório selecionado.
+-- Aula 11: executar uma vez no banco MySQL/MariaDB de laboratório selecionado.
 -- DDL provoca commit implícito; não há rollback da criação das tabelas.
 CREATE TABLE usuario (
     id int NOT NULL AUTO_INCREMENT PRIMARY KEY,

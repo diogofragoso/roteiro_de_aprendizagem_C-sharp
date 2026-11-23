@@ -1,4 +1,4 @@
--- Aula 18. Somente na branch/banco didático com scripts 001–003 e um Caixa.
+-- Aula 22. Somente na branch/banco didático com scripts 001–003 e um Caixa.
 -- Dados persistem para consultar na UI. Execute uma vez; não apaga dados anteriores.
 BEGIN;
 DO $$

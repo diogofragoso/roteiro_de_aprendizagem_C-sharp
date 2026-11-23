@@ -49,6 +49,7 @@ Para não repetir esses 6 `Get...(...)` em toda consulta (`ListarAsync`, `Buscar
 ## 2. Roteiro de Construção Guiada (Sua Vez no Visual Studio 2022!)
 
 ### Passo 1 — Evoluir o Contrato `Repositories/IProdutoRepository.cs`
+*(Antes de alterar a interface, confirme que removeu o arquivo temporário `ProdutoEmMemoriaRepository.cs` da Aula 15 do projeto `SupermercadoApp` para não disparar erro `CS0535`!)*
 Adicione apenas a nova assinatura de consulta ao contrato da Aula 15 (mantendo `SalvarAsync`):
 - `Task<IReadOnlyList<Produto>> ListarAsync(string busca);`
 
@@ -96,7 +97,11 @@ Adicione o método **`public Task<IReadOnlyList<Produto>> ListarAsync(Sessao ses
 
 ## 3. Verificação e Comparação dos 3 Resultados Possíveis (`A16.01`–`A16.05`)
 
-*(Antes desta prática, o professor cadastra dois produtos fictícios — Arroz e Feijão — no banco didático para teste da consulta.)*
+> [!NOTE]
+> **Massa de teste para a consulta (Read do CRUD):** em laboratório, o professor cadastra previamente dois produtos fictícios (Arroz e Feijão) no banco didático. **Se você estiver estudando sozinho**, teste primeiro a tela vazia (confirmando que lista vazia não gera erro) e, em seguida, insira dois registros didáticos pelo SQL Editor apenas para validar o `SELECT` hoje (o cadastro definitivo pela interface entra na próxima aula, Aula 17):
+> ```sql
+> INSERT INTO produto(codigo, nome, preco) VALUES ('000123', 'Arroz', 25.90), ('000456', 'Feijão', 8.50);
+> ```
 
 Execute com **`F5`** no Visual Studio 2022 e diferencie no caderno **três cenários distintos**:
 1. **Lista vazia (resultado válido):** busque `"zzzzz"` → a grade fica vazia sem erro nem exceção.
