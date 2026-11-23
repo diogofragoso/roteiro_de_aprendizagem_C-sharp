@@ -1,28 +1,21 @@
-# Aula 11 — Modelo e regras dos produtos
+# Aula 11 — Modelagem de Produtos, Regras de Validação e Dublê em Memória (Fake)
 
-**Duração:** 3h30. **Pré-requisito:** aula 10. **Entrega:** estrutura de produtos e movimentos no banco; regras de cadastro verificadas em memória, sem CRUD visual ainda.
+**Duração:** 3h30. **Pré-requisito:** [Aula 10](10-Sessao-e-Perfis.md). **Entrega:** tabelas `produto` e `movimento_estoque` criadas no banco, modelo `Produto`, contrato inicial `IProdutoRepository`, validação completa em `ProdutoService.SalvarAsync` e testes executáveis de fronteira usando um repositório Fake em memória (sem tela de cadastro ainda).
 
 | Bloco | Minutos | Atividade |
 | --- | ---: | --- |
-| Retomada | 15 | Rever responsabilidade de administrador |
-| Explicação | 30 | Identificador, preço, saldo e restrições |
-| Construção | 60 | Executar script 002 e criar Produto |
+| Retomada | 15 | Revisar autorização de administrador e responsabilidades das camadas |
+| Explicação | 30 | Relacionamentos (PK/FK), saldo vs histórico, `numeric(10,2)` e testes com Fake |
+| Construção | 60 | Aplicar script `002-produtos.sql`, construir `Produto`, contrato e `ProdutoService` |
 | Intervalo | 15 | Pausa |
-| Prática | 60 | Criar contrato e validação com repositório em memória |
-| Entrega | 30 | Verificar limites e explicar o modelo |
+| Prática | 60 | Construir `ProdutoEmMemoriaRepository` (Fake) e validar todas as fronteiras |
+| Entrega | 30 | Demonstrar contador de chamadas do Fake, exceções e explicar o modelo ER |
 
-## 1. Modele antes de desenhar
+---
 
-O produto tem `Id`, `Codigo`, `Nome`, `Preco`, `Estoque` e `Ativo`. O código é texto: “000123” precisa manter os zeros. Usaremos quantidades inteiras; produtos pesáveis exigiriam outro modelo e uma política de precisão.
+## 1. Modelando Antes de Codificar: Por Que Duas Tabelas (`produto` e `movimento_estoque`)? (`A11.01`)
 
-Acesse o SQL Editor, confira a branch e execute [002-produtos.sql](database/002-produtos.sql) **uma vez**, depois do script 001. Ele cria:
-
-- `produto`: código único, preço positivo, estoque não negativo e estado ativo.
-- `movimento_estoque`: produto, usuário responsável, quantidade com sinal e motivo.
-
-**Por quê duas tabelas?** O saldo responde “quanto temos agora”; o movimento responde “por que mudou e quem fez”. Reposição e venda precisam atualizar os dois juntos. Os movimentos serão utilizados nas aulas 14 e 16.
-
-O produto nasce com estoque **zero**. Não aceite saldo digitado na tela de cadastro: a entrada será feita por reposição, com histórico. Evitamos excluir fisicamente produtos porque vendas futuras precisarão preservar sua referência.
+Antes de escrever C#, observe o modelo relacional do script [database/002-produtos.sql](database/002-produtos.sql):
 
 ```mermaid
 erDiagram
@@ -49,57 +42,97 @@ erDiagram
     }
 ```
 
-As linhas indicam “um para muitos”: cada movimento referencia exatamente um usuário e um produto. As FKs garantem referências existentes; elas não calculam o saldo automaticamente. Use os comandos de reposição e venda para manter saldo e movimentos coerentes.
+Entenda **os 4 motivos de engenharia** dessa modelagem:
 
-## 2. Crie o modelo e o contrato mínimo
+1. **Por que separar `produto.estoque` (saldo) de `movimento_estoque` (histórico)?**
+   - `produto.estoque` responde rapidamente *"quantas unidades temos na prateleira agora?"*.
+   - `movimento_estoque` responde *"quem mudou, quando mudou, quanto entrou (`+`) ou saiu (`-`) e por qual motivo (`Reposicao` ou `Venda`)?"*.
+   - As Chaves Estrangeiras (**FK** — `REFERENCES produto(id)` e `REFERENCES usuario(id)`) garantem que nunca exista um movimento apontando para um produto ou funcionário inexistente — mas **não** somam o estoque sozinhas (faremos a atualização conjunta em transação nas Aulas 14 e 16).
+2. **Por que todo produto nasce com `estoque = 0` e não deixamos digitar saldo no cadastro?**
+   - Se alguém digitasse "50" no cadastro inicial sem registrar um movimento de entrada, o saldo (`50`) nunca bateria com a soma do histórico (`0`). Toda entrada física de mercadoria passa por **Reposição** (Aula 14).
+3. **Por que existe a coluna `ativo` (`boolean`) em vez de apagar produtos com `DELETE`?**
+   - Se apagássemos fisicamente um produto que já foi vendido no mês passado, quebraríamos o histórico de vendas e relatórios! Por isso usamos **exclusão lógica** (`ativo = false`).
+4. **Por que `codigo` é `varchar(30)` e `preco` é `numeric(10,2)`? (`A11.02`)**
+   - Código `"000123"` precisa ser texto para preservar zeros à esquerda.
+   - `numeric(10,2)` aceita **10 dígitos totais**, sendo **2 casas decimais** (ou seja, 8 dígitos antes da vírgula: máximo exato **`99.999.999,99`**).
 
-Em `Models`, crie [Produto.cs](src/SupermercadoApp/Models/Produto.cs). Em `Repositories`, crie `IProdutoRepository.cs` inicialmente com:
+---
 
+## 2. Técnicas de Validação em C# Que Você Vai Construir (`A11.02` e `A11.03`)
+
+Entenda os dois recursos do C# que tornam as validações de `ProdutoService` curtas, legíveis e exatas:
+
+### 2.1 Padrão Relacional (`is < ... or > ...`)
+Em vez de repetir o nome da variável (`if (nome.Length < 2 || nome.Length > 120)`), o C# moderno permite escrever:
 ```csharp
-using SupermercadoApp.Models;
-namespace SupermercadoApp.Repositories;
-public interface IProdutoRepository
-{
-    Task SalvarAsync(int id, string codigo, string nome, decimal preco);
-}
+if (nome.Length is < 2 or > 120)
 ```
+Lê-se naturalmente em inglês/português: *"se o tamanho de `nome` é menor que 2 ou maior que 120"*.
 
-As consultas, a inativação e a reposição serão acrescentadas nas próximas aulas; a referência mostra o contrato final.
+### 2.2 Recusando 3 Casas Decimais Sem Arredondar Silenciosamente
+Se o usuário tentar enviar `1.999m`, o PostgreSQL (`numeric(10,2)`) poderia arredondar silenciosamente para `2.00`. **Por que não queremos arredondamento silencioso?** Em preços comerciais, o operador precisa ver o erro e corrigir!
+Como detectar em C# se um `decimal` tem mais de duas casas decimais?
+```csharp
+if (decimal.Round(preco, 2) != preco)
+```
+- **Entenda o truque matemático:** se `preco` for `25.90m`, `decimal.Round(25.90m, 2)` dá `25.90m` (igual → válido!). Se `preco` for `1.999m`, `decimal.Round(1.999m, 2)` dá `2.00m` (`2.00m != 1.999m` → diferente → **recusado!**).
 
-Em `Services`, crie `ProdutoService.cs` com o construtor e **somente `SalvarAsync`** da [referência](src/SupermercadoApp/Services/ProdutoService.cs). Ele recebe `IProdutoRepository`, exige administrador e valida:
+### 2.3 Por que Testar com um Repositório Fake em Memória (`Task.CompletedTask`)? (`A11.04`)
+Ainda não escrevemos o SQL de produtos nem a tela de cadastro, mas graças à interface `IProdutoRepository`, podemos criar uma classe **Fake** (dublê em memória) que apenas conta quantas vezes `SalvarAsync` foi chamado (`Chamadas++`) e retorna **`Task.CompletedTask`** (uma tarefa assíncrona já concluída sem precisar de `await`).
+- **O que isso comprova?** Se passarmos preço `0`, `1.999m`, nome vazio ou uma sessão de `Caixa`, o serviço deve lançar exceção **antes** de chamar o repositório — logo, `fake.Chamadas` **não pode aumentar**!
 
-- Código entre 1 e 30 caracteres após `Trim`.
-- Nome entre 2 e 120 caracteres.
-- Preço maior que zero, com no máximo duas casas decimais e até 99.999.999,99.
-- ID zero indica novo produto; ID negativo é recusado.
+---
 
-Não arredondamos silenciosamente `1,999` para `2,00`: o cadastro deve pedir correção. No PostgreSQL, `numeric(10,2)` representa dez dígitos totais, dos quais dois são decimais. O tipo pode arredondar na conversão; a validação em C# recusa a entrada antes disso.
+## 3. Roteiro de Construção Guiada (Sua Vez no Visual Studio 2022!)
 
-## 3. Teste sem a interface de cadastro
+### Passo 1 — Executar o Script `002-produtos.sql` no Banco
+1. No SQL Editor do Neon (ou phpMyAdmin usando [database/mysql/002-produtos.sql](database/mysql/002-produtos.sql)), confira a branch/banco e execute [database/002-produtos.sql](database/002-produtos.sql) **uma única vez** (após o script 001).
+2. Confirme executando `SELECT codigo, nome, preco, estoque, ativo FROM produto;` (retornará zero linhas).
+3. Desenhe no seu caderno as relações entre `usuario`, `produto` e `movimento_estoque` com PK, FK, cardinalidades e dicionário de dados (`A11.01`).
 
-Desenhe antes as relações: um Produto tem muitos Movimentos; um Usuário é responsável por muitos Movimentos; cada Movimento aponta para um Produto e um Usuário por chaves estrangeiras. No dicionário de dados, registre tipos, PK, FK e restrições das duas tabelas.
+### Passo 2 — Construir o Modelo `Models/Produto.cs`
+Crie **`Models/Produto.cs`** em `namespace SupermercadoApp.Models;` declarando um `public sealed record Produto` com os 6 parâmetros posicionais exatamente nesta ordem:
+`int Id, string Codigo, string Nome, decimal Preco, int Estoque, bool Ativo`.
 
-No fake, acrescente `public int Chamadas { get; private set; }` e incremente apenas dentro de `SalvarAsync`. Após um caso válido, execute os inválidos abaixo e comprove que o contador não aumentou. Uma primeira asserção executável pode ser `if (fake.Chamadas != 1) throw new Exception("Validação chegou indevidamente ao repositório");`. Essa verificação será reaproveitada na aula 20.
+### Passo 3 — Construir o Contrato Mínimo `Repositories/IProdutoRepository.cs`
+Crie **`Repositories/IProdutoRepository.cs`** em `namespace SupermercadoApp.Repositories;` com **apenas** o método desta aula (não declare métodos de aulas futuras ainda!):
+- `Task SalvarAsync(int id, string codigo, string nome, decimal preco);`
 
-| Entrada | Resultado esperado |
-| --- | --- |
-| Preço 0 / 0,01 / 1,999 | Recusa / aceita / recusa |
-| Preço 99.999.999,99 / 100.000.000 | Aceita / recusa |
-| Nome com 1 / 2 / 120 / 121 caracteres | Recusa / aceita / aceita / recusa |
-| Código com 0 / 1 / 30 / 31 caracteres após Trim | Recusa / aceita / aceita / recusa |
-| ID -1 / 0 | Recusa / inclusão |
+### Passo 4 — Construir o Serviço `Services/ProdutoService.cs`
+Crie **`Services/ProdutoService.cs`** em `namespace SupermercadoApp.Services;`:
+1. Declare `public sealed class ProdutoService(IProdutoRepository produtos)` (construtor primário recebendo o contrato).
+2. Implemente o método **`public Task SalvarAsync(Sessao sessao, int id, string codigo, string nome, decimal preco)`** seguindo esta ordem rigorosa:
+   - **Autorização:** chame `Permissoes.ExigirAdministrador(sessao);` primeiro de tudo!
+   - **Normalização:** aplique `.Trim()` em `codigo` e em `nome`.
+   - **Validação de ID e tamanhos:** se `id < 0` ou `codigo.Length is < 1 or > 30` ou `nome.Length is < 2 or > 120`, lance `ArgumentException` informando os limites (`id == 0` indica inclusão de novo produto; negativo é inválido).
+   - **Validação monetária:** se `preco <= 0` ou `preco > 99999999.99m` ou `decimal.Round(preco, 2) != preco`, lance `ArgumentException`.
+   - **Delegação:** só após passar por **todas** as barreiras acima, retorne `produtos.SalvarAsync(id, codigo, nome, preco);`.
 
-Crie um `ProdutoEmMemoriaRepository` temporário implementando `IProdutoRepository`, com `SalvarAsync` que apenas anota os argumentos em uma propriedade e devolve `Task.CompletedTask`. Use um botão temporário na janela de administração para chamar o serviço com código “000123”, nome “Arroz” e preço 25,90. Remova o botão após a verificação; o fake pode ser guardado como exercício.
+### Passo 5 — Construir o Dublê `ProdutoEmMemoriaRepository` e Provar as Fronteiras (`A11.02`–`A11.05`)
+1. Crie uma classe temporária `ProdutoEmMemoriaRepository : IProdutoRepository` com:
+   - `public int Chamadas { get; private set; }`
+   - Propriedades opcionais `UltimoCodigo`, `UltimoNome`, `UltimoPreco` para inspecionar o que chegou após `.Trim()`.
+   - Dentro de `SalvarAsync`: incremente `Chamadas++`, salve os valores recebidos e retorne `Task.CompletedTask;`.
+2. Conecte temporariamente o serviço com esse Fake em `Program.cs` / `FormAdministrador` (ou em um botão temporário de verificação que será removido após o teste) e execute **todos os casos de fronteira da tabela abaixo**:
 
-Repita com nome vazio, preço zero e `1.999m`. A propriedade do fake não deve mudar quando a validação falha. Passe também uma `Sessao` de caixa: o serviço deve negar antes de chamar o repositório.
+| Entrada testada | Resultado esperado | Efeito em `fake.Chamadas` |
+| --- | --- | --- |
+| Válido: admin, ID `0`, `" 000123 "`, `" Arroz "`, `25.90m` | Aceita; salva `"000123"` e `"Arroz"` | Aumenta (+1) |
+| Preço `0` / `0.01m` / `1.999m` | Recusa / Aceita / Recusa | Só `0.01m` aumenta |
+| Preço `99999999.99m` / `100000000m` | Aceita / Recusa | Só o máximo aumenta |
+| Nome com `1` / `2` / `120` / `121` caracteres | Recusa / Aceita / Aceita / Recusa | Só `2` e `120` aumentam |
+| Código (após Trim) com `0` / `1` / `30` / `31` caracteres | Recusa / Aceita / Aceita / Recusa | Só `1` e `30` aumentam |
+| ID `-1` / `0` | Recusa / Aceita | Só `0` aumenta |
+| Sessão de `Caixa` com dados válidos | Lança `UnauthorizedAccessException` | **Não aumenta!** |
 
-**Por quê o banco também tem restrições?** Outro programa ou dois usuários simultâneos podem gravar dados. Validação amigável no serviço e integridade no banco cumprem funções diferentes.
+3. **Primeira asserção executável (reaproveitada na Aula 20):** após rodar 1 caso válido seguido de vários inválidos, escreva uma verificação automática:
+   ```csharp
+   if (fake.Chamadas != 1)
+       throw new Exception("Validação falhou e chegou indevidamente ao repositório!");
+   ```
+4. Remova o botão temporário após registrar as evidências (guarde o código do Fake como referência de aprendizado para a Aula 20).
 
-## Verifique antes de encerrar
-
-Execute `SELECT codigo, nome, preco, estoque, ativo FROM produto;`: ainda pode estar vazio. Confirme os casos de validação e explique a diferença entre saldo e movimento. Não crie produtos diretamente no SQL para substituir o exercício de validação do serviço.
-
-[Anterior: aula 10](10-Sessao-e-Perfis.md) · [Próxima: aula 12](12-Consulta-de-Produtos.md)
+[Anterior: Aula 10](10-Sessao-e-Perfis.md) · [Próxima: Aula 12 — Consulta de produtos](12-Consulta-de-Produtos.md) · [Índice](README.md)
 
 ## Atividades por conceito
 

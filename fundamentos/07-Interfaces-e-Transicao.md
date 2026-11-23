@@ -1,192 +1,166 @@
-# F07 — Contratos, polimorfismo e preparação para o projeto
+# F07 — Namespaces, Interfaces, Polimorfismo e Preparação para o Projeto
 
-**Pré-requisito:** F06. **Objetivo:** fazer o mesmo chamador trabalhar com comportamentos diferentes e explicar como os objetos são conectados.
+**Pré-requisito:** [F06](06-Composicao-e-Colecoes.md).
+**Objetivo:** organizar código com `namespace` e `using`, criar contratos com `interface`, injetar dependências pelo construtor, compreender polimorfismo (por interface e por herança) e realizar o diagnóstico final antes do projeto MarketFlow.
 
-Crie o console `FundamentosF07`. Use arquivos separados e o namespace `FundamentosF07` em todos os tipos desta página. Namespace organiza nomes; uma pasta sozinha não define o namespace.
+Crie no **Visual Studio 2022** um novo **Aplicativo de Console** chamado `FundamentosF07`.
 
-## 1. Parta de uma mudança pequena
+---
 
-Queremos receber uma frase e apresentá-la de duas maneiras: como foi escrita ou em letras maiúsculas. O código que pede a formatação pode fazer o mesmo pedido, independentemente da forma escolhida.
+## 1. Organizando Nomes com `namespace` e `using`
 
-Uma interface define as operações de um contrato. Neste exercício, o contrato exige uma operação que recebe texto e devolve texto. Não vamos conectar banco nem criar repositórios ainda.
+Quando um programa cresce, podemos ter dezenas de classes (ou duas bibliotecas diferentes com uma classe de mesmo nome, como `Usuario`).
 
-Em `IFormatador.cs`:
+- **`namespace FundamentosF07;`**: coloca "sobrenome" em todas as classes daquele arquivo, organizando-as em um grupo lógico. **Atenção:** criar uma pasta no Visual Studio 2022 ajuda a organizar os arquivos no disco, mas o que define o namespace em C# é a declaração `namespace ...;` escrita no código!
+- **`using FundamentosF07;`**: avisa ao compilador *"neste arquivo, quero usar os nomes curtos das classes que moram dentro de `FundamentosF07`"*.
+  - **Importante:** `using` apenas traz um namespace que já existe no projeto para o alcance do arquivo; ele **não** baixa nem instala bibliotecas da internet (isso é papel do NuGet, que veremos na Aula 08).
+
+---
+
+## 2. O Que É uma `interface` e Por Que Usamos Contratos?
+
+Imagine uma tomada elétrica na parede: a tomada define um **contrato** (dois ou três pinos e a voltagem). A tomada não sabe se você vai ligar um ventilador, um carregador ou uma geladeira — qualquer aparelho que cumpra o formato do plugue funciona!
+
+Em C#, uma **`interface`** é exatamente esse contrato: ela lista **quais métodos** um objeto precisa oferecer (nome, parâmetros e retorno), **sem escrever o código interno** de como fazer.
+
+### Anatomia de Interface, Implementação e Injeção pelo Construtor (Microexemplo)
+
+Observe este modelo genérico de envio de notificações:
 
 ```csharp
-namespace FundamentosF07;
+// 1. O Contrato (IAlerta.cs)
+namespace ExemploNotificacao;
 
-public interface IFormatador
+public interface IAlerta
 {
-    string Formatar(string texto);
+    string GerarMensagem(string texto);
 }
 ```
 
-O prefixo `I` é uma convenção de nomes de interfaces. No nosso contrato, o ponto e vírgula encerra a assinatura; não há corpo de implementação. Não podemos criar uma instância com `new IFormatador()`.
-
-## 2. Implemente o contrato de duas formas
-
-Em `FormatadorSimples.cs`:
-
 ```csharp
-namespace FundamentosF07;
+// 2. Uma Implementação Concreta (AlertaSimples.cs)
+namespace ExemploNotificacao;
 
-public class FormatadorSimples : IFormatador
+public class AlertaSimples : IAlerta
 {
-    public string Formatar(string texto)
+    public string GerarMensagem(string texto)
     {
         return texto;
     }
 }
 ```
 
-Em `FormatadorMaiusculo.cs`:
-
 ```csharp
-namespace FundamentosF07;
+// 3. Uma Classe que RECEBE o contrato pelo construtor (Monitor.cs)
+namespace ExemploNotificacao;
 
-public class FormatadorMaiusculo : IFormatador
+public class Monitor
 {
-    public string Formatar(string texto)
+    private readonly IAlerta alerta;
+
+    public Monitor(IAlerta alerta)
     {
-        return texto.ToUpperInvariant();
+        if (alerta is null)
+            throw new ArgumentException("Informe o alerta.");
+
+        this.alerta = alerta;
+    }
+
+    public string Avisar(string texto)
+    {
+        return alerta.GerarMensagem(texto);
     }
 }
 ```
 
-Os dois-pontos indicam aqui que a classe implementa `IFormatador`: ela precisa cumprir a assinatura. Ter métodos com o mesmo nome em duas classes, por si só, não explica o mecanismo; a referência pelo contrato comum permite fazer a mesma chamada sem escolher uma classe concreta no chamador.
+### Dissecando Cada Detalhe e o "Por Quê?"
 
-## 3. Faça um objeto receber sua dependência
-
-Em `Apresentador.cs`:
-
-```csharp
-namespace FundamentosF07;
-
-public class Apresentador
-{
-    private readonly IFormatador formatador;
-
-    public Apresentador(IFormatador formatador)
-    {
-        if (formatador is null)
-            throw new ArgumentException("Informe o formatador.");
-
-        this.formatador = formatador;
-    }
-
-    public string Preparar(string texto)
-    {
-        return formatador.Formatar(texto);
-    }
-}
-```
-
-`this.formatador` é o campo da instância; `formatador`, sem `this` no construtor, identifica o parâmetro de mesmo nome. `readonly` impede reatribuir esse campo depois da construção; não torna automaticamente imutável o objeto referenciado.
-
-O `Apresentador` recebe o objeto de que precisa em vez de criar internamente um `FormatadorSimples`. Isso é injeção pelo construtor. Estamos apenas passando um objeto como argumento, como em F06; não precisamos de uma biblioteca para fazer isso.
-
-## 4. Faça a troca no ponto de criação
-
-Em `Program.cs`:
-
-```csharp
-using FundamentosF07;
-
-IFormatador simples = new FormatadorSimples();
-IFormatador maiusculo = new FormatadorMaiusculo();
-
-Apresentador primeiro = new Apresentador(simples);
-Apresentador segundo = new Apresentador(maiusculo);
-
-Console.WriteLine(primeiro.Preparar("Bom dia"));
-Console.WriteLine(segundo.Preparar("Bom dia"));
-```
-
-Esperado: `Bom dia` e `BOM DIA`. `using FundamentosF07;` permite usar os nomes declarados naquele namespace. Ele não instala um pacote NuGet.
-
-Os dois apresentadores executam o mesmo método `Preparar`. A implementação do formatador recebido determina a resposta de `Formatar`: esse é o polimorfismo demonstrado aqui.
-
-Rastreie a segunda chamada no depurador:
-
-```text
-Program chama segundo.Preparar("Bom dia")
-Apresentador pede formatador.Formatar("Bom dia")
-FormatadorMaiusculo devolve "BOM DIA"
-Apresentador devolve esse texto
-Program mostra o resultado
-```
-
-## 5. Diferencie interface, herança e composição
-
-| Recurso | Pergunta que ajuda a escolher | Exemplo |
+| Sintaxe | Significado | Por que usamos dessa forma? |
 | --- | --- | --- |
-| Interface | Que operação o chamador precisa poder pedir? | `IFormatador.Formatar` |
-| Composição | De qual objeto este objeto precisa? | `Apresentador` recebe um formatador |
-| Herança de classe | O tipo derivado pode ser usado como o tipo base, respeitando seu comportamento? | Um tipo de aviso pode especializar uma base de aviso |
+| Prefixo `I` em `IAlerta` | Convenção oficial do C# para interfaces. | Ao ler `IAlerta`, qualquer programador sabe instantaneamente que se trata de um contrato e não de uma classe concreta. |
+| `;` no fim de `string GerarMensagem(string texto);` | Assinatura sem chaves `{ }`. | A interface define **o quê** deve existir, nunca **como** executar. Por isso, tentar fazer `new IAlerta()` dá erro de compilação! |
+| `: IAlerta` em `class AlertaSimples : IAlerta` | A classe assina o contrato ("implementa `IAlerta`"). | O compilador **obriga** a classe a implementar `GerarMensagem` com assinatura exata. Se esquecer, não compila. |
+| `private readonly IAlerta alerta;` | Campo privado e `readonly`. | `readonly` garante que o campo só pode receber atribuição no construtor e nunca mais ser trocado depois. |
+| `public Monitor(IAlerta alerta)` | **Injeção de Dependência pelo Construtor.** | Em vez de `Monitor` criar internamente `new AlertaSimples()`, quem usa o `Monitor` entrega o objeto pronto. Assim podemos trocar o comportamento **sem editar uma única linha** de `Monitor`! |
 
-Herança de classe usa uma classe base. Para observar o mecanismo sem misturar os arquivos anteriores, crie **outro console**, `FundamentosHeranca`. Em `Aviso.cs`:
+### Onde aparece o Polimorfismo aqui?
+**Polimorfismo** ("muitas formas") acontece quando você chama `alerta.GerarMensagem(texto)` usando uma variável do tipo do contrato (`IAlerta`), e o C# executa automaticamente o código da classe concreta real que foi entregue (`AlertaSimples`, `AlertaUrgente`, etc.).
 
-```csharp
-public class Aviso
-{
-    public virtual string Texto()
-    {
-        return "Aviso geral";
-    }
-}
-```
+---
 
-Em `AvisoUrgente.cs`:
+## 3. Comparando Interface, Composição e Herança (`virtual` / `override`)
 
-```csharp
-public class AvisoUrgente : Aviso
-{
-    public override string Texto()
-    {
-        return "Aviso urgente";
-    }
-}
-```
+Muitos iniciantes acham que Orientação a Objetos significa usar herança em tudo. Não é verdade! Use este guia de decisão:
 
-Em `Program.cs` desse novo console:
+| Recurso | Pergunta-chave para escolher | Quando usar |
+| --- | --- | --- |
+| **Interface** | *"Que operação o chamador precisa poder pedir sem saber os detalhes?"* | Trocar implementações (ex.: repositório em memória vs banco real; formatador simples vs maiúsculo). |
+| **Composição** | *"De qual objeto este objeto precisa para trabalhar?"* | Relação **"tem um"** (ex.: `Apresentador` tem um `IFormatador`; `ItemMaterial` tem um `Material`). |
+| **Herança de classe** | *"A classe filha **é um** tipo especializado da classe base?"* | Relação **"é um"** genuína, quando faz sentido reaproveitar comportamento da base e especializar partes com `virtual`/`override`. |
 
-```csharp
-Aviso aviso = new AvisoUrgente();
-Console.WriteLine(aviso.Texto());
-```
+### Como funciona Herança com Polimorfismo (`virtual` e `override`)
+- Na classe base, marcar um método com **`virtual`** autoriza classes derivadas a reescreverem aquele comportamento.
+- Na classe derivada (`class AvisoUrgente : Aviso`), usar **`override`** substitui o método da base pela versão especializada.
+- Mesmo guardando o objeto em uma variável do tipo base (`Aviso aviso = new AvisoUrgente();`), chamar `aviso.Texto()` executa a versão `override` de `AvisoUrgente`!
+- **Atenção:** membros `private` da classe base continuam invisíveis para a classe derivada — herança não quebra o encapsulamento.
 
-`virtual` permite especializar esse método da base; `override` fornece a implementação na classe derivada. Mesmo usando a variável de tipo `Aviso`, a saída é `Aviso urgente`. Esse é outro exemplo de polimorfismo. Membros privados da base continuam privados; herdar não libera acesso direto a eles.
+---
 
-Conhecer herança não significa usá-la em toda classe. Nos materiais de F06, “um item tem um material” descreve a relação; dizer “um item é um material” mudaria o significado. Na primeira aplicação, composição e interfaces serão suficientes em muitos pontos.
+## 4. Roteiro de Construção Guiada (Sua Vez no Visual Studio 2022!)
 
-## 6. Pratique e faça o diagnóstico final
+### Parte A — Contrato `IFormatador` e Injeção pelo Construtor (no projeto `FundamentosF07`)
 
-1. No projeto F07, adicione `FormatadorComPrefixo : IFormatador`, cuja saída para `"Bom dia"` seja `"Mensagem: Bom dia"`. Crie outro apresentador sem mudar seu método `Preparar`.
-2. Explique a diferença entre o tipo declarado `IFormatador` e a classe do objeto criado com `new FormatadorMaiusculo()`.
-3. Remova temporariamente `Formatar` de uma implementação, leia a falha de compilação e restaure o método.
-4. Explique por que `using` não substitui instalar uma biblioteca e por que passar um argumento não exige um contêiner de dependências.
-5. No exemplo de herança, preveja a saída ao trocar `new AvisoUrgente()` por `new Aviso()` e confirme.
+Crie cada arquivo separado no Visual Studio 2022 (`Shift+Alt+C`), colocando `namespace FundamentosF07;` no topo de todos eles:
 
-Antes do projeto, cada estudante deve demonstrar:
+1. **`IFormatador.cs`:**
+   - Declare uma `public interface IFormatador` com um único método: `string Formatar(string texto);`.
+2. **`FormatadorSimples.cs`:**
+   - Crie `public class FormatadorSimples : IFormatador`.
+   - Implemente `Formatar` devolvendo o próprio `texto` sem alteração.
+3. **`FormatadorMaiusculo.cs`:**
+   - Crie `public class FormatadorMaiusculo : IFormatador`.
+   - Implemente `Formatar` devolvendo `texto.ToUpperInvariant()` (convertemos com `Invariant` para garantir comportamento padronizado em qualquer idioma do Windows).
+4. **`Apresentador.cs`:**
+   - Declare `public class Apresentador` com um campo `private readonly IFormatador formatador;`.
+   - Crie o construtor recebendo `IFormatador formatador`: valide se `formatador is null` (lançando `ArgumentException`) e atribua com `this.formatador = formatador;`.
+   - Crie o método `public string Preparar(string texto)` que delega a tarefa retornando `formatador.Formatar(texto)`.
+5. **`Program.cs`:**
+   - Adicione `using FundamentosF07;` na primeira linha.
+   - Crie dois objetos (`IFormatador simples = new FormatadorSimples();` e `IFormatador maiusculo = new FormatadorMaiusculo();`).
+   - Crie dois `Apresentador`, entregando um formatador diferente a cada um, e exiba `Preparar("Bom dia")` de ambos (saída esperada: `Bom dia` e `BOM DIA`).
+   - **Depure com `F9` e `F11`:** coloque um breakpoint na chamada do segundo apresentador e acompanhe o salto `Program` → `Apresentador.Preparar` → `FormatadorMaiusculo.Formatar` → volta ao `Program`.
+6. **Extensão sem alterar `Apresentador`:**
+   - Crie uma terceira classe `FormatadorComPrefixo : IFormatador` que devolve `$"Mensagem: {texto}"`.
+   - No `Program.cs`, crie um terceiro `Apresentador` passando o novo formatador. Comprove que `Apresentador.cs` **não precisou ser modificado**!
+7. **Teste de contrato do compilador:**
+   - Comente temporariamente o método `Formatar` dentro de `FormatadorSimples.cs`, leia o erro na **Lista de Erros** (`CS0535`) confirmando que o compilador fiscaliza o contrato, e restaure o método.
 
-| Consigo fazer e explicar | Evidência sugerida |
+### Parte B — Experimento Isolado de Herança (`FundamentosHeranca`)
+
+Para não misturar os arquivos, crie no Visual Studio 2022 um **segundo Aplicativo de Console** chamado `FundamentosHeranca`:
+1. Crie `Aviso.cs` com uma classe `public class Aviso` e um método `public virtual string Texto()` retornando `"Aviso geral"`.
+2. Crie `AvisoUrgente.cs` herdando de `Aviso` (`: Aviso`) e sobrescrevendo o método com `public override string Texto()` retornando `"Aviso urgente"`.
+3. No `Program.cs`, declare `Aviso aviso = new AvisoUrgente();` e exiba `aviso.Texto()`. Depois troque para `new Aviso()`, preveja a saída e confirme com `Ctrl+F5`.
+
+---
+
+## 5. Diagnóstico Final Antes de Iniciar o Projeto MarketFlow
+
+Antes de avançar para a [Aula 01](../01-Introducao-CSharp.md), confira se você consegue **construir e explicar com suas próprias palavras** cada item abaixo:
+
+| Habilidade essencial | Como comprovar |
 | --- | --- |
-| Ler, converter e validar entrada | Recusar `abc` e quantidade negativa |
-| Escrever e chamar uma função com retorno | Calcular dois totais com argumentos diferentes |
-| Distinguir classe, objeto e referência | Desenhar dois objetos e uma referência compartilhada |
-| Usar construtor e preservar uma regra | Recusar leitura acima do total sem alterar o estado |
-| Percorrer uma lista de objetos relacionados | Calcular materiais e explicar o subtotal |
-| Usar um contrato com duas implementações | Trocar o formatador sem alterar o apresentador |
-| Acompanhar chamadas e localizar erros | Demonstrar uma passagem no depurador |
+| Ler, converter e validar entrada do teclado | Recusar `"abc"` e número negativo sem derrubar o programa |
+| Escrever e chamar função com retorno | Calcular dois totais com argumentos diferentes sem `Console.WriteLine` dentro da função |
+| Distinguir classe, objeto e referência | Desenhar dois objetos na memória e duas variáveis apontando para o mesmo objeto |
+| Construir com validação e encapsular | Recusar alteração inválida preservando o estado anterior do objeto |
+| Usar composição e `List<T>` | Somar itens de uma lista vazia e de uma lista preenchida |
+| Trabalhar com `interface` e polimorfismo | Trocar o formatador sem alterar o `Apresentador` |
+| Usar o Depurador do Visual Studio 2022 | Pausar com `F9`, inspecionar variáveis e avançar com `F10` e `F11` |
 
-Se algum item estiver pendente, retome o capítulo correspondente com uma entrada diferente. A cópia de um exemplo completo não substitui essa demonstração.
+### A Ponte para o MarketFlow
+Nas aulas **01 a 03** do projeto, você aplicará esses mesmos fundamentos ao problema do supermercado. Na **Aula 04**, verá como interfaces separam a interface gráfica, as regras de negócio e o banco de dados. Windows Forms, eventos, `async/await`, hash de senha e SQL serão introduzidos um por vez em seus capítulos próprios.
 
-## 7. Faça a ponte para o MarketFlow
+**Critério para concluir F07:** construir o terceiro formatador (`FormatadorComPrefixo`), rastrear a chamada com `F11` no Visual Studio 2022 e demonstrar todos os itens da tabela de diagnóstico acima.
 
-No projeto, `Produto` e `ItemCarrinho` serão novos modelos com regras próprias. Não substitua suas implementações pelos exercícios daqui. A responsabilidade de `Program` em construir e conectar objetos volta a aparecer; interfaces permitirão ao serviço pedir consultas sem conhecer seus detalhes técnicos.
-
-As aulas 01–03 retomam os fundamentos com o problema do supermercado. Na aula 04 você aprenderá a separar apresentação, regras e armazenamento. Windows Forms, eventos, `Task`, `async/await`, hash e SQL entram em seus capítulos próprios; não são pré-requisitos ocultos deste percurso.
-
-**Critério para concluir:** implementar o terceiro formatador, rastrear a chamada e demonstrar os itens do diagnóstico com uma variação escolhida pelo professor.
-
-[Anterior: composição](06-Composicao-e-Colecoes.md) · [Percurso preparatório](README.md) · [Iniciar a aplicação dos fundamentos](../01-Introducao-CSharp.md)
+[Anterior: F06 — Composição e coleções](06-Composicao-e-Colecoes.md) · [Percurso preparatório](README.md) · [Iniciar Aula 01 do Projeto](../01-Introducao-CSharp.md)

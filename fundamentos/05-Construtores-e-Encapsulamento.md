@@ -1,113 +1,154 @@
-# F05 — Construtores, campos e encapsulamento
+# F05 — Construtores, Campos, Encapsulamento e Exceções
 
-**Pré-requisito:** F04. **Objetivo:** criar um objeto com estado válido e controlar suas alterações.
+**Pré-requisito:** [F04](04-Classes-e-Objetos.md).
+**Objetivo:** impedir que um objeto nasça ou fique em estado inválido usando **construtores**, **encapsulamento** (`private`, `private set`), lançamento de exceções (`throw`) e tratamento seguro (`try/catch`).
 
-Crie um console `FundamentosF05`. Os arquivos desta etapa substituem o exercício anterior; não misture versões da mesma classe no projeto.
+Crie no **Visual Studio 2022** um novo **Aplicativo de Console** chamado `FundamentosF05`. Não misture os arquivos antigos de `F04` aqui.
 
-## 1. Descubra o problema antes da solução
+---
 
-No exemplo anterior, era possível escrever `livro.Paginas = -10`. O código compila, mas esse estado não atende ao nosso modelo de leitura. Também era possível criar um livro sem título e esquecer de preenchê-lo.
+## 1. Qual Problema Estamos Resolvendo?
 
-Precisamos de uma entrada de construção que exija dados iniciais e de operações que verifiquem as alterações. Esse é o problema que vamos resolver com construtor e encapsulamento.
+Na etapa `F04`, todas as propriedades tinham `{ get; set; }` públicos. Isso abria duas falhas sérias:
+1. Era possível fazer `new Livro()` e **esquecer** de preencher `Titulo` e `Paginas`.
+2. Qualquer trecho do código podia escrever `livro.Paginas = -10;` — o programa compilava, mas o objeto ficava corrompido!
 
-## 2. Exija os dados na construção
+**Por que precisamos de Construtor e Encapsulamento?**
+- O **Construtor** é a "porta de entrada" obrigatória: garante que o objeto **só nasce se receber dados válidos**.
+- O **Encapsulamento** fecha o acesso direto às propriedades e exige que toda alteração passe por métodos que verificam as regras de negócio antes de modificar o estado.
 
-Crie `Livro.cs` com:
+---
+
+## 2. Anatomia do Construtor, Campos, Propriedades e `throw` (Microexemplo)
+
+Observe este modelo genérico de uma **Bateria de Celular** (`Bateria.cs`):
 
 ```csharp
-public class Livro
+public class Bateria
 {
-    public string Titulo { get; private set; }
-    public int Paginas { get; }
-    private int paginasLidas;
+    public string Modelo { get; private set; }
+    public int CapacidadeMaxima { get; }
+    private int cargaAtual;
 
-    public int PaginasLidas
+    public int CargaAtual
     {
-        get { return paginasLidas; }
+        get { return cargaAtual; }
     }
 
-    public Livro(string titulo, int paginas)
+    public Bateria(string modelo, int capacidadeMaxima)
     {
-        if (string.IsNullOrWhiteSpace(titulo))
-            throw new ArgumentException("Informe o título.");
-        if (paginas <= 0)
-            throw new ArgumentException("O livro precisa ter páginas.");
+        if (string.IsNullOrWhiteSpace(modelo))
+            throw new ArgumentException("Informe o modelo.");
+        if (capacidadeMaxima <= 0)
+            throw new ArgumentException("A capacidade deve ser positiva.");
 
-        Titulo = titulo.Trim();
-        Paginas = paginas;
+        Modelo = modelo.Trim();
+        CapacidadeMaxima = capacidadeMaxima;
     }
 
-    public void Renomear(string novoTitulo)
+    public void Carregar(int quantidade)
     {
-        if (string.IsNullOrWhiteSpace(novoTitulo))
-            throw new ArgumentException("Informe o título.");
+        if (quantidade <= 0 || quantidade > CapacidadeMaxima - cargaAtual)
+            throw new ArgumentException("Quantidade de carga inválida.");
 
-        Titulo = novoTitulo.Trim();
-    }
-
-    public void Ler(int quantidade)
-    {
-        if (quantidade <= 0 || quantidade > Paginas - paginasLidas)
-            throw new ArgumentException("Quantidade de páginas inválida.");
-
-        paginasLidas = paginasLidas + quantidade;
+        cargaAtual = cargaAtual + quantidade;
     }
 }
 ```
 
-O construtor tem o nome `Livro` e não declara tipo de retorno. Ele executa durante `new Livro("Viagem", 120)`. Como declaramos esse construtor com argumentos obrigatórios, `new Livro()` deixa de ser uma chamada válida para esta classe.
+### Dissecando Cada Detalhe e o "Por Quê?"
 
-No construtor, `titulo` é um parâmetro; `Titulo` é uma propriedade do objeto. `Trim()` remove espaços nas extremidades do texto. A validação ocorre antes da atribuição: dados recusados não chegam às propriedades.
+| Código | O que é? | Por que escrevemos dessa forma? |
+| --- | --- | --- |
+| `private int cargaAtual;` | **Campo privado** (variável interna da classe). | Armazena o valor internamente. Por ser `private`, nenhum código externo consegue fazer `bateria.cargaAtual = 9999;`. |
+| `public int CargaAtual { get { return cargaAtual; } }` | **Propriedade pública somente leitura** apoiada em campo. | Permite que o mundo externo **leia** a carga atual, mas não altere diretamente. |
+| `public string Modelo { get; private set; }` | **Propriedade automática com `private set`.** | O compilador cria o campo oculto sozinho. Todos podem ler (`get`), mas só métodos **de dentro da própria classe** podem modificar (`private set`). |
+| `public int CapacidadeMaxima { get; }` | **Propriedade somente `get`.** | Só pode receber valor dentro do **construtor**; depois que o objeto nasce, nunca mais muda. |
+| `public Bateria(string modelo, int capacidadeMaxima)` | **Construtor.** | Tem exatamente o mesmo nome da classe e **não** tem tipo de retorno (nem `void`). Executa automaticamente durante `new Bateria(...)`. Ao criar um construtor com parâmetros, `new Bateria()` sem argumentos deixa de compilar! |
+| `string.IsNullOrWhiteSpace(modelo)` | Método estático da classe `string`. | Retorna `true` se o texto for `null`, vazio (`""`) ou só espaços (`"   "`). Muito mais seguro que testar apenas `modelo == ""`. |
+| `modelo.Trim()` | Remove espaços no início e no fim do texto. | Evita salvar `"  Lítio  "` com espaços acidentais nas bordas. |
+| `throw new ArgumentException("...");` | **Lança uma exceção.** | Interrompe imediatamente o método/construtor **antes** de chegar nas linhas de atribuição. Assim o dado inválido nunca contamina o objeto! |
 
-## 3. Diferencie campo de propriedade
+> [!TIP]
+> **Atenção:** apenas colocar `private` não é encapsulamento completo. Encapsular significa esconder a escrita direta **e** oferecer métodos públicos (como `Carregar` ou `Renomear`) que validam a regra antes de alterar o estado.
 
-`paginasLidas` é um **campo** privado que armazena um valor. Ele começa em 0. `PaginasLidas` é uma **propriedade** pública cujo acessor `get` permite consultar esse campo.
+---
 
-`Titulo` usa uma propriedade automática: o compilador fornece seu armazenamento interno. O `private set` permite atribuição dentro da classe, mas impede `livro.Titulo = "Outro"` no console. Para alterar o título, o chamador deve usar `Renomear`, que valida a entrada.
+## 3. Capturando uma Recusa Sem Derrubar o Programa (`try / catch`)
 
-`Paginas` tem somente `get` e recebe seu valor no construtor. Neste modelo, a quantidade total de páginas não muda depois da construção.
-
-Encapsular significa controlar o acesso ao estado e oferecer operações que preservem as regras. Apenas tornar algo privado não garante uma regra: o método público também precisa validar antes de modificar.
-
-## 4. Observe uma recusa sem encerrar o programa
-
-Em `Program.cs`, use:
+Quando um método executa `throw new ArgumentException(...)`, se ninguém tratar esse erro, o programa fecha com erro. Para capturar a recusa de maneira controlada, envolvemos a chamada em um bloco `try / catch`:
 
 ```csharp
-Livro livro = new Livro("Viagem", 120);
-livro.Ler(20);
-Console.WriteLine(livro.PaginasLidas);
-
 try
 {
-    livro.Ler(200);
+    // Código que pode lançar uma exceção
+    bateria.Carregar(500);
 }
 catch (ArgumentException erro)
 {
-    Console.WriteLine(erro.Message);
+    // Só executa se o 'try' lançou uma ArgumentException
+    Console.WriteLine($"Operação recusada: {erro.Message}");
 }
-
-Console.WriteLine(livro.PaginasLidas);
+// O programa continua normalmente a partir daqui!
 ```
 
-Esperado: 20, a mensagem de quantidade inválida e novamente 20. `throw` interrompe o caminho normal antes da atribuição. O `catch` recebe a exceção e mostra a mensagem; o programa continua depois do bloco. Não acrescente um `catch` vazio: a recusa precisa ser compreendida pelo chamador.
+- `try` ("tente"): executa o caminho normal. Se uma linha lançar exceção, as linhas restantes dentro do `try` são **puladas** imediatamente.
+- `catch (ArgumentException erro)`: captura o objeto de erro na variável `erro` e permite exibir `erro.Message` (a frase que você escreveu no `throw`).
+- **Por que nunca escrever `catch { }` vazio?** Um `catch` vazio engole o erro em silêncio e faz o usuário achar que deu certo quando falhou.
 
-Se a criação receber um título vazio, o construtor lança a exceção e não entrega um objeto construído ao chamador. Para experimentar esse caso sem encerrar o programa, coloque a própria linha `new Livro(...)` dentro de outro `try/catch`.
+---
 
-## 5. Métodos de instância e operações estáticas
+## 4. Membros de Instância vs `static` e a Palavra `this`
 
-`livro.Ler(20)` precisa saber **qual livro** terá seu estado alterado: é um método de instância. Já `string.IsNullOrWhiteSpace(titulo)` é uma operação estática chamada pelo nome do tipo, sem construir um objeto para receber a chamada. `static` não é uma instrução para criar um objeto único nem uma solução geral para compartilhar dados.
+- **Método de instância (`bateria.Carregar(20)`):** precisa de um objeto criado com `new` para saber *qual* bateria terá seu estado alterado.
+- **Método estático (`string.IsNullOrWhiteSpace(texto)`):** pertence ao **tipo** em si, não a um objeto específico; por isso é chamado pelo nome do tipo (`string.`), sem usar `new`.
+- **Palavra `this`:** significa *"esta instância atual"*. Quando um parâmetro tem o mesmo nome de um campo (ex.: `this.modelo = modelo;`), `this` desfaz a ambiguidade. Quando usamos nomes com capitalização diferente (`Titulo = titulo;`), o compilador já distingue sem precisar de `this`.
 
-Quando encontrar `this` em outros exemplos, leia como “esta instância”. Neste código usamos nomes diferentes para parâmetros e propriedades, então não precisamos escrevê-lo.
+---
 
-## 6. Pratique
+## 5. Roteiro de Construção Guiada (Sua Vez no Visual Studio 2022!)
 
-1. Tente construir livros com título vazio, 0 páginas e 120 páginas. Os dois primeiros casos devem ser recusados; o terceiro, aceito.
-2. Leia 20 páginas de um livro de 120. Tente ler -1, 0 e 101; o estado deve continuar 20 após cada recusa.
-3. Leia mais 100: o estado chega a 120. Tentar ler mais 1 deve falhar mantendo 120.
-4. Renomeie para `"  Jardim  "`: o título deve ser `"Jardim"`. Tente renomear para espaços: o título deve continuar `"Jardim"`.
-5. Tente atribuir diretamente a `PaginasLidas`, registre o erro de compilação e retire a linha inválida.
+Agora você vai construir a sua própria classe `Livro` blindada em `FundamentosF05`, **seguindo as orientações abaixo** (sem copiar a classe `Bateria`):
 
-**Critério para avançar:** explicar por que o construtor exige dados, distinguir campo e propriedade e demonstrar que uma tentativa inválida preserva o estado anterior.
+### Passo 1 — Criar `Livro.cs` (`Shift+Alt+C` no VS 2022)
+Declare `public class Livro` (sem `namespace` por enquanto) seguindo estas especificações exatas:
+1. **Propriedades e campos:**
+   - `Titulo`: `string`, leitura pública e escrita privada (`public string Titulo { get; private set; }`).
+   - `Paginas`: `int`, somente leitura (`public int Paginas { get; }`) — o total de páginas de um livro impresso não muda após nascer.
+   - Um campo privado `private int paginasLidas;` (começa em 0) e uma propriedade pública `PaginasLidas` apenas com `get` retornando esse campo.
+2. **Construtor `public Livro(string titulo, int paginas)`:**
+   - Antes de atribuir qualquer coisa, valide:
+     - Se `string.IsNullOrWhiteSpace(titulo)` → lance `ArgumentException` com mensagem pedindo o título.
+     - Se `paginas <= 0` → lance `ArgumentException` informando que o livro precisa ter páginas.
+   - Só após passar pelas validações, atribua `Titulo = titulo.Trim();` e `Paginas = paginas;`.
+3. **Método `public void Renomear(string novoTitulo)`:**
+   - Recuse com `ArgumentException` se `novoTitulo` for nulo, vazio ou apenas espaços.
+   - Caso contrário, atualize `Titulo` com `novoTitulo.Trim()`.
+4. **Método `public void Ler(int quantidade)`:**
+   - Calcule mentalmente: quantas páginas ainda faltam ler? (`Paginas - paginasLidas`).
+   - Recuse com `ArgumentException` se `quantidade <= 0` **ou (`||`)** `quantidade > Paginas - paginasLidas`.
+   - Se for válida, some `quantidade` ao campo `paginasLidas`.
 
-[Anterior: classes e objetos](04-Classes-e-Objetos.md) · [Próximo: composição e coleções](06-Composicao-e-Colecoes.md)
+### Passo 2 — Construir os Testes no `Program.cs`
+No `Program.cs`, escreva um roteiro de testes usando `try / catch (ArgumentException erro)` para comprovar cada regra:
+1. Tente criar um `Livro` com título vazio `""` (dentro de `try/catch`) e outro com `0` páginas (dentro de `try/catch`). Ambos devem exibir a mensagem de recusa.
+2. Crie um livro válido `"Viagem"` com `120` páginas.
+3. Chame `Ler(20)` e exiba `PaginasLidas` (esperado: `20`).
+4. Dentro de blocos `try/catch`, tente chamar `Ler(-1)`, `Ler(0)` e `Ler(101)`. Depois de cada recusa, exiba `PaginasLidas` comprovando que o estado **permaneceu intacto em 20**.
+5. Chame `Ler(100)` (deve chegar a `120`) e depois tente `Ler(1)` em um `try/catch` (deve recusar mantendo `120`).
+6. Chame `Renomear("  Jardim  ")` e comprove que `Titulo` virou `"Jardim"`. Tente `Renomear("   ")` dentro de `try/catch` e comprove que o título continuou `"Jardim"`.
+7. **Teste de blindagem do compilador:** escreva temporariamente `livro.PaginasLidas = 50;` ou `livro.Titulo = "Hack";`, leia o erro na **Lista de Erros** do VS 2022 (`CS0200` / `CS0272`) e apague a linha inválida.
+
+---
+
+## 6. Erros Comuns no Visual Studio 2022
+
+| Erro na Lista de Erros | Causa provável | Como corrigir |
+| --- | --- | --- |
+| `CS7036: Não há nenhum argumento... para o parâmetro 'titulo'` | Você tentou chamar `new Livro()` vazio depois de criar um construtor que exige parâmetros. | Passe os argumentos obrigatórios: `new Livro("Viagem", 120)`. |
+| `CS0200 / CS0272: A propriedade é somente leitura / acessador set inacessível` | Tentou atribuir diretamente de fora da classe a uma propriedade com `{ get; }` ou `{ get; private set; }`. | Isso prova que seu encapsulamento funcionou! Use os métodos públicos (`Renomear`, `Ler`). |
+| Exceção sem tratamento fecha a janela no VS 2022 | Chamou um método que lançou `throw` fora de um bloco `try / catch`. | Envolva a chamada de teste em `try { ... } catch (ArgumentException erro) { ... }`. |
+
+**Critério para avançar para F06:** explicar por que o construtor exige dados válidos na criação, diferenciar campo privado de propriedade pública e demonstrar no código que uma tentativa inválida preserva o estado anterior do objeto.
+
+[Anterior: F04 — Classes e objetos](04-Classes-e-Objetos.md) · [Próximo: F06 — Composição e coleções](06-Composicao-e-Colecoes.md)

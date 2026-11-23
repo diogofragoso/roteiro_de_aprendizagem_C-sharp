@@ -1,74 +1,135 @@
-# Aula 05 — Ambiente e solução no Visual Studio 2026
+# Aula 05 — Ambiente, Solução e Primeiro Windows Forms no Visual Studio 2022
 
-**Duração:** 3h30. **Pré-requisito:** aula 04 e laboratório preparado pelo professor para as práticas de console anteriores. **Entrega:** solução Windows Forms compilando, com pastas e janela inicial.
+**Duração:** 3h30. **Pré-requisito:** [Aula 04](04-Arquitetura-e-Padroes.md). **Entrega:** solução `Supermercado` e projeto Windows Forms `SupermercadoApp` organizados em 5 pastas, com `FormLogin` abrindo, fechando e compilando sem erros no Visual Studio 2022.
 
 | Bloco | Minutos | Atividade |
 | --- | ---: | --- |
-| Retomada | 15 | Conferir console e diferenças de uma aplicação desktop |
-| Explicação | 30 | IDE, SDK, runtime, solução e projeto |
-| Construção | 60 | Conferir instalação e criar o projeto |
+| Retomada | 15 | Comparar aplicativo de console e aplicativo visual desktop |
+| Explicação | 30 | IDE, SDK, Runtime, `.sln`, `.csproj`, `partial class` e `Program.cs` |
+| Construção | 60 | Conferir Visual Studio 2022 e criar a solução `Supermercado` |
 | Intervalo | 15 | Pausa |
-| Prática | 60 | Organizar pastas, propriedades e depuração |
-| Entrega | 30 | Compilar, executar e registrar ambiente |
+| Prática | 60 | Criar as 5 pastas, renomear `FormLogin`, ajustar namespaces e depurar |
+| Entrega | 30 | Compilar (`Ctrl+Shift+B`), executar (`F5`) e registrar ambiente |
 
-## 1. Confira o ambiente
+---
 
-1. Abra **Visual Studio Installer** pelo menu Iniciar do Windows. Localize **Visual Studio 2026 Community** e selecione **Modificar**. Para uma instalação nova, use o instalador específico do VS 2026; o botão principal do site pode oferecer outra edição. O professor deve preparar o instalador antes da aula.
-2. Marque **Desenvolvimento para desktop com .NET**. Na lista de componentes individuais, confira o SDK e as ferramentas de direcionamento do .NET 10.
-3. Conclua a instalação e abra o VS 2026. Em **Ajuda → Sobre**, confira a versão. Prefira VS 2026 18.11 atualizado com SDK 10.0.4xx.
-4. No terminal do Visual Studio, execute `dotnet --list-sdks`. Deve aparecer uma versão `10.0.xxx`.
+## 1. Entendendo as Peças do Ambiente (IDE vs SDK vs Runtime)
 
-**Por quê?** A IDE edita e depura, o SDK compila, e o runtime executa. Instalar apenas o runtime não permite criar o projeto. A versão do SDK também precisa ser compatível com a IDE; veja as [referências](REFERENCIAS.md).
+Antes de criar o projeto visual, entenda **por que** precisamos conferir o ambiente no laboratório:
 
-Esta edição usa .NET 10 LTS com SDK 10.0.404 e VS 2026 18.11, combinação indicada na [página oficial de download](https://dotnet.microsoft.com/en-us/download/dotnet/10.0). O .NET 8 da edição anterior encerrou suporte em 10/11/2026. O professor deve preparar o novo ambiente antes da turma e manter seus patches atualizados.
+| Componente | O que faz? | Por que precisa estar instalado? |
+| --- | --- | --- |
+| **Visual Studio 2022 (IDE)** | Editor, Designer visual de telas, Gerenciador de Soluções e Depurador. | É o ambiente onde você projeta formulários, escreve C# e investiga erros. |
+| **.NET SDK** | Compilador e ferramentas de linha de comando (`dotnet build`, `dotnet run`). | Instalar apenas o Runtime permite *rodar* programas prontos, mas **não** permite criar nem compilar projetos novos. |
+| **.NET Runtime** | Motor que executa o programa compilado no Windows. | Já vem incluído dentro do SDK no computador de desenvolvimento. |
+| **Workload Desktop .NET** | Pacote de ferramentas dentro do Visual Studio Installer para Windows Forms e WPF. | Sem essa carga de trabalho marcada, os modelos de *Aplicativo do Windows Forms* nem aparecem na tela de novo projeto! |
 
-Para as aulas de persistência, escolha com o professor entre Neon/PostgreSQL e [MySQL/MariaDB pelo XAMPP](INTEGRACAO-MYSQL-XAMPP.md). Na opção local, prepare o XAMPP antes da aula 07; a aplicação C# usa MySqlConnector e não exige PHP.
+### Passo a passo: Conferindo o Visual Studio 2022 no Laboratório (`A05.01`)
+1. Abra o menu Iniciar do Windows e procure por **Visual Studio Installer**.
+2. Localize **Visual Studio Community 2022** e clique em **Modificar**.
+3. Na aba **Cargas de trabalho (Workloads)**, confirme que **Desenvolvimento para desktop com .NET** está marcada. Se não estiver, marque e conclua a instalação.
+4. Abra o **Visual Studio 2022**, clique em **Ajuda → Sobre o Microsoft Visual Studio** e anote a versão instalada no seu caderno.
+5. No menu superior do VS 2022, abra **Exibir → Terminal** (`Ctrl+'`) e execute:
+   ```powershell
+   dotnet --list-sdks
+   ```
+   Confirme que há um SDK moderno do .NET instalado (ex.: `8.0.xxx` nativo do VS 2022, ou a versão definida pelo professor para a turma) e registre a saída no caderno.
 
-## 2. Crie a solução
+> [!NOTE]
+> **Escolha do banco de dados:** combine com o professor antes da Aula 07 se a turma seguirá pela trilha principal (**Neon/PostgreSQL**) ou pela trilha local ([**MySQL/MariaDB pelo XAMPP**](INTEGRACAO-MYSQL-XAMPP.md)). Hoje não precisamos de nenhum banco configurado ainda.
 
-1. Clique em **Criar um novo projeto**.
-2. Pesquise **Windows Forms** e filtre por **C#**.
-3. Escolha **Aplicativo do Windows Forms**, sem o sufixo **.NET Framework**.
-4. Use o nome de projeto `SupermercadoApp` e de solução `Supermercado`.
-5. Selecione **.NET 10.0** e clique em **Criar**.
-6. Pressione **Ctrl+Shift+B**. Na janela **Saída**, confirme que a compilação foi concluída.
-7. Pressione **F5**, confira a janela e feche-a para voltar ao editor.
+---
 
-![Exemplo de criação de projeto](assets/vs2022_new_project_1791481163568.jpg)
+## 2. Criando a Solução `Supermercado` e o Projeto `SupermercadoApp` no VS 2022
 
-As imagens são ilustrativas: a posição dos itens pode mudar. Use o nome do modelo e a versão do framework como critérios.
+Siga cada tela com atenção (`A05.02`):
 
-## 3. Conheça o projeto
+1. No **Visual Studio 2022**, clique em **Criar um novo projeto**.
+2. Na barra de pesquisa, digite `Windows Forms` e selecione a linguagem **C#** nos filtros.
+3. Escolha **Aplicativo do Windows Forms** (**atenção:** **NÃO** escolha a opção que tem o sufixo **`(.NET Framework)`**!).
+   - **Por quê?** O `.NET Framework` é o modelo legado (antigo) sem suporte a recursos modernos de C# que usaremos no curso.
+4. Clique em **Próximo**.
+5. Preencha exatamente assim:
+   - **Nome do projeto:** `SupermercadoApp`
+   - **Nome da solução:** `Supermercado`
+   - **Por que nomes diferentes?** A Solução (`Supermercado.sln`) representa o sistema inteiro (que na Aula 20 pode agrupar também projetos de teste), enquanto `SupermercadoApp` é o projeto do executável Windows Forms.
+6. Clique em **Próximo**, selecione a versão moderna do **.NET** da turma (ex.: **.NET 8.0 (Suporte de Longo Prazo)** no VS 2022) e clique em **Criar**.
 
-![Exemplo do Designer](assets/vs2022_winforms_designer_1791481183125.jpg)
+![Exemplo de criação de projeto no Visual Studio 2022](assets/vs2022_new_project_1791481163568.jpg)
 
-- **Gerenciador de Soluções:** arquivos e dependências. Se estiver oculto, use **Exibir → Gerenciador de Soluções**.
-- **Caixa de Ferramentas:** controles para arrastar ao Designer.
-- **Propriedades (F4):** aparência, nome e eventos do controle selecionado.
-- `Program.cs`: ponto de entrada; `ApplicationConfiguration.Initialize()` prepara padrões da interface e `Application.Run(...)` inicia o formulário.
-- `Form1.cs`: comportamento da tela.
-- `Form1.Designer.cs`: código gerado pelo Designer. Modifique a aparência pela ferramenta visual.
-- `.csproj`: configuração do projeto, incluindo `net10.0-windows` e `UseWindowsForms`.
+*(As capturas são ilustrativas; guie-se sempre pelo nome exato do modelo e pela versão moderna do .NET.)*
 
-## 4. Organize e depure
+7. Pressione **`Ctrl+Shift+B`** (Compilar Solução) e confira na janela **Saída** (parte inferior) a mensagem de compilação bem-sucedida.
+8. Pressione **`F5`** (Iniciar): uma janela vazia chamada `Form1` abrirá no Windows. Feche-a pelo `X` para voltar ao Visual Studio 2022.
 
-1. Pelo botão direito do projeto, use **Adicionar → Nova Pasta** para criar `Models`, `Services`, `Repositories`, `Infrastructure` e `Views`.
-2. Mova `Form1.cs` para `Views` e renomeie para `FormLogin.cs`. Aceite a atualização de referências oferecida pelo VS.
-3. Confira o namespace de **ambas** as partes do formulário (`.cs` e `.Designer.cs`): use `SupermercadoApp.Views`. Mover o arquivo nem sempre atualiza o namespace.
-4. Em `Program.cs`, adicione `using SupermercadoApp.Views;` e confira `Application.Run(new FormLogin());`.
-5. Compile novamente. Coloque um breakpoint no construtor, execute F5 e depois F10 para avançar uma instrução.
-6. Com o aplicativo fechado, copie o projeto para uma pasta de entrega, excluindo `bin`, `obj` e `.vs`. Se usar Git, adote o `.gitignore` da raiz deste repositório.
+---
 
-**Por quê?** Organizar cedo evita renomear dezenas de arquivos depois. Compilar após cada pequena mudança ajuda a identificar qual alteração causou o erro.
+## 3. Anatomia de um Projeto Windows Forms no Visual Studio 2022
 
-## Verifique antes de encerrar
+![Exemplo do Designer Windows Forms no Visual Studio 2022](assets/vs2022_winforms_designer_1791481183125.jpg)
 
-- F5 abre `FormLogin` e fechar a janela encerra o aplicativo.
-- O projeto usa .NET 10, não .NET Framework.
-- Você sabe explicar a diferença entre `FormLogin.cs` e `FormLogin.Designer.cs`.
-- O caderno registra IDE, SDK e uma compilação bem-sucedida.
+Antes de sair clicando, entenda o papel de cada arquivo e janela que o Visual Studio 2022 criou para você:
 
-[Anterior: aula 04](04-Arquitetura-e-Padroes.md) · [Próxima: aula 06](06-Criando-Interface-Login.md)
+### As 3 janelas essenciais do VS 2022 para Windows Forms
+- **Gerenciador de Soluções (`Ctrl+Alt+L`):** mostra todas as pastas, arquivos `.cs` e **Dependências** do projeto.
+- **Caixa de Ferramentas (`Ctrl+Alt+X`):** lista os controles visuais (`Button`, `TextBox`, `Label`, `DataGridView`) que você arrasta para dentro de um formulário no Designer.
+- **Janela de Propriedades (`F4`):** mostra e edita aparência, nome (`Name`), texto (`Text`) e eventos (ícone de raio ⚡) do controle que estiver clicado.
+
+### Os 4 arquivos gerados e **por que** existem assim
+
+| Arquivo | O que existe dentro dele? | Por que funciona assim? |
+| --- | --- | --- |
+| **`SupermercadoApp.csproj`** | Arquivo XML de configuração do projeto (clique duplo no nome do projeto no Gerenciador de Soluções para abrir). | Contém `<OutputType>WinExe</OutputType>` (abre janela sem tela preta), `<TargetFramework>...-windows</TargetFramework>`, `<UseWindowsForms>true</UseWindowsForms>`, `<ImplicitUsings>enable</ImplicitUsings>` e `<Nullable>enable</Nullable>`. |
+| **`Program.cs`** | O ponto de entrada (`Main`) com `[STAThread]`, `ApplicationConfiguration.Initialize()` e `Application.Run(new Form1())`. | `[STAThread]` é exigido pelo Windows para gerenciar janelas e área de transferência; `ApplicationConfiguration.Initialize()` ajusta fontes e resolução de tela (DPI); `Application.Run(...)` abre a janela inicial e mantém o aplicativo vivo ouvindo cliques até ela fechar. |
+| **`Form1.cs`** | Código escrito **por você** (construtor, eventos de botão, chamadas aos serviços). | Separa sua lógica do código visual gerado automaticamente pela IDE. |
+| **`Form1.Designer.cs`** | Código C# gerado **automaticamente pelo Designer** contendo o método `InitializeComponent()` (posições, tamanhos e cores dos controles). | **Por que são dois arquivos para a mesma classe?** Graças à palavra-chave **`partial class`**, o compilador junta `Form1.cs` e `Form1.Designer.cs` em uma única classe na hora de compilar! Assim o Designer pode reescrever o `.Designer.cs` sem apagar o código que você escreveu no `.cs`. |
+
+---
+
+## 4. Roteiro de Construção Guiada: Organizando a Arquitetura no VS 2022 (`A05.03`–`A05.05`)
+
+Organizar as pastas logo no início evita ter de consertar dezenas de `namespace` e `using` depois. Siga passo a passo:
+
+### Passo 1 — Criar as 5 pastas arquiteturais
+No **Gerenciador de Soluções**, clique com o botão direito sobre o projeto **`SupermercadoApp`** → **Adicionar → Nova Pasta** e crie exatamente estas cinco pastas:
+1. `Models`
+2. `Services`
+3. `Repositories`
+4. `Infrastructure`
+5. `Views`
+
+### Passo 2 — Renomear e mover `Form1.cs` para `Views/FormLogin.cs`
+1. No **Gerenciador de Soluções**, clique com o botão direito em `Form1.cs` → **Renomear** (`F2`) → digite **`FormLogin.cs`** e pressione `Enter`.
+2. Quando o Visual Studio 2022 perguntar se deseja renomear todas as referências ao elemento de código `Form1` neste projeto, clique em **Sim**.
+3. Arraste `FormLogin.cs` para dentro da pasta **`Views`** (o arquivo filho `FormLogin.Designer.cs` será movido automaticamente junto com ele).
+
+### Passo 3 — Conferir e corrigir o `namespace` nas DUAS partes da `partial class`!
+> [!WARNING]
+> **Armadilha clássica no VS 2022:** arrastar um formulário para uma pasta **nem sempre** atualiza o `namespace` automaticamente! E se `FormLogin.cs` ficar em um namespace e `FormLogin.Designer.cs` ficar em outro, o compilador achará que são duas classes diferentes e `InitializeComponent()` desaparecerá com erro vermelho!
+
+1. Clique com o botão direito em `Views/FormLogin.cs` → **Exibir Código** (`F7`). Altere o namespace para **`namespace SupermercadoApp.Views;`** (ou `namespace SupermercadoApp.Views { ... }`).
+2. No **Gerenciador de Soluções**, clique na setinha ao lado de `FormLogin.cs` para expandir e abra **`FormLogin.Designer.cs`**. Confirme que o namespace lá **também** é exatamente **`SupermercadoApp.Views`**.
+3. Abra **`Program.cs`**:
+   - Adicione `using SupermercadoApp.Views;` no topo (para que `Program.cs` enxergue `FormLogin`, que agora mora na subpasta `Views`).
+   - Confirme que a linha de abertura chama `Application.Run(new FormLogin());`.
+
+### Passo 4 — Compilar, Depurar e Preparar Entrega Limpa
+1. Pressione **`Ctrl+Shift+B`** e confirme zero erros na **Lista de Erros**.
+2. Abra `Views/FormLogin.cs` em modo código (`F7`), coloque um **Breakpoint (`F9`)** na linha `InitializeComponent();` dentro do construtor `public FormLogin()`.
+3. Execute com **`F5`**, observe a pausa no construtor, pressione **`F10`** para executar `InitializeComponent()` e depois **`F5`** para a janela abrir. Feche a janela e confirme que o aplicativo encerra normalmente.
+4. **Cópia limpa de entrega (`A05.05`):** com o Visual Studio 2022 fechado, localize a pasta do projeto no Explorador de Arquivos. Ao preparar um backup ou envio de código-fonte, **nunca** inclua as pastas `bin`, `obj` e `.vs` (elas contêm arquivos temporários pesados gerados automaticamente na compilação). Se utilizar Git, adote o arquivo `.gitignore` da raiz deste repositório.
+
+---
+
+## 5. Erros Comuns no Visual Studio 2022
+
+| Erro na Lista de Erros | Causa provável | Como corrigir |
+| --- | --- | --- |
+| `CS0103: O nome 'InitializeComponent' não existe no contexto atual` | `FormLogin.cs` e `FormLogin.Designer.cs` estão com `namespace` diferentes! | Deixe exatamente `namespace SupermercadoApp.Views` em **ambos** os arquivos. |
+| `CS0246: O nome do tipo ou do namespace 'FormLogin' não pode ser encontrado` | `Program.cs` não tem `using SupermercadoApp.Views;` após você mover o formulário para `Views`. | Adicione `using SupermercadoApp.Views;` no topo do `Program.cs`. |
+| O arquivo abre em código em vez do desenho da tela | Você usou `F7` ou abriu `.Designer.cs`. | Clique com o botão direito em `FormLogin.cs` → **Exibir Designer** (`Shift+F7`). |
+
+[Anterior: Aula 04](04-Arquitetura-e-Padroes.md) · [Próxima: Aula 06 — Interface de login](06-Criando-Interface-Login.md) · [Índice](README.md)
 
 ## Atividades por conceito
 

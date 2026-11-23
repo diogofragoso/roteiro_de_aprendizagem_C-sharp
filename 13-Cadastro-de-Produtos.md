@@ -1,68 +1,106 @@
-# Aula 13 — Cadastro, edição e inativação de produtos
+# Aula 13 — Cadastro, Edição, Unicidade e Inativação Lógica de Produtos
 
-**Duração:** 3h30. **Pré-requisito:** aula 12. **Entrega:** administrador inclui, altera e inativa produtos; duplicidades são tratadas com mensagem compreensível.
+**Duração:** 3h30. **Pré-requisito:** [Aula 12](12-Consulta-de-Produtos.md). **Entrega:** `FormProdutos` completo para incluir, editar e inativar produtos reais no banco (sem o bloco de reposição ainda, que entra na Aula 14), tratando códigos duplicados (`23505`) e preservando os dados digitados em caso de erro.
 
 | Bloco | Minutos | Atividade |
 | --- | ---: | --- |
-| Retomada | 15 | Consultar produtos cadastrados |
-| Explicação | 30 | INSERT, UPDATE, seleção e exclusão lógica |
-| Construção | 60 | Campos e inclusão com validação |
+| Retomada | 15 | Consultar os produtos existentes na grade da Aula 12 |
+| Explicação | 30 | `INSERT` vs `UPDATE`, `DataBoundItem`, `NumericUpDown`, `23505` e exclusão lógica |
+| Construção | 60 | Implementar `InativarAsync`, tratar `23505` no `Ui` e construir campos de cadastro |
 | Intervalo | 15 | Pausa |
-| Prática | 60 | Edição, inativação e duplicidade |
-| Entrega | 30 | Demonstrar os quatro caminhos do cadastro |
+| Prática | 60 | Construir ações Novo, Editar, Salvar e Inativar com confirmação e proteção de clique |
+| Entrega | 30 | Demonstrar a sequência completa (`A13.01`–`A13.06`) e registrar evidências |
 
-## 1. Construa os campos
+---
 
-Amplie `FormProdutos` seguindo [FormProdutos.cs](src/SupermercadoApp/Views/FormProdutos.cs), até o botão de inativação. **Deixe o bloco de quantidade/reposição para a aula 14.** Acrescente:
+## 1. Conceitos e Decisões Técnicas Desta Aula (O Quê e Por Quê)
 
-| Elemento | Função |
-| --- | --- |
-| Campo `codigo` | Código externo, texto até 30 caracteres |
-| Campo `nome` | Nome legível |
-| NumericUpDown `preco` | Duas casas e máximo compatível com o banco |
-| Campo privado `produtoId` | Zero para inclusão; ID escolhido para edição |
-| Botão Novo | Limpa campos e volta para ID zero |
-| Botão Editar selecionado | Copia a linha escolhida para os campos |
-| Botão Salvar | Chama serviço e atualiza lista |
-| Botão Inativar selecionado | Confirma intenção e chama serviço |
+### 1.1 Um Mesmo Formulário para Incluir e Editar (`private int produtoId;`)
+Como o formulário sabe se o clique no botão **Salvar** deve criar um produto novo (`INSERT`) ou atualizar um produto existente (`UPDATE`)?
+- Mantemos um campo privado **`private int produtoId;`** na classe `FormProdutos`:
+  - **`produtoId == 0`:** modo **Inclusão** (novo produto; o banco gera o ID automaticamente via `IDENTITY`, deixa `estoque = 0` e `ativo = true`).
+  - **`produtoId > 0`:** modo **Edição** (quando o usuário seleciona uma linha na grade e clica em **Editar selecionado**, guardamos o `Id` real daquela linha em `produtoId` e copiamos `Codigo`, `Nome` e `Preco` para os campos).
+- **Por que o usuário NUNCA digita o ID?** O ID é uma identidade interna controlada exclusivamente pelo banco de dados. Clicar em **Novo** limpa os campos e volta `produtoId = 0;` para garantir que o próximo salvamento não sobrescreva o item editado anteriormente!
 
-Não permita que o usuário digite o ID. `grade.SelectedRows[0].DataBoundItem` lê o objeto da linha efetivamente selecionada; confira antes se `SelectedRows.Count` é maior que zero. Se não há seleção, mostre “Selecione um produto”. `CurrentRow` pode continuar apontando uma linha mesmo depois de `ClearSelection`, então não basta para essa verificação. A ação usa esse objeto e não o número visual da linha, pois a ordenação pode mudar.
+### 1.2 Lendo o Objeto Real da Grade: `SelectedRows[0].DataBoundItem` (`A13.02`)
+**Por que NÃO usar o número da linha visual (`SelectedRows[0].Index`) nem `CurrentRow`?**
+1. Se o usuário reordenar a tabela clicando no cabeçalho de uma coluna, a linha `0` deixa de ser o mesmo produto! Já **`DataBoundItem`** devolve diretamente o objeto **`Produto`** original vinculado àquela linha.
+2. **`CurrentRow`** pode continuar apontando para a primeira linha mesmo depois que você chama `grade.ClearSelection()`. Por isso, sempre conferimos:
+   ```csharp
+   if (grade.SelectedRows.Count == 0 || grade.SelectedRows[0].DataBoundItem is not Produto produto)
+       throw new InvalidOperationException("Selecione um produto na grade.");
+   ```
 
-## 2. Entenda a escrita
+### 1.3 Por Que Verificar `ExecuteNonQueryAsync() != 1`? (`A13.03`)
+No `UPDATE produto SET ... WHERE id=@id AND ativo`:
+- `ExecuteNonQueryAsync()` devolve **quantas linhas foram modificadas** no banco.
+- Se retornar **`0`**, significa que o produto não existe ou foi inativado por outra janela segundos antes! Lançar `InvalidOperationException` impede que o sistema finja que a edição deu certo quando nada foi gravado.
 
-O `SalvarAsync` do repositório já existe desde a aula 12 para cumprir o contrato. Leia os dois caminhos:
+### 1.4 Concorrência de Código Duplicado: Por Que `SELECT` Antes do `INSERT` Não Basta? (`A13.04`)
+Um erro clássico de iniciantes é tentar garantir código único fazendo `SELECT COUNT(*) WHERE codigo = @c` antes do `INSERT`.
+- **Por que isso falha na vida real?** Se dois administradores clicarem em Salvar com o código `"000123"` no mesmo milissegundo, **ambos** passam pelo `SELECT` (que ainda retorna `0`) e tentam fazer `INSERT`!
+- **A solução profissional:** a restrição **`UNIQUE`** no PostgreSQL é a juíza definitiva. Quando um segundo `INSERT` colide, o PostgreSQL lança `PostgresException` com código **`23505`** (`PostgresErrorCodes.UniqueViolation`). Interceptamos exatamente esse código em `Ui.ExecutarAsync` e mostramos uma mensagem clara!
 
-```sql
-INSERT INTO produto(codigo, nome, preco) VALUES (@codigo, @nome, @preco);
-UPDATE produto SET codigo=@codigo, nome=@nome, preco=@preco WHERE id=@id AND ativo;
-```
+### 1.5 Exclusão Lógica (`ativo = false`) vs `DELETE` (`A13.05`)
+Nunca executamos `DELETE FROM produto` porque vendas antigas (Aula 16) terão chaves estrangeiras apontando para aquele `produto_id`. Inativar apenas marca `ativo = false`: o histórico permanece íntegro e o código antigo continua reservado pela restrição `UNIQUE`.
 
-A inclusão deixa estoque em zero e ativo em verdadeiro pelos padrões do banco. A edição não altera saldo. O retorno de `ExecuteNonQueryAsync` deve ser 1; zero indica que o registro não existe ou está inativo. Isso pode acontecer se outra janela mudou o produto.
+---
 
-Acrescente `InativarAsync` ao contrato, ao serviço e ao repositório, conforme as referências das aulas anteriores. Ele executa `UPDATE produto SET ativo=false ...`, sem `DELETE`. O código de um produto inativo continua reservado por `UNIQUE`, preservando a identidade histórica. Reativação não faz parte deste primeiro fluxo.
+## 2. Roteiro de Construção Guiada (Sua Vez no Visual Studio 2022!)
 
-## 3. Ligue e proteja os eventos
+### Passo 1 — Adicionar `InativarAsync` no Contrato, Repositório e Serviço
+1. **`Repositories/IProdutoRepository.cs`:** acrescente `Task InativarAsync(int id);`.
+2. **`Repositories/ProdutoRepository.cs`:** implemente `InativarAsync(int id)`:
+   - Execute `UPDATE produto SET ativo=false WHERE id=@id AND ativo` com parâmetro `"id"`.
+   - Verifique `if (await cmd.ExecuteNonQueryAsync() != 1)` → lance `InvalidOperationException("Produto inexistente ou já inativo.")`.
+3. **`Services/ProdutoService.cs`:** adicione `public Task InativarAsync(Sessao sessao, int id)`:
+   - Exija `Permissoes.ExigirAdministrador(sessao);` e retorne `produtos.InativarAsync(id);`.
 
-No botão Salvar, desabilite o botão antes de aguardar e reabilite no `finally`. Só limpe os campos **depois** de o serviço concluir e a grade ser atualizada. Se o SQL falhar, preserve os valores para o estudante corrigir.
+### Passo 2 — Tratar Violação de Unicidade (`23505`) em `Views/Ui.cs`
+No método `Ui.ExecutarAsync`, adicione `using Npgsql;` no topo do arquivo e acrescente um bloco `catch` **antes** do `catch (Exception e)` genérico:
+- `catch (PostgresException e) when (e.SqlState == PostgresErrorCodes.UniqueViolation)` → exiba `MessageBox.Show("Código ou usuário já cadastrado. Use outro valor.");`.
+*(Na trilha MySQL/XAMPP, use `catch (MySqlException erro) when (erro.Number == 1062)`.)*
 
-O helper `Ui.ExecutarAsync` trata o código PostgreSQL `23505` (`UniqueViolation`). Não tente garantir unicidade apenas com um `SELECT` antes do `INSERT`: duas instâncias podem passar na consulta e tentar inserir juntas. A restrição no banco decide, e a tela explica a recusa.
+### Passo 3 — Ampliar `Views/FormProdutos.cs` com Campos e Ações CRUD (`A13.01`–`A13.06`)
+*(Deixe os controles de quantidade e reposição para a Aula 14!)*
 
-Antes de inativar, mostre uma confirmação com o nome do produto. Cancelar essa confirmação não deve alterar nada. Depois de confirmar, recarregue a grade.
+No **`Views/FormProdutos.cs`**, adicione o campo `private int produtoId;` na classe e amplie o construtor seguindo estas orientações:
+1. **Campos de entrada abaixo da grade:**
+   - `codigo`: `Ui.Texto(painel, "Código (texto, preserva zeros à esquerda)")`.
+   - `nome`: `Ui.Texto(painel, "Nome")`.
+   - `preco`: adicione um rótulo `"Preço de venda"` e um controle **`NumericUpDown`** configurado com `DecimalPlaces = 2`, `Maximum = 99999999.99m` e `Width = 180` (por que `NumericUpDown`? Impede digitação de letras e já respeita as 2 casas decimais e o limite do banco!).
+2. **Barra horizontal de ações:** crie um `FlowLayoutPanel` secundário (`var acoes = new FlowLayoutPanel { AutoSize = true, WrapContents = false };`) para alinhar os botões lado a lado e adicione-o ao painel principal.
+3. **Funções locais auxiliares dentro do construtor:**
+   - `void Novo()`: zera `produtoId = 0;`, limpa `codigo` e `nome`, zera `preco.Value = 0;` e chama `grade.ClearSelection();`.
+   - `Produto Selecionado()`: verifica `grade.SelectedRows.Count == 0 || grade.SelectedRows[0].DataBoundItem is not Produto produto` (lançando `InvalidOperationException("Selecione um produto na grade.")`) e devolve `produto`.
+4. **Os 5 botões na barra `acoes`:**
+   - **"Buscar / atualizar":** executa `await Ui.ExecutarAsync(Carregar)`.
+   - **"Novo":** chama `Novo()`.
+   - **"Editar selecionado":** dentro de `Ui.ExecutarAsync`, pega `var atual = Selecionado();`, preenche `produtoId = atual.Id;`, `codigo.Text = atual.Codigo;`, `nome.Text = atual.Nome;` e `preco.Value = atual.Preco;` (retorne `Task.CompletedTask` se usar a lambda assíncrona).
+   - **"Salvar":**
+     1. Pegue o botão via `var b = (Button)sender!;` e desabilite `b.Enabled = false;`.
+     2. Em `try`, chame `await Ui.ExecutarAsync(async () => { await produtos.SalvarAsync(sessao, produtoId, codigo.Text, nome.Text, preco.Value); await Carregar(); Novo(); });`.
+        - **Por que `Novo()` fica DENTRO da ação, só depois de `SalvarAsync` e `Carregar`?** Porque se houver erro (código duplicado ou falha de rede), `SalvarAsync` lança exceção, `Novo()` **não executa** e os dados digitados permanecem na tela para o usuário corrigir!
+     3. No `finally`, reabilite `b.Enabled = true;`.
+   - **"Inativar selecionado":** dentro de `Ui.ExecutarAsync`:
+     1. Pegue `var atual = Selecionado();`.
+     2. Peça confirmação: `if (MessageBox.Show($"Inativar {atual.Nome}?", "Confirmar", MessageBoxButtons.YesNo) != DialogResult.Yes) return;`.
+     3. Se confirmou, chame `await produtos.InativarAsync(sessao, atual.Id);`, recarregue a grade com `await Carregar();` e chame `Novo();`.
 
-## Verifique antes de encerrar
+---
 
-Use a mesma sequência no registro: incluir → anotar ID/saldo → editar → tentar duplicar → cancelar inativação → confirmar → reabrir. Identifique a evidência de A13.01–A13.06. Para cada recusa, mostre que os dados anteriores foram preservados; uma captura da mensagem sozinha não demonstra isso.
+## 3. Roteiro de Verificação Sequencial (`A13.01`–`A13.06`)
 
-1. Cadastre “000123 / Arroz / 25,90”; confira estoque 0 e ativo verdadeiro.
-2. Edite nome e preço, preservando o ID e o código.
-3. Tente outro produto com o mesmo código: mensagem de duplicidade, sem encerrar o aplicativo.
-4. Nome vazio e preço zero são recusados antes do banco.
-5. Cancele a confirmação de inativação; o produto continua ativo. Confirme depois e confira ativo falso.
-6. Feche e abra a tela: as alterações continuam no Neon.
+Execute com **`F5`** no Visual Studio 2022 e execute esta sequência exata registrando IDs e saldos antes/depois:
 
-Remova os botões temporários de preparo das aulas 11 e 12. A próxima aula dará entrada no estoque com histórico, sem editar diretamente a coluna de saldo.
+1. **Incluir:** cadastre `"000123"` / `"Arroz"` / `25,90` → confira zeros preservados, ID gerado, `Estoque = 0` e `Ativo = true`.
+2. **Editar:** clique sem selecionar nenhuma linha (deve pedir seleção); depois selecione Arroz, clique em **Editar selecionado**, mude nome/preço e salve → confira que manteve o **mesmo ID** e o saldo intacto.
+3. **Novo + Duplicidade:** clique em **Novo** e tente cadastrar outro produto com o mesmo código `"000123"` → deve exibir mensagem amigável de duplicidade (`23505`), sem fechar o app e **sem apagar** os campos digitados.
+4. **Validação antes do banco:** tente nome vazio ou preço zero → recusado com mensagem clara.
+5. **Inativação (Cancelar vs Confirmar):** selecione o produto, clique em **Inativar**, escolha **Não** (deve continuar `Ativo = true`); repita escolhendo **Sim** (passa para `Ativo = false`).
+6. **Persistência real:** feche e reabra `FormProdutos` → todas as alterações continuam persistidas no banco!
 
-[Anterior: aula 12](12-Consulta-de-Produtos.md) · [Próxima: aula 14](14-Reposicao-de-Estoque.md)
+[Anterior: Aula 12](12-Consulta-de-Produtos.md) · [Próxima: Aula 14 — Reposição de estoque](14-Reposicao-de-Estoque.md) · [Índice](README.md)
 
 ## Atividades por conceito
 

@@ -1,158 +1,170 @@
-# Aula 09 — Autenticação com hash
+# Aula 09 — Autenticação Segura com Hash, Salt e SQL Parametrizado
 
-**Duração:** 3h30. **Pré-requisito:** aula 08; tabela `usuario` vazia e conexão funcionando. **Entrega:** primeiro administrador cadastrado com hash e login que aceita/rejeita credenciais sem expor a senha.
+**Duração:** 3h30. **Pré-requisito:** [Aula 08](08-Conectando-Banco-Dados.md), tabela `usuario` vazia e `SELECT 1` funcionando. **Entrega:** primeiro administrador cadastrado com hash seguro e tela de login autenticando credenciais reais via `AutenticacaoService` e `UsuarioRepository`, sem jamais expor senhas ou hashes para a interface.
 
 | Bloco | Minutos | Atividade |
 | --- | ---: | --- |
-| Retomada | 15 | Demonstrar SELECT 1 e remover diagnóstico da tela |
-| Explicação | 30 | Hash, salt, null e contrato assíncrono |
-| Construção | 60 | Modelos, repositório e serviço de autenticação |
+| Retomada | 15 | Conferir `SELECT 1` e planejar a remoção do acesso direto ao banco na tela |
+| Explicação | 30 | `enum`, `record`, `Task<T?>`, SQL parametrizado, Hash+Salt e construtor primário |
+| Construção | 60 | Paradas 1 e 2: construir modelos e repositório parametrizado de usuários |
 | Intervalo | 15 | Pausa |
-| Prática | 60 | Preparar administrador e ligar o botão Entrar |
-| Entrega | 30 | Verificar senha correta/incorreta e banco |
+| Prática | 60 | Paradas 3 e 4: instalar Identity.Core, construir serviço de hash e ligar `FormLogin` |
+| Entrega | 30 | Preparar primeiro admin (`--preparar-admin`), testar login e conferir o banco |
 
-## 1. Crie os tipos e o contrato
+---
 
-Trabalhe em quatro checkpoints: **tipos/ausência**, **consulta**, **hash/verificação** e **evento da tela**. Use a versão 08 como início e a 09 como recuperação, geradas conforme [apoio ao professor](ensino/README.md). Compile em cada parada, antes de ligar o botão Entrar. Não adicione simultaneamente arquivos que você ainda não consegue localizar no fluxo.
+## 1. Conceitos Novos de C# e Segurança (Entenda Cada Detalhe e o "Por Quê")
 
-| Parada | Pergunta de leitura | Verificação antes de avançar |
-| --- | --- | --- |
-| Tipos | O que a tela pode receber e o que fica interno? | Sessao não tem hash; explique `Credencial?`. |
-| Consulta | O que retorna para username inexistente? | `null`, sem acessar propriedades de usuário ausente. |
-| Verificação | O hash é comparado pelo SQL ou pela biblioteca? | Biblioteca verifica senha correta e incorreta; salt produz representações diferentes. |
-| Evento | Quando pode devolver DialogResult.OK? | Somente após preparação ou autenticação bem-sucedida; senha limpa ao terminar. |
+Esta é uma das aulas mais importantes do curso. Trabalharemos em **4 paradas com compilação intermediária (`Ctrl+Shift+B`)** para que você domine cada peça antes de avançar.
 
-Em **Gerenciador de Soluções → Models → Adicionar → Classe**, crie os arquivos abaixo, substituindo o conteúdo gerado pelo conteúdo da referência:
+### 1.1 `enum`, `record` e Separação de Dados Sensíveis (`A09.01`)
+- **`enum` (Enumeração):** define um conjunto fixo e fechado de opções nomeadas (ex.: `public enum Turno { Manha, Tarde }`). **Por que usar `enum Perfil` em vez de `string`?** Com `string`, alguém poderia digitar `"Admnistrador"` errado e só descobrir um bug depois. Com `enum`, o compilador do Visual Studio 2022 valida cada uso!
+- **`record` (Registro):** uma forma moderna e concisa de criar classes focadas em carregar dados imutáveis. Exemplo genérico:
+  ```csharp
+  public sealed record Cracha(int Id, string Nome);
+  ```
+  Essa única linha gera automaticamente o construtor e as propriedades somente leitura `Id` e `Nome`!
+- **`sealed`:** impede que outras classes herdem dessa classe/record. **Atenção:** `sealed` bloqueia herança, não é sinônimo de imutabilidade.
+- **Por que criar DOIS records separados — `Credencial` e `Sessao`?**
+  - `Credencial` carrega `SenhaHash` e existe **apenas** entre o `UsuarioRepository` e o `AutenticacaoService` para conferir a senha.
+  - `Sessao` carrega **apenas** `Id`, `Username` e `Perfil` (**sem `SenhaHash`**!) e é o único objeto devolvido para as telas (`Views`). Assim, nenhuma tela consegue vazar um hash por acidente!
 
-- [Perfil.cs](src/SupermercadoApp/Models/Perfil.cs): `enum` com `Administrador` e `Caixa`.
-- [Credencial.cs](src/SupermercadoApp/Models/Credencial.cs): dados internos necessários à verificação da senha.
-- [Sessao.cs](src/SupermercadoApp/Models/Sessao.cs): dados devolvidos para a interface, sem hash.
+### 1.2 Construtor Primário e Nulabilidade Assíncrona (`A09.02` e `A09.03`)
+- **Construtor Primário (C# 12+):** em vez de escrever campo + construtor longo como na Aula 04, você pode declarar o parâmetro direto ao lado do nome da classe:
+  ```csharp
+  public sealed class MeuServico(IMeuRepositorio repo)
+  {
+      // 'repo' já fica disponível dentro dos métodos da classe!
+  }
+  ```
+  Ele cumpre exatamente o mesmo papel de injeção de dependência pelo construtor tradicional (você pode usar qualquer uma das duas formas).
+- **`Task<Credencial?>`:** significa *"esta operação assíncrona vai entregar um objeto `Credencial` **ou `null`** (se o usuário não existir no banco)"*. O ponto de interrogação `?` obriga o chamador a testar `if (usuario is null)` antes de acessar propriedades.
 
-`record` é uma forma concisa de representar um conjunto de dados. Seus parâmetros viram propriedades; não precisamos escrever getters manualmente. Usamos esses objetos como resultados de consulta, sem modificá-los na tela.
+### 1.3 SQL Parametrizado vs SQL Injection (`A09.04`)
+**Por que JAMAIS concatenar texto digitado pelo usuário dentro de uma string SQL?**
+- **❌ Vulnerável (SQL Injection):** `$"SELECT ... WHERE username = '{username}'"` → Se um invasor digitar `' OR '1'='1`, a string altera a lógica do comando SQL no banco!
+- **✅ Seguro (Parametrizado):**
+  ```csharp
+  await using var cmd = banco.CreateCommand("""
+      SELECT id, titulo FROM livro WHERE codigo = @cod
+      """);
+  cmd.Parameters.AddWithValue("cod", codigoDigitado);
+  ```
+  - As três aspas (`"""`) delimitam uma **string bruta multilinha**, mantendo o SQL legível sem concatenações.
+  - `@cod` é um marcador de parâmetro: o driver envia o SQL e o valor **separadamente** ao PostgreSQL. Mesmo que alguém digite um apóstrofo `'` ou `OR 1=1`, o banco trata aquilo puramente como texto comum de busca!
 
-Em `Repositories`, crie [IUsuarioRepository.cs](src/SupermercadoApp/Repositories/IUsuarioRepository.cs) e [UsuarioRepository.cs](src/SupermercadoApp/Repositories/UsuarioRepository.cs). Implemente os quatro métodos da referência. `Task<Credencial?>` informa que a consulta é assíncrona e pode retornar ausência de usuário. `@nome` é um parâmetro: o texto digitado nunca é concatenado ao SQL.
+### 1.4 Hash, Salt e `PasswordHasher<string>` (`A09.05` e `A09.06`)
+**Por que buscar no SQL somente pelo `username` e verificar a senha em C#?**
+Porque **não existe "descriptografar" um hash!**
+- Um **hash criptográfico com salt** transforma a senha em uma assinatura irreversível combinada com um tempero aleatório (**salt**) diferente a cada usuário.
+- Por isso, duas contas com a **mesma senha** geram **hashes completamente diferentes** no banco! (Logo, um `WHERE senha_hash = ...` no SQL nunca funcionaria.)
+- Usamos a classe pronta **`PasswordHasher<string>`** (do pacote oficial `Microsoft.Extensions.Identity.Core`) em vez de inventar criptografia própria ou usar MD5:
+  - `hasher.HashPassword(username, senha)`: gera o hash + salt pronto para salvar no banco.
+  - `hasher.VerifyHashedPassword(username, hashSalvo, senhaDigitada)`: recalcula usando o salt embutido no hash salvo e retorna um dos 3 valores de `PasswordVerificationResult`:
+    1. `Failed` → senha incorreta (devolva `null`);
+    2. `Success` → senha correta;
+    3. `SuccessRehashNeeded` → senha correta, mas gravada com parâmetros antigos; atualizamos o hash no banco chamando `AtualizarHashAsync`!
+- **Política didática de normalização e senha:** normalizamos `username` com `.Trim().ToLowerInvariant()` (assim `ADMIN` e `admin` são a mesma conta), mas **nunca** aplicamos `.Trim()` na senha (espaços podem fazer parte de uma senha longa de 12 a 128 caracteres!).
 
-A declaração `class AutenticacaoService(IUsuarioRepository usuarios)` usa um **construtor primário**, disponível desde o C# 12 e também no .NET 10: recebe a dependência ao criar o objeto, como o construtor escrito por extenso na aula 04. `sealed` impede herança dessa classe; não altera a forma de usá-la.
+### 1.5 Centralizando Tratamento de Erros de Tela (`Ui.ExecutarAsync`)
+Para não repetir 3 blocos `catch` diferentes em todos os botões de todas as telas do sistema, criaremos uma classe auxiliar `Views/Ui.cs` com um método estático `ExecutarAsync(Func<Task> acao)`:
+- `Func<Task> acao` representa "qualquer bloco assíncrono que a tela quiser executar".
+- Ele captura erros esperados de regra (`ArgumentException`, `InvalidOperationException`, `UnauthorizedAccessException`) mostrando `e.Message` ao usuário, e captura erros técnicos/de rede mostrando uma mensagem genérica sem expor credenciais.
 
-**Por quê buscar somente pelo username?** A senha não pode ser comparada como texto SQL, porque o banco guarda um hash. O serviço recebe a credencial e pede à biblioteca para verificar.
+---
 
-## 2. Adicione a biblioteca de senha e o serviço
+## 2. Roteiro de Construção Guiada em 4 Paradas (Sua Vez no VS 2022!)
 
-No NuGet, instale `Microsoft.Extensions.Identity.Core` **10.0.15** no projeto. Apesar do namespace `Microsoft.AspNetCore.Identity`, a classe `PasswordHasher` pode ser usada nesse aplicativo desktop; não estamos criando um servidor web.
+> [!IMPORTANT]
+> **Compilação em cada parada:** pressione **`Ctrl+Shift+B`** no Visual Studio 2022 ao final de cada uma das 4 paradas abaixo. Só avance quando a parada anterior compilar com zero erros!
 
-Crie [AutenticacaoService.cs](src/SupermercadoApp/Services/AutenticacaoService.cs) com o conteúdo de referência. Nesse encontro a classe `Permissoes` do mesmo arquivo pode ser copiada também: são duas verificações simples de perfil que usaremos na aula 10. Leia com atenção:
+### Parada 1 — Modelos (`Models/`)
+Crie três arquivos em `Models/` (`Shift+Alt+C`), todos em `namespace SupermercadoApp.Models;`:
+1. **`Perfil.cs`:** declare `public enum Perfil` com dois valores: `Administrador` e `Caixa`.
+2. **`Credencial.cs`:** declare `public sealed record Credencial(int Id, string Username, string SenhaHash, Perfil Perfil);`.
+3. **`Sessao.cs`:** declare `public sealed record Sessao(int Id, string Username, Perfil Perfil);` *(observe: sem `SenhaHash`!)*.
 
-```csharp
-var resultado = hasher.VerifyHashedPassword(usuario.Username, usuario.SenhaHash, senha);
-if (resultado == PasswordVerificationResult.Failed) return null;
-```
+### Parada 2 — Contrato e Repositório de Usuários (`Repositories/`)
+Crie dois arquivos em `Repositories/`, ambos em `namespace SupermercadoApp.Repositories;`:
+1. **`IUsuarioRepository.cs`:** declare `public interface IUsuarioRepository` com 4 métodos assíncronos:
+   - `Task<Credencial?> BuscarAsync(string username);`
+   - `Task CriarAsync(string username, string hash, Perfil perfil);`
+   - `Task AtualizarHashAsync(int id, string hash);`
+   - `Task<bool> ExisteAsync();`
+2. **`UsuarioRepository.cs`:** declare `public sealed class UsuarioRepository(NpgsqlDataSource banco) : IUsuarioRepository` e implemente os 4 métodos usando SQL parametrizado e `await using`:
+   - **`BuscarAsync`:** faça `SELECT id, username, senha_hash, perfil FROM usuario WHERE username = @nome`, passe `@nome`, abra `await using var leitor = await cmd.ExecuteReaderAsync();`. Se `!await leitor.ReadAsync()`, retorne `null`. Caso encontre, construa `new Credencial(...)` lendo colunas `0` (`GetInt32`), `1` (`GetString`), `2` (`GetString`) e `3` (`Enum.Parse<Perfil>(leitor.GetString(3))`).
+   - **`CriarAsync`:** faça `INSERT INTO usuario(username, senha_hash, perfil) VALUES (@nome, @hash, @perfil)`, adicionando os 3 parâmetros (`perfil.ToString()`) e chamando `await cmd.ExecuteNonQueryAsync()`.
+   - **`AtualizarHashAsync`:** faça `UPDATE usuario SET senha_hash = @hash WHERE id = @id` com os 2 parâmetros e `ExecuteNonQueryAsync()`.
+   - **`ExisteAsync`:** faça `SELECT EXISTS(SELECT 1 FROM usuario)` com `ExecuteScalarAsync()` convertendo o retorno para `bool`.
 
-O hash não é “descriptografado”. A biblioteca verifica a senha usando o formato armazenado. O salt permite que senhas iguais gerem representações diferentes. `SuccessRehashNeeded` indica que o hash pode ser atualizado para os parâmetros atuais; o serviço já faz essa atualização.
+### Parada 3 — Pacote NuGet, `AutenticacaoService` e `Permissoes` (`Services/`)
+1. **Instalar NuGet no Visual Studio 2022:** botão direito em `SupermercadoApp` → **Gerenciar Pacotes do NuGet** → procure e instale **`Microsoft.Extensions.Identity.Core`** (versão compatível com o SDK da turma; apesar do namespace `Microsoft.AspNetCore.Identity`, ele funciona perfeitamente em aplicativos desktop!).
+2. Crie **`Services/AutenticacaoService.cs`** em `namespace SupermercadoApp.Services;` (com `using Microsoft.AspNetCore.Identity;`, `Models` e `Repositories`):
+   - **Classe `AutenticacaoService(IUsuarioRepository usuarios)`:**
+     - Campo interno: `private readonly PasswordHasher<string> hasher = new();`.
+     - **`EntrarAsync(string username, string senha)` → `Task<Sessao?>`:**
+       1. Busque o usuário passando `username.Trim().ToLowerInvariant()`.
+       2. Se retornar `null`, devolva `null`.
+       3. Verifique a senha com `hasher.VerifyHashedPassword(usuario.Username, usuario.SenhaHash, senha)`.
+       4. Se o resultado for `PasswordVerificationResult.Failed`, devolva `null`.
+       5. Se for `PasswordVerificationResult.SuccessRehashNeeded`, chame `await usuarios.AtualizarHashAsync(usuario.Id, hasher.HashPassword(usuario.Username, senha))`.
+       6. Retorne `new Sessao(usuario.Id, usuario.Username, usuario.Perfil)`.
+     - **Método privado auxiliar `CadastrarAsync(string username, string senha, Perfil perfil)`:**
+       1. Normalize `username = username.Trim().ToLowerInvariant();`.
+       2. Valide que `username.Length` está entre `3` e `50` e que todo caractere `c` atende `char.IsAsciiLetterOrDigit(c) || c == '.'` (se falhar, lance `ArgumentException`).
+       3. Valide que `senha.Length` está entre `12` e `128` (**sem `Trim()`**! Se falhar, lance `ArgumentException`).
+       4. Valide `Enum.IsDefined(perfil)` (se falhar, lance `ArgumentException`).
+       5. Chame `await usuarios.CriarAsync(username, hasher.HashPassword(username, senha), perfil)`.
+     - **`PrepararAdministradorAsync(string username, string senha)`:** verifique `if (await usuarios.ExisteAsync())` → lance `InvalidOperationException` (*"A preparação exige a tabela de usuários vazia."*). Só se estiver vazia, chame `await CadastrarAsync(username, senha, Perfil.Administrador)`.
+     - **`CriarAsync(Sessao administrador, string username, string senha, Perfil perfil)`:** chame `Permissoes.ExigirAdministrador(administrador);` e depois `await CadastrarAsync(username, senha, perfil)`.
+   - **Classe estática `Permissoes`** (no mesmo arquivo ou em `Services/Permissoes.cs`, usada na Aula 10):
+     - `ExigirAdministrador(Sessao sessao)`: se `sessao.Perfil != Perfil.Administrador`, lance `UnauthorizedAccessException`.
+     - `ExigirCaixa(Sessao sessao)`: se `sessao.Perfil != Perfil.Caixa`, lance `UnauthorizedAccessException`.
 
-A política didática pede 12 a 128 caracteres. Não fazemos `Trim` na senha: espaços podem fazer parte dela. O username é normalizado para minúsculas, para que `ADMIN` e `admin` indiquem a mesma conta.
+### Parada 4 — Helper `Views/Ui.cs`, Adaptação do `FormLogin` e `Program.cs`
+1. Crie **`Views/Ui.cs`** (`internal static class Ui` em `namespace SupermercadoApp.Views;`) e construa por enquanto apenas o método **`public static async Task<bool> ExecutarAsync(Func<Task> acao)`**:
+   - Dentro de `try`: `await acao(); return true;`.
+   - `catch (Exception e) when (e is ArgumentException or InvalidOperationException or UnauthorizedAccessException)`: mostre `MessageBox.Show(e.Message, "Verifique os dados");`.
+   - `catch (Exception e)`: registre apenas `System.Diagnostics.Trace.WriteLine($"Falha: {e.GetType().Name}");` (nunca a senha ou conexão!) e mostre mensagem amigável de falha de comunicação.
+   - Retorne `false` ao final em caso de erro.
+2. **Adaptar seu `Views/FormLogin.cs` (mantendo o Designer da Aula 06!):**
+   - No Designer (`Shift+F7`), **remova o botão temporário `btnTestarConexao`** e o evento dele.
+   - No código (`F7`): remova o campo `NpgsqlDataSource`! Agora a tela depende **apenas** de `AutenticacaoService` (camada `Services`).
+   - Declare os campos `private readonly AutenticacaoService autenticacao;`, `private readonly bool prepararAdmin;` e a propriedade pública `public Sessao? SessaoAutenticada { get; private set; }`.
+   - Atualize o construtor para `public FormLogin(AutenticacaoService autenticacao, bool prepararAdmin = false)` mantendo `InitializeComponent();`, guardando os campos e, se `prepararAdmin` for `true`, mudando `btnLogin.Text = "Criar administrador";`.
+   - No evento **`private async void btnLogin_Click(object sender, EventArgs e)`**:
+     1. Desabilite `btnLogin.Enabled = false;`.
+     2. Em um bloco `try`, chame `await Ui.ExecutarAsync(async () => { ... });`:
+        - Valide os campos vazios lançando `ArgumentException`.
+        - Se `prepararAdmin` for verdadeiro: chame `await autenticacao.PrepararAdministradorAsync(txtUsuario.Text, txtSenha.Text);`, avise para remover o argumento de preparação, defina `DialogResult = DialogResult.OK;` e `return;`.
+        - Caso contrário (login normal): atribua `SessaoAutenticada = await autenticacao.EntrarAsync(txtUsuario.Text, txtSenha.Text);`. Se for `null`, exiba `"Usuário ou senha inválidos."` (mensagem genérica igual para usuário inexistente ou senha errada!); caso contrário, defina `DialogResult = DialogResult.OK;`.
+     3. No bloco **`finally`**: limpe a senha (`txtSenha.Clear();`) e reabilite `btnLogin.Enabled = true;`.
+3. **Atualizar `Program.cs`:**
+   - Altere `Main()` para `Main(string[] args)` para ler argumentos de linha de comando.
+   - Dentro do `try`: crie `using var banco = Banco.Criar();`, instancie `var autenticacao = new AutenticacaoService(new UsuarioRepository(banco));`, verifique `bool prepararAdmin = args.Contains("--preparar-admin");`, abra `using var login = new FormLogin(autenticacao, prepararAdmin);` com `login.ShowDialog();`.
+   - Se `!prepararAdmin && login.SessaoAutenticada is { } sessao` (o padrão `is { } sessao` significa *"não é `null` e já guarda na variável `sessao`"*), exiba `MessageBox.Show($"Bem-vindo, {sessao.Username} ({sessao.Perfil})");`.
 
-## 3. Prepare o primeiro administrador
+---
 
-Há um problema inicial: quem cadastra o primeiro administrador se ainda não podemos entrar? A referência tem um modo local de preparação, **somente para tabela vazia**, acionado por `--preparar-admin`. Ele recebe a senha em um campo oculto, calcula o hash e insere a conta; não contém senha padrão.
+## 3. Como Preparar o Primeiro Administrador no Visual Studio 2022 (`A09.07` e `A09.08`)
 
-Para seu projeto com Designer:
+**Por que não criamos um admin com senha padrão no SQL?** Porque senhas padrão hardcoded são a causa número 1 de invasões em sistemas reais!
 
-1. Remova `btnTestarConexao` e o campo `NpgsqlDataSource` de `FormLogin`. A tela recebe agora `AutenticacaoService` no construtor. Mantenha `InitializeComponent()` e salve a dependência em um campo `private readonly`.
-2. Adicione também o parâmetro opcional `bool prepararAdmin = false` e salve-o em um campo. Se verdadeiro, mude o texto do botão para “Criar administrador”.
-3. Crie uma propriedade `public Sessao? SessaoAutenticada { get; private set; }` no formulário.
-4. No clique, mantenha a validação de campos da aula 06. Troque o corpo pela lógica de [FormLogin.cs](src/SupermercadoApp/Views/FormLogin.cs): desabilitar botão, preparar conta ou autenticar, limpar senha e reabilitar. A referência usa uma lambda de evento; no Designer você coloca esse mesmo corpo em `private async void btnLogin_Click(...)`.
-5. Copie também [Ui.cs](src/SupermercadoApp/Views/Ui.cs) para `Views`: hoje usamos `ExecutarAsync` para apresentar erros. As funções de layout serão utilizadas nas telas posteriores.
-6. Em `Program`, crie `Banco`, `UsuarioRepository` e `AutenticacaoService` e abra `new FormLogin(autenticacao, prepararAdmin)`. Use `ShowDialog()` para receber o resultado. Ainda não adicione os serviços de produtos e vendas do `Program.cs` final; eles não existem nesta aula.
+1. No **Gerenciador de Soluções** do Visual Studio 2022, clique com o botão direito em **`SupermercadoApp`** → **Propriedades**.
+2. No menu esquerdo, clique em **Depurar → Geral → Abrir interface do usuário de perfis de inicialização de depuração**.
+3. No campo **Argumentos da linha de comando**, digite exatamente: **`--preparar-admin`**. Feche a janela.
+4. Pressione **`F5`**: o botão aparecerá como **"Criar administrador"**. Digite um username (3 a 50 chars) e uma senha de **12 a 128 caracteres** e clique para criar.
+5. **Pare o programa**, volte aos perfis de inicialização e **APAGUE `--preparar-admin`**!
+6. Pressione **`F5`** novamente e teste:
+   - Login com o username em **MAIÚSCULAS** e a senha correta → deve dar boas-vindas (comprovando normalização!).
+   - Senha errada e usuário inexistente → **ambos** devem exibir a mesma mensagem genérica `"Usuário ou senha inválidos."`.
+   - Tente rodar com `--preparar-admin` de novo com a tabela já populada → deve recusar!
+7. **Confira no SQL Editor** (sem projetar o hash inteiro na tela da turma):
+   ```sql
+   SELECT username, perfil, length(senha_hash) AS tamanho_hash FROM usuario;
+   ```
 
-Trecho mínimo dentro de `Main(string[] args)`, depois de `ApplicationConfiguration.Initialize()`:
-
-```csharp
-using var banco = Banco.Criar();
-var autenticacao = new AutenticacaoService(new UsuarioRepository(banco));
-bool prepararAdmin = args.Contains("--preparar-admin");
-using var login = new FormLogin(autenticacao, prepararAdmin);
-login.ShowDialog();
-if (!prepararAdmin && login.SessaoAutenticada is { } sessao)
-    MessageBox.Show($"Bem-vindo, {sessao.Username} ({sessao.Perfil})");
-```
-
-Adicione os `using` de `Infrastructure`, `Repositories` e `Services` no início de `Program.cs`. Preserve o tratamento de configuração ausente da aula 08 em volta desse trecho.
-
-### Código do login para quem manteve o Designer
-
-Para evitar misturar as duas formas de construir a tela, este é o conteúdo de `FormLogin.cs` com os controles da aula 06. Mantenha `FormLogin.Designer.cs` existente e confira o evento Click nas Propriedades. Este código substitui o comportamento antigo; não crie uma segunda classe `FormLogin`.
-
-```csharp
-using SupermercadoApp.Models;
-using SupermercadoApp.Services;
-
-namespace SupermercadoApp.Views;
-
-public partial class FormLogin : Form
-{
-    private readonly AutenticacaoService autenticacao;
-    private readonly bool prepararAdmin;
-    public Sessao? SessaoAutenticada { get; private set; }
-
-    public FormLogin(AutenticacaoService autenticacao, bool prepararAdmin = false)
-    {
-        InitializeComponent();
-        this.autenticacao = autenticacao;
-        this.prepararAdmin = prepararAdmin;
-        if (prepararAdmin) btnLogin.Text = "Criar administrador";
-    }
-
-    private async void btnLogin_Click(object sender, EventArgs e)
-    {
-        btnLogin.Enabled = false;
-        try
-        {
-            await Ui.ExecutarAsync(async () =>
-            {
-                if (string.IsNullOrWhiteSpace(txtUsuario.Text) || txtSenha.Text.Length == 0)
-                    throw new ArgumentException("Preencha usuário e senha.");
-                if (prepararAdmin)
-                {
-                    await autenticacao.PrepararAdministradorAsync(txtUsuario.Text, txtSenha.Text);
-                    MessageBox.Show("Administrador criado. Remova o argumento de preparação.");
-                    DialogResult = DialogResult.OK;
-                    return;
-                }
-                SessaoAutenticada = await autenticacao.EntrarAsync(txtUsuario.Text, txtSenha.Text);
-                if (SessaoAutenticada is null)
-                    MessageBox.Show("Usuário ou senha inválidos.");
-                else DialogResult = DialogResult.OK;
-            });
-        }
-        finally
-        {
-            txtSenha.Clear();
-            btnLogin.Enabled = true;
-        }
-    }
-}
-```
-
-O formulário é `partial` porque a outra parte está no Designer. A referência sem Designer pode ser `sealed` e não precisa de `InitializeComponent`. Em ambos os casos a tela chama o mesmo serviço e devolve a mesma sessão.
-
-Em **Propriedades do projeto → Depurar → Abrir perfis de inicialização**, coloque `--preparar-admin` nos argumentos de linha de comando. Execute F5, escolha seu username e senha e crie o administrador. Pare, **remova o argumento**, execute novamente e faça login. Se a tabela já contém alguém, a preparação deve recusar a execução. O professor deve executar esse preparo uma única vez por ambiente, sem duas instâncias concorrentes.
-
-## 4. Confira no banco e na tela
-
-```sql
-SELECT username, perfil, length(senha_hash) AS tamanho_hash FROM usuario;
-```
-
-Não projete a coluna inteira de hash na apresentação da turma. A senha deve ser diferente do valor armazenado; a consulta acima permite conferir presença sem expor o conteúdo.
-
-- Login correto: mensagem de boas-vindas; incorreto: “Usuário ou senha inválidos”.
-- Usuário inexistente recebe a mesma mensagem de senha incorreta.
-- Campo vazio é recusado antes da consulta; Enter aciona o login uma vez.
-- Sem conexão, o botão volta a ficar disponível e não há mensagem de sucesso.
-
-Na aula 10 trocaremos a mensagem pelas janelas de cada perfil. Autenticação identifica a pessoa; autorização decide o que ela pode fazer. A biblioteca de hash não adiciona bloqueio por tentativas, recuperação de senha ou autenticação de servidor: esses são aprimoramentos posteriores ao recorte local.
-
-[Anterior: aula 08](08-Conectando-Banco-Dados.md) · [Próxima: aula 10](10-Sessao-e-Perfis.md)
+[Anterior: Aula 08](08-Conectando-Banco-Dados.md) · [Próxima: Aula 10 — Sessão e perfis](10-Sessao-e-Perfis.md) · [Índice](README.md)
 
 ## Atividades por conceito
 

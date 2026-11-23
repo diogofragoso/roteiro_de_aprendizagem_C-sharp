@@ -1,73 +1,115 @@
-# Aula 17 — Finalização, troco e tentativa pendente
+# Aula 17 — Finalização, Cálculo de Troco e Recuperação de Tentativa Pendente
 
-**Duração:** 3h30. **Pré-requisito:** aula 16. **Entrega:** venda em dinheiro simulado com confirmação, troco e repetição segura quando a comunicação falha.
+**Duração:** 3h30. **Pré-requisito:** [Aula 16](16-Venda-com-Transacao.md). **Entrega:** tela `FormCaixa` definitiva com máquina de estados completa, recebimento em dinheiro simulado, comprovante didático (*sem valor fiscal*), cálculo de troco, proteção de fechamento (`FormClosing`) e reconciliação segura quando a comunicação falha.
 
 | Bloco | Minutos | Atividade |
 | --- | ---: | --- |
-| Retomada | 15 | Conferir venda gravada e movimentos |
-| Explicação | 30 | Estados de tela e resultado de confirmação incerto |
-| Construção | 60 | Recebido, finalizar e comprovante didático |
+| Retomada | 15 | Conferir venda gravada e movimentos negativos da Aula 16 |
+| Explicação | 30 | Máquina de estados da UI, erro antes do commit vs resultado incerto pós-commit |
+| Construção | 60 | Construir controles de pagamento, estados de bloqueio e comprovante em `FormCaixa` |
 | Intervalo | 15 | Pausa |
-| Prática | 60 | Falhas, repetição e fechamento da janela |
-| Entrega | 30 | Demonstrar sucesso, insuficiência e não duplicação |
+| Prática | 60 | Implementar reconciliação de tentativa pendente, `FormClosing` e simulação de falha |
+| Entrega | 30 | Demonstrar troco, insuficiência, duplo clique e reconciliação (`A17.01`–`A17.06`) |
 
-## 1. Acrescente o pagamento à janela
+---
 
-Complete [FormCaixa.cs](src/SupermercadoApp/Views/FormCaixa.cs). Remova o botão temporário da aula 16. Acrescente o valor recebido com `NumericUpDown`, duas casas decimais, e o botão “Finalizar / consultar tentativa pendente”.
+## 1. O Problema Mais Difícil de Sistemas em Rede: Resultado Incerto Pós-Commit
 
-No início de uma compra, gere `Guid.NewGuid()` e guarde esse valor no campo `operacao`. O Guid identifica a intenção de vender; não é o ID sequencial da venda. O ID só será conhecido depois da gravação.
+Imagine o operador de caixa clicando em **Finalizar**. O aplicativo envia a venda pela internet ao Neon; o Neon grava a venda e executa `COMMIT`, mas **1 milissegundo antes da resposta voltar**, o cabo de rede desconecta!
 
-O exemplo aceita apenas dinheiro simulado. Não mostra QR Code, não se comunica com cartão e não envia cobrança. O comprovante deve dizer **SEM VALOR FISCAL**.
+O que muitos aplicativos mal projetados fazem nesse momento?
+- ❌ Mostram *"Venda cancelada!"*, limpam o carrinho ou geram um novo `Guid` → o caixa passa a compra de novo e o cliente é cobrado **duas vezes** e o estoque baixa **em dobro**!
 
-## 2. Entenda os estados antes de copiar o evento
+**Como construímos uma interface profissionalmente resiliente (`A17.01` e `A17.04`)?**
+Separando dois tipos completamente diferentes de exceção:
 
-| Estado | Edição do carrinho | Finalizar | Ação após resposta |
+1. **Falhas de regra conhecidas (`ArgumentException`, `InvalidOperationException`, `UnauthorizedAccessException`):**
+   Sabemos com **100% de certeza** que aconteceram **antes do `COMMIT`** (ex.: valor recebido menor que o total, ou estoque acabou). Portanto: `pendente = false;`, liberamos a edição para o caixa corrigir o valor recebido ou remover o item!
+2. **Qualquer outra `Exception` (falha de rede, timeout, conexão encerrada):**
+   **Não sabemos** se o banco chegou a confirmar! Portanto:
+   - Mantemos **`pendente = true;`**, preservando o **mesmo `Guid operacao`**, os **mesmos itens** e o **mesmo `recebidoPendente`**!
+   - Mantemos o painel de edição **bloqueado** (`edicao.Enabled = false;`), impedindo o usuário de alterar itens de uma intenção ainda pendente.
+   - Mostramos o `Guid` na tela e orientamos clicar em **"Finalizar / consultar tentativa pendente"** assim que a rede voltar: o `VendaRepository` (Aula 16) consultará pelo `Guid` e devolverá a venda já confirmada ou a gravará pela primeira vez, **nunca duplicando**!
+
+### Máquina de Estados da Tela `FormCaixa`
+
+| Estado da Tela | Campos de Edição (`edicao`) | Botão Finalizar | O que acontece após a resposta |
 | --- | --- | --- | --- |
-| Em montagem | Permitida | Permitido com itens | Iniciar tentativa |
-| Aguardando banco | Bloqueada | Desabilitado | Aguardar resultado |
-| Confirmada | Nova compra liberada | Liberado | Limpar e gerar novo Guid |
-| Recusada antes do commit | Liberada | Liberado | Corrigir os dados |
-| Comunicação incerta | Bloqueada | Repetir mesma tentativa | Consultar/confirmar a mesma operação |
+| **Em montagem** | Habilitados | Habilitado (se houver itens) | Gera/mantém `Guid` e inicia tentativa |
+| **Aguardando banco** (`executando = true`) | Bloqueados | Desabilitado | Aguarda retorno assíncrono sem duplo clique |
+| **Confirmada** | Liberados para nova compra | Habilitado | Mostra comprovante, limpa carrinho, zera recebido e gera **novo `Guid`** |
+| **Recusada antes do commit** | Liberados (`pendente = false`) | Habilitado | Operador corrige recebido ou carrinho mantendo o fluxo |
+| **Comunicação incerta** (`pendente = true`) | **Bloqueados** (`!pendente`) | Habilitado para reconciliar | Reenvia exatamente o mesmo `Guid`, itens e `recebidoPendente` |
 
-A tela guarda o valor recebido no começo da tentativa. Não deixe o usuário trocar itens ou recebido enquanto a mesma chave está pendente. O repositório só consegue reconhecer a repetição porque a chave continua igual.
+> [!WARNING]
+> **Limite honesto do recorte em memória (`A17.05`):** a tentativa pendente vive na memória RAM enquanto a janela permanece aberta. Se faltar energia elétrica no computador ou alguém encerrar o processo à força no Gerenciador de Tarefas, a recuperação automática não existe neste recorte local — por isso exibimos o `Guid` na tela para consulta manual no banco (`SELECT id, total, recebido FROM venda WHERE operacao = 'GUID_ANOTADO';`) antes de iniciar nova venda. Em sistemas comerciais, isso evolui para uma fila persistente em disco local (SQLite/outbox) + API no servidor.
 
-## 3. Ligue confirmação e apresentação
+---
 
-Leia o evento completo da referência. Ele desabilita edição e botão, chama `VendaService.FinalizarAsync` e só depois do retorno confirmado:
+## 2. Roteiro de Construção Guiada (Sua Vez no Visual Studio 2022!)
 
-1. Mostra número da venda, total definitivo, recebido e troco.
-2. Limpa o carrinho e o recebido.
-3. Gera um novo Guid.
-4. Libera uma nova compra.
+Complete **`Views/FormCaixa.cs`** substituindo o botão temporário da Aula 16 pela máquina de estados definitiva:
 
-O troco é `Recebido - Total`, usando o total definitivo do banco. O preço do carrinho é uma previsão: se o administrador alterar o preço antes da confirmação, o banco recalcula. Nesse recorte didático a tela mostra o total definitivo no comprovante; se o recebido ficar insuficiente, recusa e permite corrigir. Uma evolução possível é pedir nova confirmação explícita do operador quando o preço mudar.
+### Passo 1 — Campos de Estado na Classe `FormCaixa`
+Declare exatamente estes campos privados na classe:
+- `private readonly Carrinho carrinho = new();`
+- `private Guid operacao = Guid.NewGuid();`
+- `private bool pendente;`
+- `private bool executando;`
+- `private decimal recebidoPendente;`
 
-Configure `FormClosing` como na referência: não permitir fechar enquanto executa ou há resultado incerto; se existe apenas um carrinho em montagem, perguntar se deve descartá-lo.
+### Passo 2 — Separar Painel Editável (`edicao`) dos Controles de Finalização
+**Por que colocar busca, quantidade, grade, remoção, cancelamento e valor recebido dentro de um `FlowLayoutPanel edicao` separado?**
+Porque assim, com uma única linha (`edicao.Enabled = false;` ou `edicao.Enabled = !pendente;`), você trava ou libera **todos** os controles de edição de uma só vez sem esquecer nenhum botão solto!
 
-## 4. Trate uma queda de comunicação com cuidado
+1. Crie `var edicao = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.TopDown, WrapContents = false };` e adicione ao painel principal `p`.
+2. Mova os controles do carrinho (código, quantidade, grade, rótulo total, botões Adicionar, Remover e Cancelar) para dentro de `edicao`.
+   - No botão **Adicionar**, atualize também `executando = true; edicao.Enabled = false;` antes da consulta e restaure no `finally` (impedindo finalizar enquanto uma busca de produto ainda está em andamento!).
+   - No botão **Cancelar carrinho**, além de `carrinho.Limpar()`, renove `operacao = Guid.NewGuid();`.
+3. Ainda dentro de `edicao`, adicione:
+   - Rótulo `"Valor recebido em dinheiro (pagamento simulado)"`;
+   - Controle `NumericUpDown recebido` com `DecimalPlaces = 2`, `Maximum = 9999999999.99m`, `Width = 200`.
+4. **Fora** de `edicao` (diretamente no painel principal `p`, para continuar acessível mesmo quando `edicao` estiver travado!):
+   - Crie um rótulo de status: `var estado = Ui.Rotulo("Adicione produtos para iniciar.");`.
+   - Crie o botão **`"Finalizar / consultar tentativa pendente"`**.
 
-Entregue a tabela de estados com uma transição concreta por linha: ação inicial, estado dos controles, resposta e próxima ação. Para a simulação de resposta perdida, use `RespostaPerdidaFake` no [console de verificações](tests/SupermercadoApp.Verificacoes/Program.cs): grava a operação em memória e falha no primeiro retorno; a segunda chamada devolve a mesma venda. Identifique como simulação: ela não comprova queda de rede após commit no PostgreSQL. O ensaio real e suas pendências ficam registrados separadamente.
+### Passo 3 — Construir o Evento do Botão Finalizar (`A17.02` e `A17.03`)
+No evento `async (sender, _) =>` do botão Finalizar, construa exatamente esta sequência:
+1. Se `executando` for `true`: avise para aguardar a consulta terminar e dê `return;`.
+2. Se `carrinho.Itens.Count == 0`: avise `"Carrinho vazio."` e dê `return;`.
+3. Trave a interface: `var b = (Button)sender!; b.Enabled = false; edicao.Enabled = false; executando = true;`.
+4. Se **não** estava pendente (`if (!pendente)`), congele o valor recebido em `recebidoPendente = recebido.Value;` e marque `pendente = true;`.
+5. No bloco **`try`**:
+   - Chame `var resultado = await vendas.FinalizarAsync(sessao, operacao, carrinho.Itens, recebidoPendente);`.
+   - Exiba o comprovante com `MessageBox.Show`: cabeçalho **"COMPROVANTE DIDÁTICO — SEM VALOR FISCAL"**, número `resultado.Id`, `resultado.Total:C`, `resultado.Recebido:C` e `resultado.Troco:C` *(usando o total definitivo devolvido pelo banco!)*.
+   - Somente **após** a confirmação: limpe o carrinho (`carrinho.Limpar()`), gere um **novo** `operacao = Guid.NewGuid()`, zere `recebido.Value = 0`, marque `pendente = false`, chame `Atualizar()` e atualize `estado.Text = "Venda confirmada.";`.
+6. No primeiro **`catch`** (erros conhecidos antes do commit):
+   - `catch (Exception e) when (e is ArgumentException or InvalidOperationException or UnauthorizedAccessException)`
+   - Defina `pendente = false;` e exiba `MessageBox.Show(e.Message);`.
+7. No segundo **`catch`** (erro de rede / comunicação incerta):
+   - `catch (Exception e)`
+   - Registre apenas o nome do tipo de exceção em `Trace.WriteLine`.
+   - Atualize `estado.Text` exibindo o `Guid` `operacao` e peça para clicar em finalizar novamente (mantendo `pendente = true`!).
+8. No **`finally`**:
+   - `executando = false; b.Enabled = true; edicao.Enabled = !pendente;`. *(Observe a elegância de `edicao.Enabled = !pendente;`: só destrava a edição se a operação não estiver em estado incerto!)*
 
-Uma exceção de rede pode acontecer **depois de o banco confirmar**, antes de a resposta chegar. Nesse caso não diga “venda cancelada” e não gere outra chave. Mantenha o Guid e peça para repetir a consulta/finalização. O repositório retorna a venda existente ou conclui a mesma operação quando ainda não existe.
+### Passo 4 — Proteger o Fechamento da Janela (`FormClosing`) (`A17.05`)
+Inscreva o evento `FormClosing += (_, e) =>` no construtor de `FormCaixa`:
+- Se `pendente || executando`: defina **`e.Cancel = true;`** (impede a janela de fechar!) e oriente a resolver a tentativa pendente ou anotar o identificador `Guid`.
+- Senão, se `carrinho.Itens.Count > 0`: pergunte com `MessageBoxButtons.YesNo` se deseja descartar o carrinho e sair; se a resposta for diferente de `DialogResult.Yes`, defina `e.Cancel = true;`.
 
-O exemplo mantém a tentativa **em memória**. Se o processo for encerrado à força ou a máquina desligar, não há recuperação automática do carrinho. Antes de reiniciar uma operação, o professor deve consultar o identificador anotado na tela:
+---
 
-```sql
-SELECT id, total, recebido FROM venda WHERE operacao = 'GUID_ANOTADO';
-```
+## 3. Verificação Completa e Simulação de Resposta Perdida (`A17.01`–`A17.06`)
 
-Não reabra a compra com um novo Guid sem esclarecer o resultado anterior. Para operação comercial, será necessário um registro local durável de tentativas e reconciliação no servidor; o bloqueio de fechamento não substitui essa solução. Esse limite é parte da aprendizagem sobre falhas, não uma promessa de funcionamento offline.
+Execute com **`F5`** no Visual Studio 2022 e verifique todos os casos:
+1. **Troco exato:** compra de `R$ 60,30` (2 arrozes + 1 feijão) com recebido `R$ 100,00` → comprovante não fiscal mostra total `R$ 60,30`, recebido `R$ 100,00` e troco **`R$ 39,70`**; carrinho limpa e gera novo `Guid`.
+2. **Recebido insuficiente:** compra de `R$ 60,30` com recebido `R$ 50,00` → recusa, carrinho preservado, edição liberada, nenhuma baixa no banco.
+3. **Mudança de preço concorrente:** adicione um produto ao carrinho, altere o preço dele como Administrador em outra janela e finalize → o total definitivo vem do banco (e recusa se o recebido ficou insuficiente).
+4. **`FormClosing`:** tente fechar pelo `X` com itens no carrinho (deve pedir confirmação); durante espera/incerteza, o fechamento é bloqueado.
+5. **Simulação de resposta perdida (`A17.04`):** construa ou estude um dublê de teste (`RespostaPerdidaFake`) que registra a venda em memória mas lança `IOException` no primeiro retorno; ao chamar uma segunda vez com o mesmo `Guid`, devolve a venda já gravada sem criar uma segunda gravação! *(Registre separadamente como simulação em memória — não confunda com queda real de rede após commit no PostgreSQL.)*
 
-## Verifique antes de encerrar
-
-- Compra de R$ 60,30 com recebido R$ 100,00: troco R$ 39,70.
-- Recebido menor que total: nenhuma venda ou baixa; carrinho preservado.
-- Finalizar sem itens: recusado antes do banco.
-- Clique duplo não produz dois envios normais; mesma operação repetida não produz nova venda.
-- Falha de rede não limpa carrinho nem permite trocar a intenção pendente.
-- Sair após uma venda confirmada volta ao login.
-
-[Anterior: aula 16](16-Venda-com-Transacao.md) · [Próxima: aula 18](18-Relatorio-de-Vendas.md)
+[Anterior: Aula 16](16-Venda-com-Transacao.md) · [Próxima: Aula 18 — Relatório de vendas](18-Relatorio-de-Vendas.md) · [Índice](README.md)
 
 ## Atividades por conceito
 

@@ -1,131 +1,139 @@
-# Aula 04 — Arquitetura e responsabilidades
+# Aula 04 — Arquitetura em Camadas, Contratos e Injeção de Dependência
 
-**Duração:** 3h30. **Pré-requisito:** aula 03. **Entrega:** uma consulta a produtos em memória em que a tela/console chama um serviço, que chama uma interface de repositório.
+**Duração:** 3h30. **Pré-requisito:** [Aula 03](03-Orientacao-a-Objetos.md). **Entrega:** consulta de produtos em memória no console em que o `Program` conecta um Serviço a duas implementações diferentes de uma Interface de Repositório — provando a troca sem alterar o serviço.
 
 | Bloco | Minutos | Atividade |
 | --- | ---: | --- |
-| Retomada | 15 | Identificar cálculo, entrada e armazenamento no console |
-| Explicação | 30 | Camadas, contratos e composição |
-| Construção | 60 | Separar produto, contrato e repositório em memória |
+| Retomada | 15 | Identificar onde estão entrada, regra e dados no console atual |
+| Explicação | 30 | Por que separar camadas, `IReadOnlyList` e injeção manual |
+| Construção | 60 | Construir contrato, repositório em memória e serviço de consulta |
 | Intervalo | 15 | Pausa |
-| Prática | 60 | Colocar uma regra no serviço e chamar pelo console |
-| Entrega | 30 | Trocar a implementação e explicar o fluxo |
+| Prática | 60 | Criar segunda implementação, trocar na composição e testar regra sem UI |
+| Entrega | 30 | Demonstrar a troca real de dependência e explicar responsabilidades |
 
-## 1. Parta de um problema concreto
+---
 
-Abra o console anterior. Imagine que a mesma regra de preço positivo será usada no cadastro, na importação e numa futura API. Se a regra estiver no clique de um botão, cada entrada precisará copiá-la. Vamos colocá-la num serviço, independente do controle visual.
+## 1. O Problema Real: Por Que Não Escrever Tudo Dentro do Botão da Tela?
 
-Nossa arquitetura é uma **separação lógica em um projeto**. Pastas ajudam a localizar código, mas não impedem dependências indevidas; cabe à equipe respeitar o sentido das chamadas. Não chamaremos essa organização de uma implementação completa de Clean Architecture.
+Imagine que, quando chegarmos ao Windows Forms, você coloque a validação de preço positivo, a consulta SQL ao banco e os `MessageBox.Show` tudo misturado dentro do clique do botão `btnSalvar_Click`. Veja os **3 problemas imediatos** que isso cria:
 
-```text
-Views → Services → interfaces de Repositories
-                      ↑
-             implementações Npgsql → Neon
-Models são usados nos contratos e serviços.
-Program cria os objetos e conecta as dependências.
+1. **Regras duplicadas:** se outra tela (ou uma futura API web) precisar validar preço, você teria de copiar e colar os mesmos `if`s — e esquecer de atualizar um deles quando a regra mudar.
+2. **Impossível testar sem banco e sem clicar na tela:** para testar se o sistema recusa preço `0`, você seria obrigado a abrir o programa, fazer login, ter internet e clicar no botão toda vez.
+3. **Acoplamento forte:** mudar um detalhe de SQL obriga a mexer no código da janela visual, aumentando o risco de quebrar a interface.
+
+### A Solução do Nosso Projeto: Separação Lógica em 5 Pastas
+
+Usaremos **um único projeto** organizado em 5 pastas por responsabilidade (sem a complexidade prematura de múltiplos projetos, contêineres automáticos ou ORMs):
+
+```mermaid
+flowchart LR
+    P["Program.cs<br/>(Composição: cria e conecta tudo)"] -.-> V["Views<br/>(Telas / Console)"]
+    V --> S["Services<br/>(Regras, validações e permissões)"]
+    S --> I["Interfaces em Repositories<br/>(Contratos: IProdutoRepository)"]
+    R["Implementações em Repositories<br/>(SQL / Memória)"] -.->|implementa| I
+    R --> B["Infrastructure<br/>(Banco / Conexão)"]
 ```
 
-| Pasta | Responsabilidade | Exemplo |
-| --- | --- | --- |
-| Models | Dados e conceitos do supermercado | Produto, Sessao, ItemCarrinho |
-| Services | Validações, autorização e casos de uso | ProdutoService |
-| Repositories | Consultas e persistência; nenhum MessageBox | ProdutoRepository |
-| Infrastructure | Configuração técnica | Banco |
-| Views | Ler controles, chamar serviço e apresentar resultado | FormProdutos |
+| Pasta | Responsabilidade Única | O que **NUNCA** pode ficar aqui | Exemplos no MarketFlow |
+| --- | --- | --- | --- |
+| **Models** | Representar dados e conceitos do domínio | SQL, `MessageBox`, acesso à rede | `Produto`, `Sessao`, `ItemCarrinho` |
+| **Services** | Regras de negócio, validações e autorização | SQL direto, controles visuais (`TextBox`, `MessageBox`) | `ProdutoService`, `VendaService` |
+| **Repositories** | Contratos (`I...`) e acesso aos dados (SQL ou Memória) | `MessageBox`, decisões de tela | `IProdutoRepository`, `ProdutoRepository` |
+| **Infrastructure** | Configuração técnica de ambiente e conexão | Regras de desconto ou cadastro | `Banco` |
+| **Views** | Ler controles da tela, chamar o Serviço e exibir resultado/erro | Comandos SQL, regras de negócio duplicadas | `FormLogin`, `FormProdutos`, `FormCaixa` |
 
-## 2. Faça um contrato pequeno
+> [!NOTE]
+> **Importante:** pastas no Visual Studio 2022 ajudam a organizar o código, mas **não impedem** que alguém escreva SQL dentro de uma `View`. Respeitar a direção das setas do diagrama acima é disciplina de arquitetura da equipe!
 
-No console `TreinoSupermercado`, adicione uma classe `Produto` (se ainda não a criou) com propriedades `Nome` e `Preco`. Depois adicione o arquivo `IConsultaProdutos.cs`:
+---
+
+## 2. Entendendo `IReadOnlyList<T>` e a Injeção de Dependência Manual
+
+### Por que o contrato retorna `IReadOnlyList<Produto>` em vez de `List<Produto>`?
+- Se um repositório devolvesse `List<Produto>`, qualquer tela que chamasse `Listar()` poderia chamar `.Add(...)` ou `.Clear()` diretamente na lista retornada, burlando validações!
+- **`IReadOnlyList<Produto>`** é uma interface do .NET que permite **percorrer com `foreach`**, consultar `.Count` e ler posições `[0]`, mas **não oferece `.Add()`, `.Remove()` nem `.Clear()`**.
+- **Limite importante dessa proteção:** `IReadOnlyList` impede alterar a *coleção* (adicionar/remover itens), mas não torna imutáveis os objetos dentro dela se eles tiverem `set` público.
+
+### Por que Injeção de Dependência Manual pelo Construtor?
+Observe um modelo genérico de **serviço de busca de livros** recebendo um contrato `ICatalogoLivros`:
 
 ```csharp
-public interface IConsultaProdutos
+public class BuscaLivrosService
 {
-    IReadOnlyList<Produto> Listar();
-}
-```
+    private readonly ICatalogoLivros catalogo;
 
-`IReadOnlyList` permite consultar a lista sem oferecer `Add` nesse contrato. Uma interface descreve **o que** podemos pedir; não decide **como** buscar.
-
-Adicione `ProdutosEmMemoria.cs`:
-
-```csharp
-public class ProdutosEmMemoria : IConsultaProdutos
-{
-    public IReadOnlyList<Produto> Listar() => new List<Produto>
+    public BuscaLivrosService(ICatalogoLivros catalogo)
     {
-        new Produto { Nome = "Arroz", Preco = 25.90m },
-        new Produto { Nome = "Feijão", Preco = 8.50m }
-    };
-}
-```
-
-Esse exemplo cria a lista em cada consulta. O banco virá depois; hoje verificamos a organização sem depender de internet.
-
-## 3. Receba a dependência pelo construtor
-
-Adicione `ConsultaProdutosService.cs`:
-
-```csharp
-public class ConsultaProdutosService
-{
-    private readonly IConsultaProdutos produtos;
-    public ConsultaProdutosService(IConsultaProdutos produtos)
-    {
-        this.produtos = produtos;
+        this.catalogo = catalogo;
     }
-    public IReadOnlyList<Produto> Executar() => produtos.Listar();
-    public void ValidarPreco(decimal preco)
-    {
-        if (preco <= 0) throw new ArgumentException("Preço deve ser positivo.");
-    }
+
+    public IReadOnlyList<Livro> BuscarTodos() => catalogo.ObterTodos();
 }
 ```
 
-No `Program.cs`, deixe apenas as instruções de execução; as classes ficam em seus próprios arquivos:
+- O serviço **não** escreve `new CatalogoEmMemoria()` nem `new CatalogoPostgres()` dentro dele.
+- Ele apenas declara no construtor: *"me entregue qualquer objeto que cumpra o contrato `ICatalogoLivros`"*.
+- Quem decide qual implementação concreta usar é o **`Program.cs`** (ponto de composição). Isso é **Injeção de Dependência Manual** — você entende o mecanismo inteiro sem precisar de nenhuma biblioteca mágica!
 
-```csharp
-IConsultaProdutos repositorio = new ProdutosEmMemoria();
-var servico = new ConsultaProdutosService(repositorio);
-foreach (var produto in servico.Executar())
-    Console.WriteLine($"{produto.Nome}: {produto.Preco:C}");
-try { servico.ValidarPreco(0); }
-catch (ArgumentException erro) { Console.WriteLine(erro.Message); }
-```
+---
 
-Isso é **injeção de dependência manual**: quem cria o serviço entrega o objeto de que ele precisa. Não precisamos de uma biblioteca de injeção para aprender o conceito.
+## 3. Limites Honestos da Nossa Arquitetura (Importante!)
 
-## 4. Entenda o alcance das escolhas
+Antes de construir, compreenda duas realidades do mercado de software:
+1. **Trocar de banco de dados não é "mágico":** usar interfaces de repositório isola o SQL e reduz o impacto de uma mudança, mas migrar PostgreSQL para MySQL ainda exige adaptar tipos SQL, transações, bloqueios e comandos específicos (como mostra o [guia XAMPP](INTEGRACAO-MYSQL-XAMPP.md)).
+2. **Fronteira de segurança em aplicativos desktop:** neste curso didático, o aplicativo Windows Forms conectará diretamente ao banco de dados para que possamos focar em C#, POO e SQL sem construir um servidor web ao mesmo tempo. Em um sistema comercial distribuído a clientes, **as credenciais do banco e as regras de autorização devem ficar em uma API no servidor**, pois alguém com acesso à máquina local poderia extrair uma credencial guardada no computador.
 
-Antes de continuar, crie uma segunda implementação do contrato:
+---
 
-```csharp
-public class ProdutosPromocionais : IConsultaProdutos
-{
-    public IReadOnlyList<Produto> Listar() => new List<Produto>
-    {
-        new Produto { Nome = "Café", Preco = 12.90m }
-    };
-}
-```
+## 4. Roteiro de Construção Guiada (Sua Vez no Visual Studio 2022!)
 
-No Program, substitua apenas `new ProdutosEmMemoria()` por `new ProdutosPromocionais()`. O serviço deve continuar igual e a saída deve mudar. Essa é a evidência da substituição da dependência; alterar o preço dentro da mesma lista não demonstra a troca de implementação.
+No projeto console `TreinoSupermercado` (mantendo a classe `Produto.cs` com `Nome` e `Preco`), construa passo a passo os arquivos abaixo usando **Adicionar → Classe / Interface** (`Shift+Alt+C`) no **Visual Studio 2022**:
 
-`ValidarPreco` está separado da consulta para exercitar a localização de uma regra sem interface gráfica. A partir da aula 11, a validação fará parte do próprio caso de uso `SalvarAsync`, antes da gravação. No `try`, execute a operação; no `catch`, apresente a recusa. O código depois do `throw` não continua no mesmo caminho.
+### Passo 1 — Construir o Contrato `IConsultaProdutos.cs` (`A04.02`)
+1. Crie o arquivo **`IConsultaProdutos.cs`**.
+2. Declare `public interface IConsultaProdutos` contendo um único método:
+   - Nome: `Listar`
+   - Parâmetros: nenhum `()`
+   - Retorno: `IReadOnlyList<Produto>`
 
-O Repository concentra o SQL, mas trocar PostgreSQL por outro banco pode exigir também mudar transações, tipos e migrações. A interface reduz o impacto; não torna bancos intercambiáveis automaticamente.
+### Passo 2 — Construir o Primeiro Repositório em Memória: `ProdutosEmMemoria.cs`
+1. Crie o arquivo **`ProdutosEmMemoria.cs`** declarando `public class ProdutosEmMemoria : IConsultaProdutos`.
+2. Implemente o método `public IReadOnlyList<Produto> Listar()` retornando uma `new List<Produto>` com dois produtos fictícios: `"Arroz"` (`25.90m`) e `"Feijão"` (`8.50m`).
+3. *(Opcional)* Lembre-se que esse repositório funciona 100% offline, sem internet e sem banco de dados!
 
-No aplicativo final, o serviço decide se o usuário pode salvar e se o preço é válido. O repositório executa o SQL. Na venda, o repositório mantém os comandos relacionados numa mesma transação: dividir cada comando em uma conexão diferente destruiria essa garantia.
+### Passo 3 — Construir o Serviço: `ConsultaProdutosService.cs` (`A04.03` e `A04.04`)
+1. Crie o arquivo **`ConsultaProdutosService.cs`** declarando `public class ConsultaProdutosService`.
+2. Declare um campo privado somente leitura: `private readonly IConsultaProdutos produtos;`.
+3. Crie o construtor público `ConsultaProdutosService(IConsultaProdutos produtos)` guardando o parâmetro no campo com `this.produtos = produtos;`.
+4. Crie o método `public IReadOnlyList<Produto> Executar()` que chama `produtos.Listar()` e devolve o resultado.
+5. Crie o método `public void ValidarPreco(decimal preco)`:
+   - Se `preco <= 0`, lance `ArgumentException` com a mensagem `"Preço deve ser positivo."`.
+   - *(Por que `ValidarPreco` está separado de `Executar` hoje? Para você exercitar uma regra de negócio isolada no serviço sem nenhuma tela gráfica. A partir da Aula 11, a validação ficará integrada dentro de `SalvarAsync`.)*
 
-A conexão direta do desktop ao Neon serve ao laboratório. Um usuário com acesso à máquina pode obter a credencial de banco ou modificar uma sessão em memória. Em uma implantação comercial, coloque as regras de autorização numa API autenticada; o desktop não deve receber a credencial compartilhada do banco.
+### Passo 4 — Construir a Segunda Implementação: `ProdutosPromocionais.cs` (`A04.03`)
+1. Crie o arquivo **`ProdutosPromocionais.cs`** também assinando o mesmo contrato (`: IConsultaProdutos`).
+2. Implemente `Listar()` retornando uma lista diferente — por exemplo, apenas `"Café"` por `12.90m`.
 
-## Verifique antes de encerrar
+### Passo 5 — Conectar Tudo no `Program.cs` e Comprovar os 4 Critérios
+No `Program.cs` (mantendo apenas instruções de execução):
+1. Instancie `IConsultaProdutos repositorio = new ProdutosEmMemoria();`.
+2. Crie `var servico = new ConsultaProdutosService(repositorio);` (injeção manual!).
+3. Percorra `servico.Executar()` com `foreach` e exiba cada produto e preço formatado com `:C`.
+4. **Teste de proteção do contrato (`A04.02`):** tente chamar temporariamente `servico.Executar().Add(new Produto());`, observe o erro do compilador (`CS1061`, pois `IReadOnlyList` não possui `Add`) e apague a linha.
+5. **Teste de regra independente de tela (`A04.04`):** chame `servico.ValidarPreco` com `25.90m`, `0m` e `-1m` usando `try / catch (ArgumentException erro)` para exibir a recusa sem travar o console.
+6. **Prova real da troca de dependência (`A04.03`):** no `Program.cs`, troque **apenas** `new ProdutosEmMemoria()` por `new ProdutosPromocionais()` e execute com `Ctrl+F5`.
+   - **Observe:** a saída muda para `"Café"` sem que você tenha tocado em **uma única linha** de `ConsultaProdutosService.cs`! (Simplesmente alterar o preço dentro da mesma lista **não** demonstra troca de implementação.)
 
-- Troque o preço da lista em memória e mostre a mudança no console.
-- Chame `ValidarPreco(-1)` sem nenhuma tela: a regra continua funcionando.
-- Explique por que um repositório não deve mostrar `MessageBox`.
-- Registre no caderno quais responsabilidades mudarão quando adicionarmos o Neon.
+---
 
-[Anterior: aula 03](03-Orientacao-a-Objetos.md) · [Próxima: aula 05](05-Configuracao-Ambiente.md)
+## 5. Verificação e Reflexão Antes de Encerrar
+
+Registre no seu caderno:
+- Por que um repositório (`Repositories`) **jamais** deve chamar `MessageBox.Show` ou `Console.WriteLine`?
+- Quais arquivos continuarão iguais e quais precisarão mudar quando conectarmos o PostgreSQL (Neon) ou MySQL (XAMPP) nas próximas aulas?
+- O que precisaria mudar para levar credenciais e autorização para uma API comercial (`A04.05`)?
+
+[Anterior: Aula 03](03-Orientacao-a-Objetos.md) · [Próxima: Aula 05 — Ambiente e solução no VS 2022](05-Configuracao-Ambiente.md) · [Índice](README.md)
 
 ## Atividades por conceito
 

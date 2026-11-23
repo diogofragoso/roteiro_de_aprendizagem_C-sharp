@@ -1,73 +1,98 @@
-# Aula 20 — Verificação e publicação local
+# Aula 20 — Verificação Automatizada, Roteiro Manual e Publicação no VS 2022
 
-**Duração:** 3h30. **Pré-requisito:** aula 19. **Entrega:** aplicação compilada em Release, evidências dos fluxos essenciais e pasta executável para demonstração no laboratório.
+**Duração:** 3h30. **Pré-requisito:** [Aula 19](19-Cadastro-de-Usuarios.md). **Entrega:** projeto de verificações com Fakes construído e executado com suas próprias asserções, compilação limpa em modo `Release`, roteiro manual conferido em dupla e pasta executável autocontida (`win-x64`) rodando fora do Visual Studio 2022.
 
 | Bloco | Minutos | Atividade |
 | --- | ---: | --- |
-| Retomada | 15 | Conferir o fluxo completo e o escopo da entrega |
-| Explicação | 30 | Teste de regra, integração, interface e publicação |
-| Construção | 60 | Executar verificações e corrigir problemas encontrados |
+| Retomada | 15 | Conferir o fluxo completo do MarketFlow e o escopo final da entrega |
+| Explicação | 30 | Pirâmide de testes (Build, Fakes, Integração, UI), `Release` vs `Debug` e publicação |
+| Construção | 60 | Construir seu projeto console de verificações com Fakes e asserção de regressão |
 | Intervalo | 15 | Pausa |
-| Prática | 60 | Publicar e executar fora da IDE |
-| Entrega | 30 | Demonstrar, apresentar evidências e registrar limites |
+| Prática | 60 | Executar roteiro manual em dupla, publicar pelo VS 2022 e rodar fora da IDE |
+| Entrega | 30 | Demonstrar executável, explicar transação/camadas e registrar limites conhecidos |
 
-## 1. Separe o que cada verificação comprova
+---
 
-Antes da suíte pronta, cada estudante apresenta uma asserção própria reaproveitada das aulas 11 ou 15, com um caso de fronteira e uma alteração controlada que a faça falhar. Restaure o código e repita. Isso comprova que o teste detecta um defeito conhecido, em vez de apenas executar comandos fornecidos.
+## 1. O Que Cada Tipo de Verificação Comprova (E O Que NÃO Comprova!) (`A20.01`)
 
-Uma compilação encontra tipos e chamadas inconsistentes, mas não comprova venda correta. Um teste com repositório em memória comprova uma regra, mas não comprova transação PostgreSQL. Um teste no banco não comprova navegação por teclado. Precisamos de evidências complementares.
+Um erro frequente de iniciantes é achar que *"compilou sem erro = sistema sem bugs"*. Cada camada de verificação comprova uma coisa diferente:
 
-Na solução de referência, abra `Supermercado.sln` e execute no terminal da raiz:
+| Tipo de Verificação | O que comprova | O que **NÃO** comprova |
+| --- | --- | --- |
+| **Compilação (`Build Release`)** | Sintaxe válida, tipos compatíveis e assinaturas batendo. | Não comprova que o cálculo do troco ou o SQL estão corretos. |
+| **Testes de Regra com Fakes em Memória** | Validações de `Carrinho`, `ProdutoService`, `AutenticacaoService`, `VendaService` e permissões — executam em milissegundos e sem internet! | Não comprova `FOR UPDATE`, rollback real do PostgreSQL nem constraints SQL. |
+| **Testes de Integração no Banco** | Atomicidade (rollback após escrita), concorrência pelo último item, idempotência real e intervalo UTC no SQL. | Não comprova navegação por teclado (`Tab`/`Enter`) nem cliques de tela. |
+| **Teste Manual de Interface (UI)** | Fluxo real de uso, layout, teclado, mensagens amigáveis e execução fora da IDE. | Demorado para repetir dezenas de fronteiras a cada pequena mudança. |
 
-```powershell
-dotnet build Supermercado.sln -c Release
-dotnet run --project tests/SupermercadoApp.Verificacoes -c Release
-```
+**Por que precisamos dos quatro?** Porque eles se complementam! Nunca diga que um teste com Fake em memória "testou a transação do banco".
 
-O projeto de verificações é um console para reduzir dependências didáticas; falhas encerram com código diferente de zero. Leia os casos em [Program.cs](tests/SupermercadoApp.Verificacoes/Program.cs). Eles verificam carrinho, validação, hash, perfis e encaminhamento de pedidos. Não são testes de PostgreSQL.
+---
 
-O [roteiro de integração](VALIDACAO-MANUAL.md) inclui rollback após escrita, duas vendas concorrentes e repetição de chave. Esses casos fazem parte das evidências da aula 16; se não puderem executar, registre “pendente” e programe recuperação. A automação de apoio está em `tests/SupermercadoApp.Integracao`: com `SUPERMERCADO_TEST_DB` configurada em banco didático e argumento `--executar`, cria um esquema próprio, testa os casos e remove somente esse esquema. Ela não usa a conexão normal do aplicativo. Sem execução, não conclua que os fakes testaram transações.
+## 2. Entendendo `Debug` vs `Release` e Publicação Autocontida (`A20.04`)
 
-## 2. Verifique a interface e os dados
+Quando você aperta `F5` durante as aulas, o Visual Studio 2022 compila em modo **`Debug`** (inclui informações extras para Breakpoints e desativa otimizações). Para entregar um aplicativo para uso:
 
-Siga o [roteiro manual completo](VALIDACAO-MANUAL.md). Use os dados conhecidos da aula 15 e uma conta de cada perfil. Confira especialmente login incorreto, troca de usuário, código duplicado, estoque insuficiente, recebido insuficiente, histórico e relatório.
+- **`Release`:** ativa otimizações do compilador para um executável mais rápido e enxuto.
+- **RID (`win-x64`):** *Runtime Identifier* — indica o sistema operacional e arquitetura de destino (Windows 64 bits).
+- **Implantação Autocontida (`Self-Contained`):** inclui o motor do .NET dentro da pasta publicada.
+  - **Vantagem:** o computador de destino não precisa ter o .NET Runtime pré-instalado.
+  - **Trade-off (por que saber o custo):** a pasta fica maior (vários arquivos que precisam ser copiados **juntos** — nunca copie só o `.exe`!) e, quando sair uma atualização de segurança do .NET, você precisa republicar o aplicativo.
 
-Em dupla, uma pessoa opera a aplicação e outra confere os resultados esperados. Troquem os papéis para o segundo perfil. Se surgir um erro, descreva entrada e resultado antes de alterar o código; assim será possível verificar a correção.
+---
 
-## 3. Publique pelo Visual Studio
+## 3. Roteiro de Construção Guiada: Suas Verificações e Publicação no VS 2022
 
-1. No Gerenciador de Soluções, botão direito no projeto **SupermercadoApp**, não na solução → **Publicar**.
-2. Escolha **Pasta** e destino local `artifacts/publish` na raiz do seu projeto.
-3. Nas configurações, selecione **Release**, destino `win-x64` e implantação **autocontida**.
-4. Deixe arquivo único e trimming desabilitados nesta primeira publicação.
-5. Publique e abra a pasta. Não copie apenas o `.exe`: mantenha todos os arquivos gerados.
+### Passo 1 — Construir um Projeto Console de Verificações com Fakes (`A20.02`)
+Na sua solução `Supermercado` no **Visual Studio 2022**:
+1. Clique com o botão direito na **Solução `Supermercado`** (no topo do Gerenciador de Soluções) → **Adicionar → Novo Projeto...** → **Aplicativo de Console** (C#) → nomeie **`SupermercadoApp.Verificacoes`**.
+2. Clique com o botão direito nas **Dependências** de `SupermercadoApp.Verificacoes` → **Adicionar Referência de Projeto...** → marque **`SupermercadoApp`** e clique em **OK**.
+   - *(Atenção: mantenha `SupermercadoApp` como Projeto de Inicialização padrão; clique com o botão direito em `SupermercadoApp` → **Definir como Projeto de Inicialização**.)*
+3. Dentro de `SupermercadoApp.Verificacoes`, reaproveite os casos das Aulas 11 e 15 e construa **suas próprias verificações automatizadas** com classes Fake implementando `IProdutoRepository`, `IUsuarioRepository` e `IVendaRepository`:
+   - Crie uma função auxiliar `Conferir(bool condicao, string descricao)` que lança `Exception` se a condição for falsa;
+   - Teste agrupamento e total `60,30` no `Carrinho`, recusa de preço `0` / `1.999m` / sessão de `Caixa` no `ProdutoService`, preservação de espaços na senha e salt no `AutenticacaoService`, e bloqueio de intervalo invertido no `VendaService`.
+4. **Prova de regressão (teste que detecta bug real — `A20.02`):** em uma cópia local controlada, introduza deliberadamente um pequeno defeito em uma regra (ex.: alterar `<= 0` para `< 0`), execute seu console de verificações e **comprove que sua asserção falha avisando o defeito**. Restaure a regra correta e execute novamente comprovando aprovação!
 
-Alternativa pelo terminal, na raiz deste repositório:
+*(Para referência docente, a solução do repositório também traz uma suíte de verificações em `tests/SupermercadoApp.Verificacoes` e um runner opt-in de integração PostgreSQL em `tests/SupermercadoApp.Integracao` — consulte [VALIDACAO-MANUAL.md](VALIDACAO-MANUAL.md) e [src/README.md](src/README.md) para detalhes de execução de laboratório.)*
 
-```powershell
-dotnet publish src/SupermercadoApp/SupermercadoApp.csproj -c Release -r win-x64 --self-contained true -o artifacts/publish
-```
+### Passo 2 — Verificação Manual em Dupla (`A20.03`)
+Siga o [**Roteiro Manual Completo**](VALIDACAO-MANUAL.md) trabalhando em dupla: uma pessoa opera a aplicação no papel de Administrador e a outra confere os resultados no banco e anota evidências; depois troquem os papéis para operar como Caixa. Qualquer teste que não puder ser executado por falta de rede/ambiente deve ser marcado honestamente como **pendente**, nunca como "passou".
 
-A publicação autocontida inclui runtime, mas continua exigindo Windows compatível, arquitetura correta e internet para acessar o Neon. Ela é maior e precisa ser republicada quando houver atualização de segurança do runtime. A publicação pode precisar baixar pacotes do runtime pelo NuGet. Veja [implantação .NET](https://learn.microsoft.com/en-us/dotnet/core/deploying/).
+### Passo 3 — Publicar pelo Assistente do Visual Studio 2022 (`A20.04`)
+1. No **Gerenciador de Soluções**, clique com o botão direito no projeto **`SupermercadoApp`** (e **não** na solução!) → **Publicar...**.
+2. Escolha destino **Pasta** → **Pasta** → informe o caminho local `artifacts\publish` e clique em **Concluir**.
+3. Clique em **Mostrar todas as configurações** e ajuste exatamente:
+   - **Configuração:** `Release`
+   - **Modo de implantação:** `Autocontido` (*Self-contained*)
+   - **Runtime de destino:** `win-x64`
+   - **Opções de publicação de arquivo:** deixe *Produzir arquivo único* e *Cortar código não usado (Trimming)* **desmarcados** nesta primeira publicação.
+4. Salve e clique em **Publicar**. Ao concluir, abra a pasta gerada e observe todos os arquivos criados junto ao `SupermercadoApp.exe`.
 
-## 4. Execute fora da IDE
+*(Equivalente opcional pelo Terminal do Visual Studio 2022: `dotnet publish src/SupermercadoApp/SupermercadoApp.csproj -c Release -r win-x64 --self-contained true -o artifacts/publish`, ajustando o caminho para o `.csproj` do seu projeto.)*
 
-Feche o Visual Studio, confirme que a conta Windows possui `SUPERMERCADO_DB` e abra `SupermercadoApp.exe`. Não entregue credenciais dentro da pasta publicada. Em outra máquina do laboratório, configure a variável localmente antes de testar. As contas do supermercado já estão no banco; não execute novamente a preparação de administrador.
+### Passo 4 — Executar Fora do Visual Studio 2022 (`A20.05`)
+1. **Feche completamente o Visual Studio 2022.**
+2. Confirme que a variável de ambiente `SUPERMERCADO_DB` está configurada na conta Windows (nunca coloque arquivos de credenciais dentro da pasta `publish`!).
+3. Abra a pasta `artifacts\publish` pelo Explorador de Arquivos do Windows e execute **`SupermercadoApp.exe`** com duplo clique.
+4. Demonstre login como `Administrador`, troca de usuário para `Caixa` e uma venda fictícia completa.
 
-Demonstre um login de cada perfil e uma venda de teste. Se o computador não puder acessar o Neon, registre essa limitação e não apresente a publicação como validada nesse computador. Não distribua o aplicativo para operação real com a credencial direta do banco; a arquitetura de produção exige a API discutida na aula 04.
+---
 
-## Critérios de entrega
+## 4. Critérios Finais de Entrega e Limites Conhecidos (`A20.06`)
 
-- Solução e scripts organizados; sem credenciais versionadas.
-- Compilação Release sem erro e resultado das verificações automáticas registrado.
-- Evidências manuais dos fluxos de administrador e caixa, incluindo falhas.
-- Pasta publicada abrindo fora da IDE em máquina de laboratório configurada.
-- Explicação de uma transação, de autorização e do caminho tela → serviço → repositório.
-- Limites conhecidos registrados: dinheiro simulado, comprovante não fiscal, conexão direta didática, sem modo offline ou recuperação durável de tentativa após encerramento forçado.
+Sua entrega final deve reunir:
+- Solução e scripts SQL organizados (sem pastas `bin`, `obj`, `.vs` e **sem credenciais**).
+- Compilação `Release` sem erros e saída registrada das suas verificações com Fakes.
+- Evidências manuais dos fluxos de Administrador e Caixa (incluindo casos inválidos e pendências reais).
+- Pasta publicada executando fora do Visual Studio 2022 em máquina configurada.
+- Explicação individual (com suas palavras) de: (a) como funciona uma transação com bloqueio, (b) como a autorização é protegida no serviço e (c) o caminho completo `View → Service → Repository → Banco`.
+- **Limites conhecidos registrados com honestidade:** pagamento em dinheiro simulado, comprovante didático sem valor fiscal, conexão direta didática ao banco (produção exige API autenticada), sem modo offline ou recuperação durável após queda abrupta de energia.
 
-Os desafios futuros — API, recuperação de senha, turnos de caixa, devoluções, paginação, persistência local de tentativas, testes com framework e integrações fiscais — formam novas unidades. Eles não são trabalho obrigatório escondido nesta aula.
+> [!TIP]
+> **Próximos passos na sua jornada C#:** agora que você construiu um sistema completo do zero entendendo cada detalhe, desafios excelentes de continuidade são criar uma **ASP.NET Core Web API** para proteger o banco, adotar um framework de testes (**xUnit**), implementar **paginação no relatório**, **abertura/fechamento de caixa**, **devoluções** e **recuperação de senha**!
 
-[Anterior: aula 19](19-Cadastro-de-Usuarios.md) · [Índice](README.md)
+Consulte a documentação oficial sobre [Implantação de Aplicativos .NET](https://learn.microsoft.com/en-us/dotnet/core/deploying/).
+
+[Anterior: Aula 19](19-Cadastro-de-Usuarios.md) · [Índice Geral](README.md)
 
 ## Atividades por conceito
 

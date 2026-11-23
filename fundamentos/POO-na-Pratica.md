@@ -1,180 +1,103 @@
-# POO na prática com C#
+# Laboratório Complementar — POO na Prática com C# (Visual Studio 2022)
 
-Use este laboratório depois de [métodos (F03)](03-Metodos.md). Você vai criar objetos no console, acompanhar as mudanças de estado e observar como a mesma chamada pode executar comportamentos diferentes.
+Use este laboratório como reforço prático a partir da etapa [F03 (Métodos)](03-Metodos.md) e em paralelo às etapas `F04`–`F07`. O objetivo é ler, prever, depurar e **construir** modelos orientados a objetos no console antes de aplicá-los ao supermercado.
 
-Crie um projeto de **Aplicativo de Console** chamado `PooNaPratica`. Em cada exemplo, substitua **todo** o conteúdo de `Program.cs` pelo bloco correspondente. As instruções de execução ficam no início do arquivo e as declarações dos tipos ficam no final.
+Crie no **Visual Studio 2022** um **Aplicativo de Console** chamado `PooNaPratica`.
 
-## 1. Abstração, classes e objetos
+---
 
-Imagine um aplicativo para acompanhar leituras. Ele precisa do título, da quantidade de páginas e do progresso. A cor da capa só entraria no modelo se houvesse uma função que usasse essa informação. **Abstração** é escolher os dados e as operações que fazem sentido para o problema.
+## 1. Revisão dos Conceitos-Chave (O Quê e Por Quê)
 
-`Livro` é uma **classe** que define o tipo. Cada chamada a `new Livro(...)` cria um **objeto**, também chamado de instância. Os valores que ele guarda em um dado momento são seu **estado**. Os métodos expressam seu **comportamento**.
+| Conceito | O que significa? | Por que é importante na prática? |
+| --- | --- | --- |
+| **Abstração** | Escolher apenas os dados e comportamentos relevantes para o sistema. | Evita poluir o código com propriedades inúteis (ex.: para controlar leitura de livros, importam título e páginas; não importa o peso da capa). |
+| **Classe e Objeto** | A classe é o molde; cada `new` cria um objeto (instância) com estado próprio. | Permite representar dezenas de registros independentes sem criar variáveis numeradas (`livro1`, `livro2`...). |
+| **Encapsulamento** | Controlar alterações de estado via construtor e métodos validadores (`private set`). | Garante que nenhuma parte do código coloque o objeto em um estado impossível (ex.: páginas lidas maior que o total). |
+| **Polimorfismo** | Chamar o mesmo método por um tipo comum (interface ou classe base) e cada objeto responder à sua maneira. | Permite adicionar novos tipos ao sistema sem reescrever o laço ou o código que os consome. |
 
-## 2. Construtor e encapsulamento
+---
 
-Um livro começa com zero páginas lidas. Depois, o progresso só pode aumentar até o total de páginas. O **construtor** recebe e valida os dados necessários na criação. O **encapsulamento** faz com que alterações de progresso passem por uma operação que verifica a regra.
+## 2. Retornar `bool` vs Lançar Exceção (`throw`)
 
-```csharp
-Livro viagem = new Livro("Viagem", 120);
-Livro jardim = new Livro("Jardim", 80);
+Em `F05`, você usou `throw new ArgumentException(...)` para recusar dados inválidos. Existe uma segunda estratégia muito usada em C# para operações que podem falhar de forma esperada no dia a dia: **retornar `bool`** (`true` se conseguiu aplicar a operação, `false` se recusou mantendo o estado intacto).
 
-viagem.RegistrarLeitura(20);
-Console.WriteLine(viagem.Resumo());
-Console.WriteLine(jardim.Resumo());
+- **No Construtor:** como construtores não têm retorno `bool`, **sempre** usamos `throw` (ex.: `ArgumentException` ou `ArgumentOutOfRangeException`) para impedir que um objeto nasça inválido.
+- **Em um Método de Ação (como `RegistrarLeitura`):** você pode optar por retornar `bool` para que o chamador decida em um `if (!objeto.RegistrarLeitura(x))` como avisar o usuário, sem precisar de `try/catch`.
 
-Livro leituraAtual = viagem;
-leituraAtual.RegistrarLeitura(10);
-Console.WriteLine(viagem.Resumo());
+> [!NOTE]
+> **O que é `nameof(parametro)`?** Em `throw new ArgumentException("Informe o título.", nameof(titulo));`, o operador `nameof(titulo)` gera o texto `"titulo"` automaticamente. **Por que usar `nameof` em vez de escrever `"titulo"` na mão?** Se um dia você renomear o parâmetro no Visual Studio 2022 (`Ctrl+R, R`), o `nameof` é renomeado junto e nunca fica desatualizado!
 
-if (!viagem.RegistrarLeitura(100))
-{
-    Console.WriteLine("Quantidade recusada.");
-}
+---
 
-Console.WriteLine(viagem.Resumo());
+## 3. Estudo de Caso Guiado 1 — Construtor, Referências e Retorno `bool`
 
-public class Livro
-{
-    public string Titulo { get; }
-    public int TotalPaginas { get; }
-    public int PaginasLidas { get; private set; }
+Construa no projeto `PooNaPratica` a classe `LivroLeitura.cs` (`Shift+Alt+C`) seguindo as orientações abaixo:
 
-    public Livro(string titulo, int totalPaginas)
-    {
-        if (string.IsNullOrWhiteSpace(titulo))
-        {
-            throw new ArgumentException("Informe o título.", nameof(titulo));
-        }
+1. **Propriedades:**
+   - `Titulo` (`string`, `{ get; }`);
+   - `TotalPaginas` (`int`, `{ get; }`);
+   - `PaginasLidas` (`int`, `{ get; private set; }`).
+2. **Construtor `public LivroLeitura(string titulo, int totalPaginas)`:**
+   - Se `string.IsNullOrWhiteSpace(titulo)` → lance `ArgumentException` passando `nameof(titulo)`.
+   - Se `totalPaginas <= 0` → lance `ArgumentOutOfRangeException` passando `nameof(totalPaginas)`.
+   - Guarde `Titulo = titulo.Trim();` e `TotalPaginas = totalPaginas;`.
+3. **Método `public bool RegistrarLeitura(int quantidade)`:**
+   - Se `quantidade <= 0` ou `quantidade > TotalPaginas - PaginasLidas` → retorne `false` **sem alterar `PaginasLidas`**.
+   - Caso contrário, some `quantidade` em `PaginasLidas` (usando o atalho `PaginasLidas += quantidade;`) e retorne `true`.
+4. **Método `public string Resumo()`:**
+   - Retorne `$"{Titulo} | {PaginasLidas}/{TotalPaginas} páginas"`.
+5. **Testes no `Program.cs`:**
+   - Instancie `viagem` (`120` páginas) e `jardim` (`80` páginas).
+   - Registre `20` páginas em `viagem` e imprima o resumo dos dois.
+   - Crie `LivroLeitura leituraAtual = viagem;`, registre mais `10` páginas por `leituraAtual` e imprima `viagem.Resumo()` (esperado: `30/120`, comprovando referência compartilhada!).
+   - Teste `if (!viagem.RegistrarLeitura(100))` e exiba `"Quantidade recusada."`, conferindo que `viagem` continua em `30/120`.
+   - Registre mais `90` páginas (chegando a `120/120`) e depois tente registrar mais `1` (deve ser recusada).
 
-        if (totalPaginas <= 0)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(totalPaginas), "O total de páginas deve ser positivo.");
-        }
+---
 
-        Titulo = titulo.Trim();
-        TotalPaginas = totalPaginas;
-    }
+## 4. Estudo de Caso Guiado 2 — Interface, Herança (`base`) e Polimorfismo
 
-    public bool RegistrarLeitura(int quantidade)
-    {
-        if (quantidade <= 0 || quantidade > TotalPaginas - PaginasLidas)
-        {
-            return false;
-        }
+### Como funciona `: base(...)` e `base.Metodo()` em Herança?
+Quando uma classe filha (`AvisoUrgente : Aviso`) herda de uma classe pai que exige um parâmetro no construtor (`public Aviso(string titulo)`):
+- O construtor da filha repassa esse dado para o construtor da pai usando **`: base(titulo)`**:
+  ```csharp
+  public AvisoUrgente(string titulo) : base(titulo)
+  {
+  }
+  ```
+- Dentro de um método sobrescrito (`override`), você pode reaproveitar o texto gerado pela classe pai chamando **`base.Exibir()`** e acrescentar um prefixo na frente (ex.: `$"URGENTE | {base.Exibir()}"`).
 
-        PaginasLidas += quantidade;
-        return true;
-    }
+### Sua vez de construir o Painel Polimórfico (em arquivos separados):
+1. Crie `IExibivel.cs` com a interface `public interface IExibivel` exigindo `string Exibir();`.
+2. Crie `Aviso.cs` implementando `IExibivel`, com propriedade `Titulo { get; }`, construtor exigindo título e método `public virtual string Exibir()` retornando `$"Aviso | {Titulo}"`.
+3. Crie `AvisoUrgente.cs` herdando de `Aviso`, repassando o título com `: base(titulo)` e sobrescrevendo `Exibir()` com `override` para retornar `$"URGENTE | {base.Exibir()}"`.
+4. Crie `Rodape.cs` implementando `IExibivel` (sem herdar de `Aviso`), retornando uma mensagem fixa de atendimento.
+5. Crie também uma quarta classe **`Horario.cs`** implementando `IExibivel` que informe o horário de funcionamento.
+6. No `Program.cs`, monte uma coleção `IExibivel[]` ou `List<IExibivel>` contendo instâncias das quatro classes e percorra tudo com **um único `foreach`** chamando `item.Exibir()`. Observe o polimorfismo em ação!
 
-    public string Resumo()
-    {
-        return $"{Titulo} | {PaginasLidas}/{TotalPaginas} páginas";
-    }
-}
-```
+---
 
-Saída esperada
+## 5. Desafio Independente de Modelagem: `SessaoDeEstudo`
 
-```text
-Viagem | 20/120 páginas
-Jardim | 0/80 páginas
-Viagem | 30/120 páginas
-Quantidade recusada.
-Viagem | 30/120 páginas
-```
+Construa do zero (sem consultar os exemplos anteriores) a classe `SessaoDeEstudo.cs` que controla uma sessão de estudo cronometrada:
 
-- `Titulo`, `TotalPaginas` e `PaginasLidas` são **propriedades**. `get` permite a leitura. O `private set` permite escrever em `PaginasLidas` dentro da própria classe. São propriedades automáticas, cujo armazenamento fica em campos gerados pelo compilador.
-- Em `Livro leituraAtual = viagem`, as duas variáveis passam a referenciar a mesma instância. Por isso, a chamada feita por `leituraAtual` aparece no resumo obtido por `viagem`. O objeto referenciado por `jardim` mantém seu próprio estado.
-- O construtor lança uma exceção quando recebe dados inválidos. Já `RegistrarLeitura` devolve `false` quando a quantidade é recusada e deixa o estado como estava. Quem chama o método decide como mostrar a recusa.
+- **O que deve guardar:** assunto (`string`), meta em minutos (`int`) e minutos estudados (`int`, começando em `0`).
+- **Regras obrigatórias:**
+  - Exija assunto preenchido e meta positiva no construtor (lance exceção em caso contrário).
+  - Crie um método para registrar minutos estudados que recuse valores `<= 0` ou que ultrapassem o tempo restante da meta, preservando o progresso anterior.
+  - Crie um método `Resumo()` devolvendo o texto do progresso.
 
-**Experimente.** Depois da última chamada a `Resumo`, registre mais 90 páginas em `viagem` e tente registrar mais uma. O progresso deve chegar a 120 e permanecer nesse valor. Em seguida, tente escrever `viagem.PaginasLidas = 500;` e identifique por que a compilação falha. Retire a linha antes de continuar.
+### Tabela de Verificação (Teste todos os casos no `Program.cs`)
 
-## 3. Herança, interfaces e polimorfismo
-
-Neste exemplo, um painel mostra avisos da biblioteca. A **interface** `IExibivel` descreve a operação que o painel pede. A **herança** permite que `AvisoUrgente` especialize `Aviso` e reutilize o título e a formatação da classe base. O painel também exibe um `Rodape`, que implementa o mesmo contrato.
-
-```csharp
-IExibivel[] painel =
-{
-    new Aviso("Devolução até sexta"),
-    new AvisoUrgente("Biblioteca fecha às 16h"),
-    new Rodape()
-};
-
-foreach (IExibivel item in painel)
-{
-    Console.WriteLine(item.Exibir());
-}
-
-public interface IExibivel
-{
-    string Exibir();
-}
-
-public class Aviso : IExibivel
-{
-    public string Titulo { get; }
-
-    public Aviso(string titulo)
-    {
-        Titulo = titulo;
-    }
-
-    public virtual string Exibir()
-    {
-        return $"Aviso | {Titulo}";
-    }
-}
-
-public class AvisoUrgente : Aviso
-{
-    public AvisoUrgente(string titulo) : base(titulo)
-    {
-    }
-
-    public override string Exibir()
-    {
-        return $"URGENTE | {base.Exibir()}";
-    }
-}
-
-public class Rodape : IExibivel
-{
-    public string Exibir()
-    {
-        return "Consulte a recepção para mais informações.";
-    }
-}
-```
-
-Saída esperada
-
-```text
-Aviso | Devolução até sexta
-URGENTE | Aviso | Biblioteca fecha às 16h
-Consulte a recepção para mais informações.
-```
-
-- Em `Aviso : IExibivel`, a classe implementa uma interface. Em `AvisoUrgente : Aviso`, a classe deriva de outra classe. O compilador exige que os tipos exibíveis ofereçam a operação `Exibir()`.
-- `: base(titulo)` chama o construtor de `Aviso` para inicializar o título. `virtual` autoriza a especialização do método e `override` declara a especialização. Dentro dela, `base.Exibir()` chama explicitamente a implementação da classe base.
-- No laço, `item` tem o tipo declarado `IExibivel`. A chamada `item.Exibir()` executa a implementação correspondente a cada objeto. Essa é a manifestação do **polimorfismo** no exemplo.
-
-**Experimente.** Troque `new AvisoUrgente(...)` por `new Aviso(...)` mantendo o mesmo título. Preveja qual parte da segunda linha muda. Depois, implemente uma classe `Horario : IExibivel` e inclua uma instância no painel. O mesmo laço deve exibir o quarto item.
-
-## 4. Prática independente
-
-Modele uma `SessaoDeEstudo` com assunto, meta em minutos e tempo estudado. Exija assunto preenchido e meta positiva na construção. Crie um método para registrar minutos e recusar valores que ultrapassem o tempo restante.
-
-| Caso para demonstrar | Resultado esperado |
+| Caso testado | Resultado esperado |
 | --- | --- |
-| Criar uma sessão de 45 minutos | Progresso inicial de 0 |
-| Registrar 20 minutos | Progresso de 20 |
-| Tentar registrar 26 minutos | Recusa e progresso de 20 |
-| Registrar 25 minutos | Progresso de 45 |
-| Criar outra sessão | A nova sessão começa em 0 |
-| Criar uma sessão com meta zero | Construção recusada |
+| Criar sessão `"C#"` com meta de `45` minutos | Progresso inicial: `0` |
+| Registrar `20` minutos | Aceito; progresso passa para `20` |
+| Tentar registrar `26` minutos | Recusado; progresso permanece `20` |
+| Registrar `25` minutos | Aceito; progresso chega a `45` |
+| Criar uma segunda sessão `"SQL"` com meta `30` | Nova sessão começa independente em `0` |
+| Tentar criar sessão com meta `0` ou assunto vazio | Construção recusada por exceção |
 
-Ao terminar, explique quais detalhes você escolheu para representar uma sessão, onde a regra de progresso é aplicada e por que as duas instâncias guardam estados independentes.
+Ao concluir, explique em voz alta (ou no caderno): quais propriedades você escolheu abstrair, onde a regra de progresso é protegida e por que as duas sessões mantêm estados independentes.
 
-Continue com [classes e referências](04-Classes-e-Objetos.md), [encapsulamento](05-Construtores-e-Encapsulamento.md), [composição](06-Composicao-e-Colecoes.md) e [interfaces](07-Interfaces-e-Transicao.md), ou siga para a [revisão aplicada ao supermercado](../03-Orientacao-a-Objetos.md) se já concluiu os fundamentos.
+Continue com [F04 — Classes e objetos](04-Classes-e-Objetos.md), [F05 — Encapsulamento](05-Construtores-e-Encapsulamento.md), [F06 — Composição](06-Composicao-e-Colecoes.md) e [F07 — Interfaces](07-Interfaces-e-Transicao.md), ou avance para a [Aula 03 do Projeto](../03-Orientacao-a-Objetos.md) se já concluiu os fundamentos.

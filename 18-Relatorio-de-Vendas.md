@@ -1,73 +1,107 @@
-# Aula 18 — Relatório de vendas por período
+# Aula 18 — Relatório de Vendas por Período, UTC e Intervalo Semiaberto
 
-**Duração:** 3h30. **Pré-requisito:** aula 17, com ao menos duas vendas confirmadas. **Entrega:** administrador consulta vendas por datas e vê quantidade e soma dos totais.
+**Duração:** 3h30. **Pré-requisito:** [Aula 17](17-Finalizacao-e-Troco.md), com ao menos duas vendas confirmadas no banco. **Entrega:** tela `FormRelatorio` integrada ao menu administrativo que consulta vendas por data local (convertida corretamente para UTC em intervalo semiaberto), exibe a grade e totaliza quantidade de vendas e faturamento.
 
 | Bloco | Minutos | Atividade |
 | --- | ---: | --- |
-| Retomada | 15 | Conferir vendas conhecidas no banco |
-| Explicação | 30 | Instante UTC, data local e intervalo semiaberto |
-| Construção | 60 | Consulta, serviço e filtros |
+| Retomada | 15 | Conferir vendas reais registradas no banco na Aula 17 |
+| Explicação | 30 | Instante UTC (`timestamptz`), horário local, intervalo semiaberto e projeção LINQ |
+| Construção | 60 | Implementar `RelatorioAsync` no contrato, repositório (`JOIN`) e serviço |
 | Intervalo | 15 | Pausa |
-| Prática | 60 | Grade, agregação e comparação SQL |
-| Entrega | 30 | Validar limites do período e perfil |
+| Prática | 60 | Construir `FormRelatorio` com `DateTimePicker` e conectar ao `FormAdministrador` |
+| Entrega | 30 | Conferir fronteiras de data com SQL fixo (`A18.01`–`A18.05`) e perfil negado |
 
-## 1. Declare a consulta
+---
 
-Acrescente a assinatura `RelatorioAsync` ao [IVendaRepository](src/SupermercadoApp/Repositories/IVendaRepository.cs) e o método correspondente ao [VendaRepository](src/SupermercadoApp/Repositories/VendaRepository.cs). Acrescente também o método do [VendaService](src/SupermercadoApp/Services/VendaService.cs), exigindo administrador e intervalo válido.
+## 1. Dois Erros Clássicos com Datas em Sistemas Reais (E Como Evitá-los)
 
-```sql
-WHERE v.criado_em >= @inicio AND v.criado_em < @fim
-```
+### 1.1 Por Que Guardar em UTC (`timestamptz`) e Converter Só na Tela? (`A18.01`)
+Imagine um servidor na nuvem nos EUA (horário UTC) recebendo vendas de um caixa em Brasília (`UTC-3`). Se você gravar datas sem fuso, relatórios quebram na mudança de dia (uma venda às `22:00` de Brasília já é `01:00` do dia seguinte em UTC!).
 
-**Por quê não comparar com “23:59:59”?** Um instante pode ter frações de segundo. É mais seguro incluir o início e excluir o começo do dia seguinte. `timestamptz` representa instantes; a interface apresenta no horário local.
+**A regra de ouro da engenharia:**
+1. **No banco (`timestamptz`):** tudo representa um **instante absoluto em UTC**.
+2. **Ao enviar filtros da tela para o serviço:** convertemos a data local do `DateTimePicker` para UTC usando **`.Date.ToUniversalTime()`** (isso define `DateTimeKind.Utc`, exigido pelo Npgsql e validado no `VendaService`).
+3. **Ao exibir os resultados na grade:** convertemos cada `v.DataUtc` para o horário local do computador usando **`.ToLocalTime()`**.
+- **Atenção:** configurar moeda `pt-BR` (`CultureInfo`) **não** muda o fuso horário do Windows! Confira no relógio do Windows do laboratório que o fuso está correto (ex.: Brasília, `America/Sao_Paulo`).
 
-## 2. Crie a janela
+### 1.2 Por Que Usar Intervalo Semiaberto (`>= início AND < fim`) e NUNCA `23:59:59`? (`A18.02` e `A18.03`)
+Para o usuário humano, escolher data inicial `16/10` e data final `16/10` significa *"inclua o dia 16 inteiro"*.
 
-Crie [FormRelatorio.cs](src/SupermercadoApp/Views/FormRelatorio.cs) com o conteúdo de referência. Ele usa dois `DateTimePicker`, grade, rótulo de resumo e botão Consultar. Não permite edição da grade.
+- **❌ Jeito perigoso (`<= '2026-10-16 23:59:59'`):** bancos modernos armazenam **microssegundos**! Uma venda gravada às `23:59:59.450` (meio segundo antes da meia-noite) ficaria **de fora** do relatório!
+- **✅ Jeito exato (Intervalo Semiaberto `[inicio, proximoDia)`):**
+  ```text
+  Início inclusivo (>=): 16/10 00:00:00.000 (local → UTC)
+  Fim exclusivo    (<) : 17/10 00:00:00.000 (fim.Value.Date.AddDays(1).ToUniversalTime())
+  ```
+  Qualquer venda até `23:59:59.999999` entra perfeitamente, e uma venda exatamente às `00:00:00.000` do dia `17/10` fica exatamente fora (entrará no relatório do dia 17, sem nunca aparecer duplicada em dois dias!).
 
-A data final escolhida é inclusiva para a pessoa. Antes de consultar:
-
+### 1.3 Projeção LINQ com Tipo Anônimo (`Select(v => new { ... })`) e Contagem de Vendas
+No relatório, `vendasPeriodo` retorna objetos `ResumoVenda(Id, DataUtc, Operador, Total)`. Para exibir a data já convertida em horário local na `DataGridView`, usamos uma projeção LINQ:
 ```csharp
-inicio.Value.Date.ToUniversalTime()
-fim.Value.Date.AddDays(1).ToUniversalTime()
+grade.DataSource = vendasPeriodo
+    .Select(v => new { v.Id, DataLocal = v.DataUtc.ToLocalTime(), v.Operador, v.Total })
+    .ToList();
 ```
+- **Atenção à métrica (`A18.04`):** `vendasPeriodo.Count` conta o número de **vendas (cupons)**, **não** a soma das quantidades de produtos vendidos; `vendasPeriodo.Sum(v => v.Total)` soma o faturamento do período.
+- **Nota de escala (`A18.05`):** neste recorte de laboratório carregamos a lista do período em memória. Em um supermercado com milhões de vendas por ano, a soma e a contagem devem ser calculadas por agregação no SQL (`COUNT(*)`, `SUM(total)`) e os detalhes exibidos com paginação (`LIMIT`/`OFFSET` ou cursor).
 
-Configure o Windows do laboratório para o fuso correto antes da prática, como Brasília para esta turma. Formatar moeda em `pt-BR` não altera o fuso. Npgsql recebe os parâmetros com `DateTimeKind.Utc`; converter apenas a apresentação de texto não basta.
+---
 
-Os resultados são convertidos com `ToLocalTime()` para a grade. O total exibido é `vendasPeriodo.Sum(v => v.Total)` e a quantidade é o número de vendas retornadas, não a quantidade de produtos.
+## 2. Roteiro de Construção Guiada (Sua Vez no Visual Studio 2022!)
 
-## 3. Conecte à administração
+### Passo 1 — Adicionar `RelatorioAsync` em `IVendaRepository`, `VendaRepository` e `VendaService`
+1. **`Repositories/IVendaRepository.cs`:** adicione a última assinatura do contrato:
+   - `Task<IReadOnlyList<ResumoVenda>> RelatorioAsync(DateTime inicioUtc, DateTime fimUtc);`
+2. **`Repositories/VendaRepository.cs`:** implemente `RelatorioAsync(DateTime inicioUtc, DateTime fimUtc)`:
+   - Escreva a consulta SQL unindo `venda` (`v`) e `usuario` (`u`) com **`JOIN`**:
+     ```sql
+     SELECT v.id, v.criado_em, u.username, v.total
+     FROM venda v
+     JOIN usuario u ON u.id = v.usuario_id
+     WHERE v.criado_em >= @inicio AND v.criado_em < @fim
+     ORDER BY v.criado_em, v.id
+     ```
+   - Adicione os parâmetros `"inicio"` (`inicioUtc`) e `"fim"` (`fimUtc`).
+   - Leia com `ExecuteReaderAsync()` e construa a `List<ResumoVenda>` usando `r.GetInt32(0)`, `r.GetDateTime(1)`, `r.GetString(2)` e `r.GetDecimal(3)`.
+3. **`Services/VendaService.cs`:** implemente `public Task<IReadOnlyList<ResumoVenda>> RelatorioAsync(Sessao sessao, DateTime inicio, DateTime fim)`:
+   - **Primeira linha:** `Permissoes.ExigirAdministrador(sessao);` *(Caixa NÃO acessa relatório financeiro!)*.
+   - **Validação de tipo UTC e intervalo:** se `inicio.Kind != DateTimeKind.Utc || fim.Kind != DateTimeKind.Utc || fim <= inicio`, lance `ArgumentException("Informe um intervalo UTC válido.")`.
+   - Retorne `vendas.RelatorioAsync(inicio, fim);`.
 
-Passe `VendaService` também para `FormAdministrador` e acrescente o botão “Relatório de vendas”, abrindo `FormRelatorio` com `using` e `ShowDialog(this)`. Caixa não recebe esse botão e o serviço verifica novamente o perfil.
+### Passo 2 — Construir `Views/FormRelatorio.cs` e Conectar ao `FormAdministrador`
+1. Crie **`Views/FormRelatorio.cs`** (`public sealed class FormRelatorio : Form`) recebendo **`(Sessao sessao, VendaService vendas)`** no construtor:
+   - Exija `Permissoes.ExigirAdministrador(sessao);`.
+   - Prepare o painel com `Ui.Preparar(this, "Administração — Vendas por período")`.
+   - Crie dois controles **`DateTimePicker`** (`inicio` e `fim`), ambos configurados com `Format = DateTimePickerFormat.Short` e `Value = DateTime.Today`, com rótulos claros (*"Data inicial (horário local do Windows)"* e *"Data final (inclusive)"*).
+   - Crie `var grade = Ui.Grade(painel);` e `var resumo = Ui.Rotulo("Nenhuma consulta realizada.");`.
+   - Crie o botão **`"Consultar"`** com evento `async (sender, _) =>`:
+     1. Desabilite o botão antes do `try` e reabilite no `finally`.
+     2. Dentro de `Ui.ExecutarAsync`:
+        - Chame `vendas.RelatorioAsync(sessao, inicio.Value.Date.ToUniversalTime(), fim.Value.Date.AddDays(1).ToUniversalTime())`.
+        - Projete a lista com `DataLocal = v.DataUtc.ToLocalTime()` para `grade.DataSource`.
+        - Atualize `resumo.Text` com `vendasPeriodo.Count` e `vendasPeriodo.Sum(v => v.Total):C`.
+2. **Conectar no `FormAdministrador.cs` e `Program.cs`:**
+   - Atualize o construtor de `FormAdministrador` para receber também `VendaService vendas` e passe `vendaService` no `Program.cs`.
+   - Adicione o botão `"Relatório de vendas"` no `FormAdministrador` abrindo `using var tela = new FormRelatorio(sessao, vendas); tela.ShowDialog(this);`.
 
-A consulta não tem paginação neste recorte e materializa o período em memória. Use um intervalo curto de laboratório. Para uma base grande, implemente agregação no SQL e paginação de detalhes antes de usar em produção.
+---
 
-## 4. Compare com um resultado conhecido
+## 3. Verificação de Fronteiras e Conferência SQL (`A18.01`–`A18.05`)
 
-Para verificar fronteiras, use [18-fronteiras.sql](database/laboratorio/18-fronteiras.sql) no ambiente preparado pelo professor, com um Caixa existente e scripts 001–003. A massa contém quatro instantes: imediatamente antes de 16/10/2026, início desse dia, seu último microssegundo e início do dia seguinte, no fuso America/Sao_Paulo. O filtro de 16/10 inclui somente os dois registros do meio: duas vendas e R$ 17,00 nessa massa. Há consultas de conferência sem depender de `current_date`; outras vendas no mesmo período precisam ser consideradas na comparação com a UI.
+1. **Massa de fronteiras exatas (`A18.02`):** com orientação do professor, aplique [database/laboratorio/18-fronteiras.sql](database/laboratorio/18-fronteiras.sql) (insere 4 vendas em instantes críticos ao redor de `16/10/2026` no fuso `America/Sao_Paulo`: 1 antes do dia, 2 dentro incluindo o último microssegundo, e 1 exatamente às `00:00:00` do dia `17/10`). Consulte `16/10/2026` a `16/10/2026` no seu `FormRelatorio` → devem aparecer **somente os 2 registros do meio** (soma `R$ 17,00` nessa massa isolada).
+2. **Conferência no SQL Editor (usando data literal fixa para reprodutibilidade):**
+   ```sql
+   SELECT count(*), coalesce(sum(total), 0)
+   FROM venda
+   WHERE criado_em >= (DATE '2026-10-16'::timestamp AT TIME ZONE 'America/Sao_Paulo')
+     AND criado_em < (DATE '2026-10-17'::timestamp AT TIME ZONE 'America/Sao_Paulo');
+   ```
+3. **Casos de recusa e vazio:**
+   - Escolha data final anterior à inicial → recusado pela validação do serviço.
+   - Consulte uma data futura sem vendas → grade vazia, `Vendas: 0 | Total: R$ 0,00`.
+   - Com sessão de `Caixa`, chame `VendaService.RelatorioAsync` → lança `UnauthorizedAccessException`.
 
-Anote duas vendas, como R$ 60,30 e R$ 8,50, realizadas hoje. Consulte somente hoje. Se não houver outras vendas no ambiente, espere quantidade 2 e soma **R$ 68,80**.
-
-No SQL Editor, usando o fuso local explicitamente, confira:
-
-```sql
-SELECT count(*), coalesce(sum(total), 0)
-FROM venda
-WHERE criado_em >= (current_date::timestamp AT TIME ZONE 'America/Sao_Paulo')
-  AND criado_em < ((current_date + 1)::timestamp AT TIME ZONE 'America/Sao_Paulo');
-```
-
-`current_date` depende do fuso da sessão do SQL Editor. Para datas reproduzíveis, substitua por um literal como `DATE '2026-10-16'` em ambos os limites; não confunda a data do computador com a configuração da sessão do banco.
-
-## Verifique antes de encerrar
-
-- Data final anterior à inicial é recusada.
-- Um período vazio mostra zero vendas e total zero.
-- A data final inclui o dia inteiro e não inclui o dia seguinte.
-- Soma e contagem conferem com os registros conhecidos.
-- Caixa não consegue executar o método do serviço.
-
-[Anterior: aula 17](17-Finalizacao-e-Troco.md) · [Próxima: aula 19](19-Cadastro-de-Usuarios.md)
+[Anterior: Aula 17](17-Finalizacao-e-Troco.md) · [Próxima: Aula 19 — Cadastro de usuários](19-Cadastro-de-Usuarios.md) · [Índice](README.md)
 
 ## Atividades por conceito
 

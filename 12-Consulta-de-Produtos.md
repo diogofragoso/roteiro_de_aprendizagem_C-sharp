@@ -1,71 +1,109 @@
-# Aula 12 — Consulta de produtos na grade
+# Aula 12 — Consulta Parametrizada de Produtos e Grade (`DataGridView`)
 
-**Duração:** 3h30. **Pré-requisito:** aula 11. **Entrega:** janela administrativa que consulta produtos por nome ou código e apresenta resultado vazio sem erro.
+**Duração:** 3h30. **Pré-requisito:** [Aula 11](11-Modelo-de-Produtos.md). **Entrega:** janela `FormProdutos` abrindo a partir do menu administrativo, buscando produtos reais no banco por nome ou código (com limite explícito de 200 linhas) e exibindo resultados ou lista vazia em uma grade somente leitura.
 
 | Bloco | Minutos | Atividade |
 | --- | ---: | --- |
-| Retomada | 15 | Conferir tabela produto e seus tipos |
-| Explicação | 30 | SELECT parametrizado e vínculo de dados |
-| Construção | 60 | Implementar consulta e serviço |
+| Retomada | 15 | Conferir tabela `produto` e contrato `IProdutoRepository` da Aula 11 |
+| Explicação | 30 | `SELECT` com `ILIKE`, curinga `%`, `LIMIT 200`, mapeamento `DataReader` e `DataGridView` |
+| Construção | 60 | Construir `ProdutoRepository` (leitura e escrita do contrato) e `ProdutoService.ListarAsync` |
 | Intervalo | 15 | Pausa |
-| Prática | 60 | Criar grade, busca e carregamento assíncrono |
-| Entrega | 30 | Conferir busca, vazio e acesso negado |
+| Prática | 60 | Construir `Ui.Texto`, `Ui.Grade`, `FormProdutos` mínimo e conectar ao `FormAdministrador` |
+| Entrega | 30 | Testar busca parcial, código exato, lista vazia, apóstrofo, rede e acesso negado |
 
-## 1. Implemente a leitura
+---
 
-No contrato `IProdutoRepository`, acrescente `Task<IReadOnlyList<Produto>> ListarAsync(string busca);`. Crie `ProdutoRepository`, recebendo `NpgsqlDataSource` pelo construtor. Copie da [referência](src/SupermercadoApp/Repositories/ProdutoRepository.cs) o método `Ler`, `ListarAsync` e `SalvarAsync` (a escrita já está no contrato e será usada na próxima aula). Por enquanto não adicione outros métodos ao contrato.
+## 1. Conceitos Novos Desta Aula (O Quê e Por Quê)
 
-```sql
-SELECT id, codigo, nome, preco, estoque, ativo FROM produto
-WHERE nome ILIKE @busca OR codigo ILIKE @busca
-ORDER BY nome LIMIT 200
-```
+### 1.1 Busca Textual Segura: `ILIKE`, Curinga `%` e `LIMIT 200` (`A12.01` e `A12.02`)
+Para pesquisar produtos digitando apenas um pedaço do nome (como `"arr"` para achar `"Arroz"`):
 
-No arquivo C#, as três aspas (`"""`) delimitam uma string de várias linhas, útil para ler SQL sem concatenar pedaços.
+- **`ILIKE`** (PostgreSQL): compara textos ignorando maiúsculas/minúsculas (*Case-Insensitive LIKE*). *(Na trilha MySQL/XAMPP, use `LOWER(nome) LIKE LOWER(@busca)`.)*
+- **Curinga `%`:** significa *"zero ou mais caracteres quaisquer"*. Passando o valor `$"%{busca}%"` no parâmetro `@busca`, `"arr"` encontra `"Arroz"` e `"Macarrão"`.
+  - **Segurança:** se o usuário digitar um apóstrofo `'` ou `' OR 1=1`, continua 100% seguro porque usamos `@busca` como parâmetro! Se o usuário digitar `%`, o SQL apenas procura qualquer texto (curinga de busca), sem jamais executar comandos invasores.
+- **Por que `ORDER BY nome LIMIT 200`?** Em um supermercado real com 50.000 produtos, carregar tudo de uma vez travaria a rede e a memória RAM do caixa. `LIMIT 200` protege a consulta e **a tela deve avisar claramente** o usuário sobre esse limite (sistemas maiores usam paginação).
 
-O parâmetro recebe `%texto%`. `ILIKE` procura sem distinguir maiúsculas e minúsculas; `%` significa qualquer trecho. Se o estudante digitar `%`, a consulta terá esse significado de busca, mas continuará parametrizada: isso não permite executar comandos SQL.
+### 1.2 Mapeamento Posicional do `NpgsqlDataReader` (`A12.03`)
+Ao executar `ExecuteReaderAsync()`, o banco devolve um cursor linha por linha (`while (await r.ReadAsync())`). Cada coluna do `SELECT` recebe uma posição começando em **zero**:
 
-O limite de 200 evita carregar todo o catálogo nesse exemplo. A tela deve avisar sobre o limite; uma versão maior precisaria de paginação. `Ler` converte as colunas na ordem exata do `SELECT`: mudar a ordem exige atualizar a leitura.
+| Coluna no `SELECT` | Posição no Reader | Método de Leitura | Propriedade em `Produto` |
+| --- | --- | --- | --- |
+| `id` | Posição 0 | `r.GetInt32(0)` | `Id` (`int`) |
+| `codigo` | Posição 1 | `r.GetString(1)` | `Codigo` (`string`) |
+| `nome` | Posição 2 | `r.GetString(2)` | `Nome` (`string`) |
+| `preco` | Posição 3 | `r.GetDecimal(3)` | `Preco` (`decimal`) |
+| `estoque` | Posição 4 | `r.GetInt32(4)` | `Estoque` (`int`) |
+| `ativo` | Posição 5 | `r.GetBoolean(5)` | `Ativo` (`bool`) |
 
-No `ProdutoService`, acrescente `ListarAsync` da [referência](src/SupermercadoApp/Services/ProdutoService.cs). Não ponha SQL na janela.
+**Por que extrair um método auxiliar `private static Produto Ler(NpgsqlDataReader r)`?**
+Para não repetir esses 6 `Get...(...)` em toda consulta (`ListarAsync`, `BuscarCodigoAsync`). **Atenção:** se você trocar a ordem de duas colunas no `SELECT` sem ajustar o `Ler`, o programa tenta ler um texto como inteiro e lança `InvalidCastException`!
 
-## 2. Construa a janela mínima
+### 1.3 Vínculo de Dados na `DataGridView`, `.ToList()` e Evento `Shown` (`A12.04`)
+- **`DataGridView`:** componente de tabela do Windows Forms. Configuramos `ReadOnly = true`, `AllowUserToAddRows = false`, `AllowUserToDeleteRows = false`, `MultiSelect = false` e `SelectionMode = DataGridViewSelectionMode.FullRowSelect`. **Por quê?** A grade serve apenas para visualizar e selecionar; toda edição/inclusão acontecerá em campos controlados (Aula 13).
+- **`grade.DataSource = (...).ToList();`:** o `DataGridView` inspeciona automaticamente as propriedades públicas do record `Produto` e cria as colunas! Materializamos com `.ToList()` para entregar uma nova lista concreta a cada atualização.
+- **Por que carregar os dados no evento `Shown += ...` e não no construtor da tela?**
+  Construtores em C# **não podem ser `async`**. O evento **`Shown`** dispara automaticamente assim que a janela termina de aparecer na tela, permitindo rodar `await Ui.ExecutarAsync(Carregar)` sem travar a abertura da janela!
 
-Crie `Views/FormProdutos.cs`, herdando de `Form`. Use `Ui.Preparar`, `Ui.Texto`, `Ui.Grade` e `Ui.Botao`, como na aula 10. Receba `Sessao` e `ProdutoService` pelo construtor. A versão mínima tem busca, grade e botão:
+---
 
-```csharp
-var painel = Ui.Preparar(this, "Produtos");
-var busca = Ui.Texto(painel, "Nome ou código — até 200 resultados");
-var grade = Ui.Grade(painel);
-async Task Carregar()
-{
-    grade.DataSource = (await produtos.ListarAsync(sessao, busca.Text)).ToList();
-}
-Ui.Botao(painel, "Buscar", async (_, _) => await Ui.ExecutarAsync(Carregar));
-Shown += async (_, _) => await Ui.ExecutarAsync(Carregar);
-```
+## 2. Roteiro de Construção Guiada (Sua Vez no Visual Studio 2022!)
 
-Adicione o namespace e os `using` dos tipos utilizados. Confira as opções de `Ui.Grade`: leitura apenas, seleção de linha inteira e sem linha de inclusão. A grid serve para visualizar; edição ocorrerá em campos separados.
+### Passo 1 — Evoluir o Contrato `Repositories/IProdutoRepository.cs`
+Adicione apenas a nova assinatura de consulta ao contrato da Aula 11 (mantendo `SalvarAsync`):
+- `Task<IReadOnlyList<Produto>> ListarAsync(string busca);`
 
-## 3. Conecte os objetos
+### Passo 2 — Construir `Repositories/ProdutoRepository.cs`
+Crie **`Repositories/ProdutoRepository.cs`** em `namespace SupermercadoApp.Repositories;` (`using Npgsql;` e `SupermercadoApp.Models;`):
+1. Declare `public sealed class ProdutoRepository(NpgsqlDataSource banco) : IProdutoRepository`.
+2. Crie o método auxiliar `private static Produto Ler(NpgsqlDataReader r)` instanciando `new Produto(...)` a partir das posições 0 a 5 conforme a tabela da Seção 1.2.
+3. Implemente **`ListarAsync(string busca)`:**
+   - Crie o comando com `await using var cmd = banco.CreateCommand(""" ... """);` contendo:
+     `SELECT id, codigo, nome, preco, estoque, ativo FROM produto WHERE nome ILIKE @busca OR codigo ILIKE @busca ORDER BY nome LIMIT 200`.
+   - Adicione o parâmetro `cmd.Parameters.AddWithValue("busca", $"%{busca}%");`.
+   - Crie `var produtos = new List<Produto>();`, abra `await using var r = await cmd.ExecuteReaderAsync();`, percorra com `while (await r.ReadAsync()) produtos.Add(Ler(r));` e retorne `produtos`.
+4. Implemente **`SalvarAsync(int id, string codigo, string nome, decimal preco)`** (para cumprir o contrato já existente — usaremos a tela de escrita na Aula 13):
+   - Se `id == 0`, use `INSERT INTO produto(codigo, nome, preco) VALUES (@codigo, @nome, @preco)`.
+   - Caso contrário, use `UPDATE produto SET codigo=@codigo, nome=@nome, preco=@preco WHERE id=@id AND ativo` e adicione o parâmetro `"id"`.
+   - Adicione os parâmetros `"codigo"`, `"nome"`, `"preco"`.
+   - Execute `if (await cmd.ExecuteNonQueryAsync() != 1)` → lance `InvalidOperationException("Produto inexistente ou inativo. Atualize a lista.")`.
 
-No `Program`, crie `ProdutoRepository` usando a fonte de dados existente e `ProdutoService` usando esse repositório. Passe o serviço para `FormAdministrador`, cujo construtor passa a recebê-lo. Adicione o botão “Produtos” abrindo `new FormProdutos(sessao, produtos)` com `using` e `ShowDialog(this)`. Não copie ainda os botões de relatório ou usuários da referência final.
+### Passo 3 — Adicionar `ListarAsync` em `Services/ProdutoService.cs`
+Adicione o método **`public Task<IReadOnlyList<Produto>> ListarAsync(Sessao sessao, string busca)`**:
+1. Exija permissão com `Permissoes.ExigirAdministrador(sessao);`.
+2. Retorne `produtos.ListarAsync(busca.Trim());`. *(Nenhuma linha de SQL aqui!)*
 
-Antes da aula, o professor cadastra arroz e feijão pela referência no banco didático, conforme [preparação do laboratório](ensino/README.md). Não é necessário criar outro botão provisório. O método de escrita existe no repositório para cumprir o contrato; a turma construirá os campos definitivos na aula 13.
+### Passo 4 — Adicionar `Ui.Texto` e `Ui.Grade` em `Views/Ui.cs`
+1. **`Texto(FlowLayoutPanel painel, string rotulo, bool senha = false)` → retorna `TextBox`:**
+   - Adicione `Rotulo(rotulo)` ao painel, crie um `TextBox` com `Width = 260` e `UseSystemPasswordChar = senha`, adicione ao painel e retorne-o.
+2. **`Grade(FlowLayoutPanel painel)` → retorna `DataGridView`:**
+   - Crie um `DataGridView` com `Width = 860`, `Height = 240`, `ReadOnly = true`, `AllowUserToAddRows = false`, `AllowUserToDeleteRows = false`, `MultiSelect = false`, `SelectionMode = DataGridViewSelectionMode.FullRowSelect` e `AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill`, adicione ao painel e retorne-o.
 
-Produza uma tabela das seis colunas retornadas, suas posições de 0 a 5, tipos e propriedades C#. Preveja o que aconteceria se invertesse duas colunas sem mudar `Ler`. Depois diferencie três resultados: lista vazia é consulta concluída sem correspondências; falha de rede é operação não concluída; permissão negada é recusa anterior ao SQL.
+### Passo 5 — Construir `Views/FormProdutos.cs` (Versão de Consulta) e Ligar no Menu
+1. Crie **`Views/FormProdutos.cs`** (`public sealed class FormProdutos : Form`) com construtor recebendo **`(Sessao sessao, ProdutoService produtos)`**:
+   - Primeira linha: `Permissoes.ExigirAdministrador(sessao);`.
+   - Prepare o painel com `Ui.Preparar(this, "Administração — Produtos")`.
+   - Crie `var busca = Ui.Texto(painel, "Buscar por nome ou código (até 200 resultados)");`.
+   - Crie `var grade = Ui.Grade(painel);`.
+   - Declare uma **função local assíncrona** dentro do construtor:
+     `async Task Carregar() { grade.DataSource = (await produtos.ListarAsync(sessao, busca.Text)).ToList(); }`.
+   - Crie o botão `"Buscar"` chamando `async (_, _) => await Ui.ExecutarAsync(Carregar)`.
+   - Inscreva o evento **`Shown += async (_, _) => await Ui.ExecutarAsync(Carregar);`** para a grade já carregar automaticamente ao abrir a janela!
+2. **Conectar a composição (`A12.05`):**
+   - No **`Program.cs`**: crie `var produtos = new ProdutoRepository(banco);` e `var produtoService = new ProdutoService(produtos);`, passando `produtoService` para `new FormAdministrador(sessao, produtoService)`.
+   - No **`FormAdministrador.cs`**: receba `ProdutoService produtos` no construtor e adicione um botão `"Produtos"` cujo clique abre `using var tela = new FormProdutos(sessao, produtos); tela.ShowDialog(this);`.
 
-## Verifique antes de encerrar
+---
 
-- Busca “arr” encontra arroz; código com zero à esquerda continua texto.
-- Busca sem correspondência mostra grade vazia, sem exceção.
-- Busca vazia lista até 200 registros e mantém ordem por nome.
-- Falha de conexão informa que a consulta não foi concluída.
-- Sessão de caixa não consegue chamar `ProdutoService.ListarAsync`.
+## 3. Verificação e Comparação dos 3 Resultados Possíveis (`A12.01`–`A12.05`)
 
-Uma lista vazia é resultado válido. Não a confunda com falha de rede. Nos registros do caderno, anote o texto buscado e os nomes esperados.
+*(Antes desta prática, o professor cadastra dois produtos fictícios — Arroz e Feijão — no banco didático para teste da consulta.)*
 
-[Anterior: aula 11](11-Modelo-de-Produtos.md) · [Próxima: aula 13](13-Cadastro-de-Produtos.md)
+Execute com **`F5`** no Visual Studio 2022 e diferencie no caderno **três cenários distintos**:
+1. **Lista vazia (resultado válido):** busque `"zzzzz"` → a grade fica vazia sem erro nem exceção.
+2. **Consultas especiais:** teste `"arr"`, o código completo com zeros à esquerda, busca vazia (lista ordenada por nome até 200), `"%"` e um apóstrofo `'` (confirmando que não quebra o SQL!).
+3. **Falha de rede vs Permissão negada:** compare o comportamento sem internet (consulta não concluída, aviso amigável) e ao chamar `ProdutoService.ListarAsync` com sessão de `Caixa` (recusa imediata *antes* de tocar no banco).
+
+[Anterior: Aula 11](11-Modelo-de-Produtos.md) · [Próxima: Aula 13 — Cadastro, edição e inativação](13-Cadastro-de-Produtos.md) · [Índice](README.md)
 
 ## Atividades por conceito
 

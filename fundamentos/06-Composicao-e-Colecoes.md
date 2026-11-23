@@ -1,121 +1,153 @@
-# F06 — Composição: objetos que trabalham juntos
+# F06 — Composição e Coleções (`List<T>`): Objetos Que Trabalham Juntos
 
-**Pré-requisito:** F05. **Objetivo:** representar uma relação entre objetos e percorrer uma coleção.
+**Pré-requisito:** [F05](05-Construtores-e-Encapsulamento.md).
+**Objetivo:** aprender a trabalhar com listas dinâmicas (`List<T>`), modelar relações de **composição ("tem um")** entre objetos, criar propriedades calculadas e percorrer coleções com `foreach`.
 
-Crie o console `FundamentosF06`. Agora faremos uma pequena lista de materiais, ainda sem banco, interface gráfica ou projeto de supermercado.
+Crie no **Visual Studio 2022** um novo **Aplicativo de Console** chamado `FundamentosF06`.
 
-## 1. Comece com uma coleção de valores
+---
 
-Substitua `Program.cs` por:
+## 1. Por Que Usar `List<T>` em Vez de Variáveis Soltas ou Arrays Fixos?
+
+Quando um cliente vai ao supermercado, não sabemos se ele vai comprar 1 item, 5 itens ou 80 itens. Um array comum (`string[]`) tem tamanho fixo na criação. Já uma **`List<T>`** cresce e diminui dinamicamente conforme adicionamos ou removemos elementos!
+
+### Anatomia de `List<T>` e `foreach` (Microexemplo)
 
 ```csharp
-List<string> nomes = new List<string>();
-nomes.Add("Caderno");
-nomes.Add("Caneta");
+List<string> tarefas = new List<string>();
+tarefas.Add("Estudar C#");
+tarefas.Add("Praticar no VS 2022");
 
-foreach (string nome in nomes)
+foreach (string tarefa in tarefas)
 {
-    Console.WriteLine(nome);
+    Console.WriteLine($"- {tarefa}");
 }
 
-Console.WriteLine($"Itens: {nomes.Count}");
+Console.WriteLine($"Total de tarefas: {tarefas.Count}");
 ```
 
-`List<string>` é uma lista cujos elementos são textos. `Add` acrescenta um elemento; `Count` informa quantos há. `foreach` recebe cada elemento, um por vez, na variável `nome`. O resultado é Caderno, Caneta e a contagem 2.
+Dissecando cada parte:
+- `List<string>`: o sinal `< >` indica um **tipo genérico (*Generic*)**. Significa *"uma lista onde cada elemento é obrigatoriamente do tipo `string`"*. Se você tentar fazer `tarefas.Add(123);`, o compilador do Visual Studio 2022 recusa na hora!
+- `new List<string>()`: cria a lista vazia na memória (com `Count == 0`).
+- `.Add(...)`: acrescenta um novo elemento no final da lista.
+- `.Count`: propriedade que informa quantos elementos existem atualmente na lista.
+- `foreach (string tarefa in tarefas)`: leia em português — *"para cada (`foreach`) `tarefa` do tipo `string` dentro de (`in`) `tarefas`, execute o bloco abaixo"*.
+  - **Por que preferir `foreach` ao `for` para listas?** Você não precisa controlar índice `i`, nem corre risco de acessar uma posição que não existe (`IndexOutOfRangeException`). Se a lista estiver vazia (`Count == 0`), o `foreach` simplesmente não executa nenhuma vez, sem erro.
 
-Uma lista vazia tem contagem 0. Percorrê-la não executa o corpo do `foreach` nenhuma vez. Antes de trabalhar com objetos, retire os dois `Add` e confira esse comportamento.
+---
 
-## 2. Modele material e quantidade
+## 2. O Que É Composição ("Tem Um") e Por Que Ela É Melhor Que Misturar Tudo?
 
-Crie `Material.cs`:
+No mundo real, objetos colaboram entre si. Pense em uma receita culinária e seus ingredientes, ou em um **Item de Pedido** que referencia um **Material**:
+- Um `ItemMaterial` **não é** um `Material` (por isso **não** usamos herança aqui!).
+- Um `ItemMaterial` **tem um** `Material` e uma `Quantidade`.
+
+Essa técnica de uma classe guardar uma propriedade que aponta para outro objeto se chama **Composição**.
+
+### Anatomia da Composição e da Propriedade Calculada (Microexemplo)
+
+Observe como um `ItemTreino` compõe um `Exercicio`:
 
 ```csharp
-public class Material
+public class Exercicio
 {
     public string Nome { get; }
-    public decimal Preco { get; }
+    public int CaloriasPorMinuto { get; }
 
-    public Material(string nome, decimal preco)
+    public Exercicio(string nome, int caloriasPorMinuto)
     {
-        if (string.IsNullOrWhiteSpace(nome) || preco <= 0)
-            throw new ArgumentException("Informe nome e preço positivo.");
+        if (string.IsNullOrWhiteSpace(nome) || caloriasPorMinuto <= 0)
+            throw new ArgumentException("Informe nome e calorias positivas.");
 
         Nome = nome.Trim();
-        Preco = preco;
+        CaloriasPorMinuto = caloriasPorMinuto;
     }
 }
-```
 
-Crie `ItemMaterial.cs`:
-
-```csharp
-public class ItemMaterial
+public class ItemTreino
 {
-    public Material Material { get; }
-    public int Quantidade { get; }
+    public Exercicio Exercicio { get; }
+    public int Minutos { get; }
 
-    public decimal Subtotal
+    // Propriedade calculada: não guarda campo próprio; calcula na hora em que é lida!
+    public int TotalCalorias
     {
-        get { return Material.Preco * Quantidade; }
+        get { return Exercicio.CaloriasPorMinuto * Minutos; }
     }
 
-    public ItemMaterial(Material material, int quantidade)
+    public ItemTreino(Exercicio exercicio, int minutos)
     {
-        if (material is null)
-            throw new ArgumentException("Informe o material.");
-        if (quantidade <= 0)
-            throw new ArgumentException("Informe quantidade positiva.");
+        if (exercicio is null)
+            throw new ArgumentException("Informe o exercício.");
+        if (minutos <= 0)
+            throw new ArgumentException("Informe minutos positivos.");
 
-        Material = material;
-        Quantidade = quantidade;
+        Exercicio = exercicio;
+        Minutos = minutos;
     }
 }
 ```
 
-Um `ItemMaterial` **tem um** `Material` e uma quantidade. A propriedade mantém uma referência ao material recebido. Esse modo de construir um objeto usando outro é composição de comportamentos e dados; a relação não é de herança. O material pode existir antes e ser compartilhado por diferentes itens.
+**Por que `TotalCalorias` é uma propriedade calculada (`get { return ...; }`) e não um valor digitado no construtor?**
+Porque se alguém pudesse passar `TotalCalorias` manualmente, poderia informar `10 minutos` de um exercício de `5 cal/min` e digitar `TotalCalorias = 999` — gerando dados contraditórios! Calculando sob demanda, o valor é **sempre matematicamente coerente**.
 
-`Subtotal` calcula o valor quando é consultado; não precisamos manter um campo separado sincronizado. O acesso `item.Material.Nome` percorre a relação: do item para o material e dele para o nome.
+**Por que testamos `if (exercicio is null)` no construtor?**
+Porque `Exercicio` é um tipo de referência (classe). Se quem chamar o construtor passar `null`, sem essa checagem o objeto nasceria quebrado e só explodiria depois ao tentar ler `Exercicio.CaloriasPorMinuto` (`NullReferenceException`).
 
-## 3. Some os itens
+**Navegando pelas referências com ponto `.`:**
+Quando você tem um objeto `item` do tipo `ItemTreino`, escrever `item.Exercicio.Nome` percorre duas setas na memória: do `item` → para o objeto `Exercicio` → até a propriedade `Nome`.
 
-Substitua todo o `Program.cs` por:
+---
 
-```csharp
-Material caderno = new Material("Caderno", 12.50m);
-Material caneta = new Material("Caneta", 3m);
+## 3. Roteiro de Construção Guiada (Sua Vez no Visual Studio 2022!)
 
-List<ItemMaterial> itens = new List<ItemMaterial>();
-itens.Add(new ItemMaterial(caderno, 2));
-itens.Add(new ItemMaterial(caneta, 3));
+Construa uma lista de materiais escolares em `FundamentosF06` seguindo rigorosamente as orientações abaixo:
 
-decimal total = 0m;
-foreach (ItemMaterial item in itens)
-{
-    Console.WriteLine($"{item.Material.Nome}: {item.Quantidade} = {item.Subtotal}");
-    total = total + item.Subtotal;
-}
+### Passo 1 — Aquecimento com `List<string>`
+1. No `Program.cs`, crie uma `List<string>` de nomes de materiais, adicione `"Caderno"` e `"Caneta"`, percorra com `foreach` e exiba `Count`.
+2. Comente temporariamente as duas linhas `.Add(...)` e execute com `Ctrl+F5` para confirmar que percorrer uma lista vazia exibe `Count: 0` sem nenhum erro.
 
-Console.WriteLine($"Total: {total}");
-```
+### Passo 2 — Criar `Material.cs` (`Shift+Alt+C` no VS 2022)
+1. Declare `public class Material` com duas propriedades somente leitura (`{ get; }`):
+   - `string Nome`
+   - `decimal Preco`
+2. Crie o construtor `public Material(string nome, decimal preco)`:
+   - Valide que `nome` não é nulo/vazio/espaços (`string.IsNullOrWhiteSpace`) e que `preco > 0`; se violar, lance `ArgumentException`.
+   - Atribua `Nome = nome.Trim();` e `Preco = preco;`.
 
-Os subtotais são 25 e 9; o total é 34. As classes cuidam dos dados e das regras dos objetos; o console apresenta os resultados. Não foi necessário herdar de outra classe para representar essa relação.
+### Passo 3 — Criar `ItemMaterial.cs` (`Shift+Alt+C` no VS 2022)
+1. Declare `public class ItemMaterial` com:
+   - Propriedade somente leitura `Material Material { get; }` (composição!);
+   - Propriedade somente leitura `int Quantidade { get; }`;
+   - Propriedade calculada `decimal Subtotal` (apenas `get`) que retorna `Material.Preco * Quantidade`.
+2. Crie o construtor `public ItemMaterial(Material material, int quantidade)`:
+   - Recuse com `ArgumentException` se `material is null` ou se `quantidade <= 0`.
+   - Guarde ambos nas propriedades.
 
-Antes de executar, desenhe dois materiais, dois itens e as setas entre eles. Cada item referencia um material; a lista contém referências aos itens.
+### Passo 4 — Montar e Totalizar a Lista no `Program.cs`
+Substitua o `Program.cs` seguindo estas orientações:
+1. Instancie dois objetos `Material`: `"Caderno"` por `12.50m` e `"Caneta"` por `3m`.
+2. Crie uma `List<ItemMaterial> itens = new List<ItemMaterial>();`.
+3. Adicione à lista um item com `2` cadernos e outro com `3` canetas.
+4. Declare uma função local `decimal SomarItens(List<ItemMaterial> lista)` no final do `Program.cs` (lembrando de `F03`, ela apenas calcula e retorna o `decimal`, sem imprimir na tela!).
+5. No corpo principal, use um `foreach` para exibir cada linha no formato `"{item.Material.Nome}: {item.Quantidade} = {item.Subtotal}"`, chame `SomarItens(itens)` e exiba o total (esperado: subtotais `25` e `9`; total `34`).
+6. **Experimento de referência compartilhada:** adicione um **terceiro** `ItemMaterial` usando a **mesma variável** `caderno`, com quantidade `1`.
+   - Antes de rodar, desenhe no papel quantos objetos `Material` existem na memória (2) e quantos objetos `ItemMaterial` existem (3).
+   - Rode com `Ctrl+F5` e confirme o novo total (`46,50`).
+7. **Testes de fronteira:**
+   - Teste chamar `SomarItens` com uma lista vazia (esperado: `0`).
+   - Dentro de `try/catch`, tente criar um `ItemMaterial` com quantidade `0` e confirme que a exceção impede que o item inválido seja adicionado à lista.
+8. **Reflexão final (no caderno):** explique por que uma `List<ItemMaterial>` na memória RAM **não** substitui um banco de dados (o que acontece com os itens quando você fecha a janela preta do console e executa de novo?).
 
-## 4. Faça uma alteração controlada
+---
 
-Acrescente um terceiro item que recebe a **mesma variável** `caderno`, com quantidade 1. Você cria outro item, mas não outro material: os dois itens referenciam o mesmo caderno. A quantidade de cada item é independente. O novo total deve ser 46,50.
+## 4. Erros Comuns no Visual Studio 2022
 
-Neste exercício o preço só é definido no construtor e não muda. No projeto futuro será preciso decidir se um item guarda uma cópia do preço ou consulta um preço que pode mudar. Observe como a escolha do modelo afeta o comportamento.
+| Erro na Lista de Erros | Causa provável | Como resolver |
+| --- | --- | --- |
+| `CS1503: Não é possível converter de 'Material' para 'ItemMaterial'` | Tentou fazer `itens.Add(caderno)` diretamente numa `List<ItemMaterial>`. | A lista guarda `ItemMaterial`: use `itens.Add(new ItemMaterial(caderno, 2));`. |
+| `NullReferenceException` em tempo de execução | Tentou acessar `.Preco` de uma referência nula porque esqueceu de validar `if (material is null)`. | Valide sempre no construtor antes de guardar a referência. |
 
-## 5. Pratique
+**Critério para avançar para F07:** criar uma coleção `List<T>` de objetos compostos, calcular o total para lista vazia e preenchida em função separada e explicar no desenho a relação "tem um" e o compartilhamento de um mesmo objeto `Material` por dois itens.
 
-1. Retire os itens, mantendo a lista criada: o total deve ser 0.
-2. Crie dois itens do mesmo material com quantidades 1 e 4. Explique quantos objetos de material existem e quantos objetos de item existem nesse caso.
-3. Tente criar um item com quantidade 0 dentro de `try/catch`. A criação deve ser recusada antes de adicionar algo à lista.
-4. Escreva uma função local `decimal SomarItens(List<ItemMaterial> itens)` no `Program.cs`, depois das instruções de execução. Transfira apenas a soma para ela, sem mensagens. Use o retorno para apresentar o total no console.
-5. Explique por que uma lista de itens não é um banco de dados. Fechar e abrir o programa recria os objetos a partir do código, sem persistir alterações da execução anterior.
-
-**Critério para avançar:** criar uma coleção de objetos, explicar a relação “tem um”, calcular o total de uma lista vazia e de uma preenchida, e distinguir o objeto compartilhado dos itens que o usam.
-
-[Anterior: encapsulamento](05-Construtores-e-Encapsulamento.md) · [Próximo: interfaces e transição](07-Interfaces-e-Transicao.md)
+[Anterior: F05 — Construtores e encapsulamento](05-Construtores-e-Encapsulamento.md) · [Próximo: F07 — Interfaces, polimorfismo e transição](07-Interfaces-e-Transicao.md)

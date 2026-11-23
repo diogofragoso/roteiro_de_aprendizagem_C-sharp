@@ -1,63 +1,89 @@
-# C# na prática: supermercado desktop
+# C# na Prática com Visual Studio 2022: Do Zero ao Sistema de Supermercado (MarketFlow)
 
-Roteiro para estudantes iniciantes construírem o **MarketFlow**, um aplicativo Windows Forms com áreas separadas para **Administrador** e **Caixa**, utilizando **Visual Studio 2026** e **Neon PostgreSQL** ou **MySQL/MariaDB pelo XAMPP**.
+Guia progressivo e autoexplicativo para estudantes que estão **começando do absoluto zero** na linguagem **C#** utilizando o **Visual Studio 2022**. Ao longo do percurso, você aprenderá cada conceito de programação, o funcionamento da ferramenta e os **motivos técnicos** por trás de cada escolha, até construir por conta própria o **MarketFlow** — um aplicativo desktop Windows Forms com áreas separadas para **Administrador** e **Caixa**, conectado ao **Neon PostgreSQL** ou **MySQL/MariaDB pelo XAMPP**.
 
-## Por onde começar
+---
 
-**Se você ainda não programa ou não conhece orientação a objetos, comece pelo [guia preparatório de fundamentos](fundamentos/README.md).** São oito etapas em console: primeiro programa, variáveis, decisões, repetições, métodos, classes, construtores, encapsulamento, composição e interfaces. Cada etapa inclui exemplos, exercícios e um critério de avanço. Só depois inicie a sequência do supermercado.
+## Como este guia funciona (Filosofia de Aprendizagem)
 
-Se você já conhece variáveis, laços e métodos, o [laboratório de POO em C#](fundamentos/POO-na-Pratica.md) apresenta classes, objetos e os quatro pilares com exercícios de console independentes do supermercado.
+Este material foi desenhado com duas regras fundamentais:
 
-O planejamento sugerido passa a ser **28 horas de fundamentos + 70 horas do projeto = 98 horas**. As aulas 01–03 do projeto retomam os conceitos no contexto do supermercado; não substituem a preparação de uma turma iniciante.
+1. **Explicação detalhada do "O quê", "Como" e "Por quê":** Nenhum comando, palavra-chave ou símbolo da linguagem C# aparece "por mágica". Cada capítulo explica detalhadamente o conceito, disseca a sintaxe usando pequenos modelos didáticos independentes e mostra **por que** fazemos daquela forma (e qual problema ocorreria se fizéssemos diferente).
+2. **O guia orienta; você constrói:** Você não vai encontrar blocos prontos do sistema para "copiar e colar". Em vez disso, cada aula traz **orientações passo a passo no Visual Studio 2022** e uma **ficha estruturada de construção** (quais classes, métodos, validações e regras criar), para que você escreva o código com autonomia e entenda cada linha que produziu.
 
-Para preparar as entregas da turma, consulte o [caderno de atividades por conceito](ATIVIDADES-POR-CONCEITO.md), com enunciados e critérios de aceite para as 20 aulas. A [análise pedagógica](ANALISE-PEDAGOGICA.md) apresenta lacunas, prioridades e recomendações para o professor.
+> [!TIP]
+> **Onde está o código pronto?** A pasta `src/` deste repositório é de uso exclusivo do professor para conferência e execução das verificações automatizadas. Durante seus estudos, construa tudo pelas orientações dos capítulos — errar, ler o diagnóstico do Visual Studio 2022 e depurar faz parte do aprendizado.
 
-O [apoio ao professor](ensino/README.md) traz preparação do laboratório e geração de 21 checkpoints, do console inicial à entrega final. Para conferir documentação, compilar as etapas e executar as verificações locais, use `tools/Validar-Material.ps1`.
+---
 
-1. Leia o [plano das aulas](PLANO-DE-AULAS.md): objetivos, tempos, entregas e avaliação.
-2. Faça as aulas na ordem abaixo. Se já concluiu a versão antiga, siga primeiro a [transição](TRANSICAO.md).
-3. Consulte o [código de referência e a execução](src/README.md) para comparar seu trabalho; ele representa o resultado final, não um projeto inicial que deve ser copiado inteiro na primeira aula.
-4. Registre as verificações no [caderno de evidências](CADERNO-DE-EVIDENCIAS.md). Consulte também o [registro de validação das melhorias](VALIDACAO-MELHORIAS.md); o [registro anterior](VALIDACAO.md) foi preservado como histórico.
+## Mapa da Jornada (Do Zero ao Projeto Completo)
 
-## Escolha do banco de dados
+```mermaid
+flowchart LR
+    F["Fase 0: Fundamentos (F00–F07)<br/>Lógica, Console e POO do Zero"] --> P1["Fase 1: Aulas 01–04<br/>Console, POO e Camadas no Supermercado"]
+    P1 --> P2["Fase 2: Aulas 05–10<br/>Visual Studio 2022, WinForms, Banco e Login"]
+    P2 --> P3["Fase 3: Aulas 11–20<br/>Produtos, Estoque, Vendas, Relatório e Publicação"]
+```
 
-A trilha principal usa Neon/PostgreSQL. Quem escolher o banco local deve seguir a [opção MySQL/MariaDB com XAMPP](INTEGRACAO-MYSQL-XAMPP.md), com preparação, scripts próprios, conexão C# e adaptações das aulas 09 a 20. O código de referência e os checkpoints existentes usam PostgreSQL; a opção local orienta a adaptação no projeto do estudante.
+### Por onde começar
 
-## Sequência das práticas do projeto — após os fundamentos
+- **Se você nunca programou ou ainda não domina Orientação a Objetos:** comece obrigatoriamente pelo [**Guia Preparatório de Fundamentos (F00–F07)**](fundamentos/README.md). São oito encontros progressivos em Console no Visual Studio 2022, começando do zero absoluto até interfaces e polimorfismo.
+- **Para reforçar Orientação a Objetos:** após a etapa F03, utilize o [**Laboratório de POO na Prática**](fundamentos/POO-na-Pratica.md) como exercício complementar no console.
+- **Planejamento total sugerido:** **28 horas de fundamentos (8 encontros) + 70 horas do projeto (20 encontros) = 98 horas**. As aulas 01–03 do projeto aplicam e consolidam os fundamentos no domínio do supermercado; não substituem o percurso preparatório para turmas iniciantes.
 
-| Aula | Prática | Entrega ao final de 3h30 |
+### Documentos de apoio
+
+1. Consulte o [**Plano de Aulas**](PLANO-DE-AULAS.md) para ver objetivos, distribuição dos 210 minutos por encontro, entregas e rubrica de avaliação.
+2. Acompanhe as entregas de cada aula pelo [**Caderno de Atividades por Conceito**](ATIVIDADES-POR-CONCEITO.md) e registre seus testes no [**Caderno de Evidências**](CADERNO-DE-EVIDENCIAS.md).
+3. Se você iniciou em uma versão antiga deste roteiro, leia primeiro o [**Guia de Transição**](TRANSICAO.md).
+4. **Para professores:** consulte o [**Apoio ao Professor**](ensino/README.md), a [**Análise Pedagógica**](ANALISE-PEDAGOGICA.md), as [**Referências Técnicas**](REFERENCIAS.md), o [**Código de Referência Docente**](src/README.md) e os registros de validação ([VALIDACAO-MELHORIAS.md](VALIDACAO-MELHORIAS.md) e [VALIDACAO.md](VALIDACAO.md)). Para validar documentação e compilação da referência, utilize `tools/Validar-Material.ps1`.
+
+---
+
+## Escolha do Banco de Dados (A partir da Aula 07)
+
+- **Trilha principal (Nuvem):** **Neon / PostgreSQL** com a biblioteca `Npgsql`.
+- **Trilha alternativa (Local):** **MySQL / MariaDB pelo XAMPP** com a biblioteca `MySqlConnector`. Siga o guia [**Integração MySQL/MariaDB com XAMPP**](INTEGRACAO-MYSQL-XAMPP.md) para os scripts SQL e orientações de adaptação a partir da Aula 07.
+
+---
+
+## Sequência das 20 Aulas do Projeto MarketFlow (Após os Fundamentos)
+
+| Aula | Tema e Guia de Construção | O que você vai construir ao final de 3h30 |
 | --- | --- | --- |
-| 01 | [Lógica e tipos](01-Introducao-CSharp.md) | Cálculo e decisões com valores de uma compra |
-| 02 | [Console e depuração](02-Pratica-Console.md) | Caixa de console com entrada validada |
-| 03 | [Orientação a objetos](03-Orientacao-a-Objetos.md) | Produtos e carrinho em memória |
-| 04 | [Arquitetura e contratos](04-Arquitetura-e-Padroes.md) | Responsabilidades e repositório em memória |
-| 05 | [Ambiente e solução](05-Configuracao-Ambiente.md) | Aplicativo Windows Forms compilando |
-| 06 | [Interface de login](06-Criando-Interface-Login.md) | Tela navegável pelo teclado |
-| 07 | [Banco Neon ou XAMPP](07-Criando-Banco-Dados-Neon.md) | Tabela de usuários sem senha em texto puro |
-| 08 | [Conexão assíncrona](08-Conectando-Banco-Dados.md) | Consulta ao banco sem congelar a tela |
-| 09 | [Autenticação](09-Autenticacao-Segura.md) | Primeiro administrador e login por hash |
-| 10 | [Sessão e perfis](10-Sessao-e-Perfis.md) | Menus separados e troca de usuário |
-| 11 | [Modelo de produtos](11-Modelo-de-Produtos.md) | Tabelas e validação de produto |
-| 12 | [Consulta de produtos](12-Consulta-de-Produtos.md) | Busca parametrizada em uma grade |
-| 13 | [Cadastro de produtos](13-Cadastro-de-Produtos.md) | Inclusão, edição e inativação |
-| 14 | [Reposição de estoque](14-Reposicao-de-Estoque.md) | Saldo e histórico atualizados juntos |
-| 15 | [Carrinho do caixa](15-Carrinho-do-Caixa.md) | Inclusão, remoção e total em memória |
-| 16 | [Persistência da venda](16-Venda-com-Transacao.md) | Venda atômica e proteção de estoque |
-| 17 | [Finalização e troco](17-Finalizacao-e-Troco.md) | Fluxo completo com recuperação de tentativa |
-| 18 | [Relatório de vendas](18-Relatorio-de-Vendas.md) | Consulta por período e total vendido |
-| 19 | [Cadastro de usuários](19-Cadastro-de-Usuarios.md) | Administrador cadastra caixas e administradores |
-| 20 | [Testes e publicação](20-Testes-e-Publicacao.md) | Evidências de testes e pasta executável |
+| 01 | [Lógica e tipos no supermercado](01-Introducao-CSharp.md) | Programa de console com cálculos financeiros, decisões e laços |
+| 02 | [Console, validação e depuração](02-Pratica-Console.md) | Caixa de console blindado contra entradas inválidas e depuração com Breakpoint |
+| 03 | [Orientação a objetos aplicada](03-Orientacao-a-Objetos.md) | Classes de domínio, encapsulamento, composição, herança e polimorfismo |
+| 04 | [Arquitetura em camadas e contratos](04-Arquitetura-e-Padroes.md) | Separação em responsabilidades, interface e injeção de dependência manual |
+| 05 | [Ambiente e solução no Visual Studio 2022](05-Configuracao-Ambiente.md) | Solução Windows Forms estruturada em pastas e compilando |
+| 06 | [Interface de login no Designer](06-Criando-Interface-Login.md) | Tela de login acessível pelo teclado com validação visual de campos |
+| 07 | [Modelagem e banco de dados (Neon ou XAMPP)](07-Criando-Banco-Dados-Neon.md) | Tabela `usuario` com restrições de integridade e sem senha em texto puro |
+| 08 | [Conexão assíncrona com o banco](08-Conectando-Banco-Dados.md) | Infraestrutura segura de pool de conexões e consulta sem congelar a tela |
+| 09 | [Autenticação segura com hash](09-Autenticacao-Segura.md) | Primeiro administrador e fluxo de login verificando hash com salt |
+| 10 | [Sessão, perfis e autorização](10-Sessao-e-Perfis.md) | Menus separados para Administrador e Caixa, com troca limpa de usuário |
+| 11 | [Modelo e regras de produtos](11-Modelo-de-Produtos.md) | Tabelas de produto/movimento e serviço validado em memória com dublê (Fake) |
+| 12 | [Consulta de produtos na grade](12-Consulta-de-Produtos.md) | Busca parametrizada exibida em `DataGridView` com carregamento assíncrono |
+| 13 | [Cadastro, edição e inativação](13-Cadastro-de-Produtos.md) | Inclusão, atualização, tratamento de duplicidade e exclusão lógica |
+| 14 | [Reposição de estoque com transação](14-Reposicao-de-Estoque.md) | Atualização atômica de saldo e histórico na mesma transação |
+| 15 | [Carrinho do operador de caixa](15-Carrinho-do-Caixa.md) | Agrupamento de itens, cálculo de subtotal/total e remoção em memória |
+| 16 | [Persistência de venda com transação](16-Venda-com-Transacao.md) | Venda atômica, bloqueio contra concorrência e proteção por idempotência |
+| 17 | [Finalização, troco e falhas de rede](17-Finalizacao-e-Troco.md) | Máquina de estados do caixa, cálculo de troco e reconciliação de tentativa pendente |
+| 18 | [Relatório de vendas por período](18-Relatorio-de-Vendas.md) | Consulta por intervalo semiaberto em UTC com totalização e contagem |
+| 19 | [Cadastro de usuários pelo administrador](19-Cadastro-de-Usuarios.md) | Formulário de criação de contas reutilizando o serviço de autenticação |
+| 20 | [Verificação e publicação local](20-Testes-e-Publicacao.md) | Testes automatizados com Fakes, roteiro manual e publicação executável |
 
-## Decisões do projeto
+---
 
-Usamos **um projeto com pastas por responsabilidade**, injeção manual pelo construtor, SQL parametrizado e Npgsql. Uma solução com muitos projetos, um contêiner de dependências e um ORM acrescentaria conceitos antes de o aluno compreender o problema. A arquitetura permite evoluir essas escolhas depois. Veja a [aula 04](04-Arquitetura-e-Padroes.md).
+## Decisões Arquiteturais e Escopo Didático
 
-O escopo trabalha com produtos em **unidades inteiras** e **dinheiro simulado**. Não inclui integração com balança, TEF/Pix, emissão fiscal, vendas offline, abertura/fechamento de turno ou devoluções. O comprovante é didático, sem valor fiscal. O objetivo é concluir um fluxo de supermercado consistente antes dessas integrações.
+- **Um único projeto organizado em pastas por responsabilidade** (`Models`, `Services`, `Repositories`, `Infrastructure`, `Views`), **injeção de dependência manual** e **SQL parametrizado** diretamente com `Npgsql` (ou `MySqlConnector`). Por quê? Contêineres automáticos de injeção, múltiplos projetos e ORMs escondem o que acontece por baixo dos panos. Dominar os fundamentos explícitos primeiro torna qualquer framework futuro muito mais fácil de entender.
+- **Escopo realista e concluível:** produtos em unidades inteiras e pagamento em dinheiro simulado com comprovante didático (*sem valor fiscal*). Integrações fiscais, balança, TEF/Pix e modo offline ficam como projetos de continuação.
+- **Fronteira de segurança explicada com honestidade:** a ligação direta do aplicativo desktop ao banco de dados é um recorte de laboratório. Em sistemas comerciais, uma API no servidor protege a string de conexão e aplica autenticação/autorização fora da máquina do cliente. Isso é discutido explicitamente desde a [Aula 04](04-Arquitetura-e-Padroes.md).
 
-A ligação direta do desktop ao Neon é um recorte de laboratório: credenciais no computador e verificações de perfil em C# não constituem uma barreira contra alguém que modifique o aplicativo. Para distribuição comercial, uma API deve guardar as credenciais e aplicar autenticação e autorização no servidor. Isso é explicado na [arquitetura](04-Arquitetura-e-Padroes.md), sem exigir uma API nesta primeira sequência.
+---
 
-## Versões e referências
+## Ambiente Recomendado (Visual Studio 2022)
 
-O ambiente desta edição é **.NET 10 LTS**, **Visual Studio 2026 18.11** e **SDK 10.0.404** (faixa 10.0.4xx, selecionada por `global.json`). Atualize os patches dessa faixa antes de cada turma. O .NET 8 usado na edição anterior encerrou suporte em 10/11/2026; código, pacotes e instruções foram atualizados em conjunto nesta edição. Consulte a [compatibilidade oficial](https://learn.microsoft.com/en-us/dotnet/core/porting/versioning-sdk-msbuild-vs) e a [política de suporte](https://dotnet.microsoft.com/en-us/platform/support/policy/dotnet-core).
-
-O exemplo fixa Npgsql 10.0.3 e Microsoft.Extensions.Identity.Core 10.0.15 para reprodução. Não significam “últimas versões”; o professor deve verificar atualizações e vulnerabilidades compatíveis antes de cada turma. As [fontes oficiais](REFERENCIAS.md) sustentam as decisões técnicas.
+- **IDE:** **Visual Studio 2022 Community** (gratuito) com a carga de trabalho **Desenvolvimento para desktop com .NET** instalada.
+- **SDK / .NET:** utilize a versão moderna do .NET suportada pelo laboratório da sua turma (**.NET 8 LTS** nativo no Visual Studio 2022; os arquivos de referência do repositório estão configurados em `global.json` para a faixa de validação do ambiente do professor). Sempre mantenha o mesmo SDK em todos os computadores da turma.
+- **Pacotes NuGet utilizados no projeto:** `Npgsql` (ou `MySqlConnector`) e `Microsoft.Extensions.Identity.Core` (instalados nas Aulas 08 e 09). Consulte as [Referências Técnicas](REFERENCIAS.md) para detalhes de compatibilidade e documentação oficial da Microsoft.

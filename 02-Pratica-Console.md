@@ -1,181 +1,146 @@
-# Aula 02 — Console e depuração
+# Aula 02 — Console Interativo, Validação de Entrada e Depuração no VS 2022
 
-**Duração:** 3h30. **Pré-requisito:** Aula 01. **Entrega:** Caixa de console com entradas validadas e breakpoint demonstrado.
+**Duração:** 3h30. **Pré-requisito:** [Aula 01](01-Introducao-CSharp.md). **Entrega:** aplicativo de console de caixa com todas as entradas validadas (`TryParse` e `do/while`), regras de desconto por fronteira e depuração demonstrada com Breakpoint no Visual Studio 2022.
 
 | Bloco | Minutos | Atividade |
 | --- | ---: | --- |
-| Retomada | 15 | Contexto e problema do supermercado |
-| Explicação | 30 | Conceitos dos exemplos abaixo |
-| Construção | 60 | Criar console e calcular total |
+| Retomada | 15 | Revisar tipos da Aula 01 e o desafio da entrada do usuário |
+| Explicação | 30 | `ReadLine`, `??`, `TryParse`, `out`, `do/while` e cultura `pt-BR` |
+| Construção | 60 | Criar o projeto `TreinoSupermercado` no Visual Studio 2022 e montar o fluxo |
 | Intervalo | 15 | Pausa |
-| Prática | 60 | Validar entrada com TryParse e depurar |
-| Entrega | 30 | Demonstrar casos normal/inválido e registrar evidências |
-
-Antes de pularmos para interfaces gráficas complexas (telas com botões) ou conectarmos um banco de dados, precisamos garantir que você dominou a **sintaxe** do C# que aprendemos no Módulo 1.
-
-A melhor forma de aprender lógica de programação é criando **Aplicações de Console** (Console Applications) — aqueles famosos programas de "tela preta". Eles removem qualquer distração visual para que você foque 100% no código.
+| Prática | 60 | Blindar quantidade/preço com `TryParse`, implementar baixa de estoque e depurar |
+| Entrega | 30 | Demonstrar casos normal/inválido (`abc`, `0`, `-1`, `3`) e registrar evidências |
 
 ---
 
-## 1. Criando seu Primeiro Projeto de Console
+## 1. Por Que Ainda Trabalhar no Console Antes de Criar Telas?
 
-Se você ainda não instalou o **Visual Studio 2026**, instale a versão Community gratuita no site da Microsoft (marcando a opção "Desenvolvimento para Desktop com .NET").
+Aplicativos de console eliminam a complexidade de janelas, cliques e eventos para que você domine 100% o ciclo fundamental de qualquer sistema:
 
-1. Abra o Visual Studio 2026.
+```text
+Entrada de dados (ReadLine) → Validação e Conversão (TryParse) → Processamento (Regras) → Saída (WriteLine)
+```
+
+---
+
+## 2. Criando o Projeto `TreinoSupermercado` no Visual Studio 2022
+
+1. Abra o **Visual Studio 2022 Community**.
 2. Clique em **Criar um novo projeto**.
-3. Na barra de pesquisa, digite `Console`.
-4. Escolha **Aplicativo de Console (Console App)** com a tag `C#`.
-5. Dê um nome, como `TreinoSupermercado`.
-6. Escolha **.NET 10.0**, mantendo o ambiente da turma e clique em **Criar**.
-
-O Visual Studio abrirá um arquivo chamado `Program.cs`. O código padrão se parece com isso:
-
-```csharp
-// See https://aka.ms/new-console-template for more information
-Console.WriteLine("Hello, World!");
-```
-
-Se você apertar o botão **Iniciar** (ou F5) no topo, uma tela preta vai piscar mostrando "Hello, World!".
+3. Pesquise por `Console`, filtre pela linguagem **C#** e selecione **Aplicativo de Console** (modelo .NET moderno — **nunca** o modelo `.NET Framework`).
+4. Clique em **Próximo**, informe o nome **`TreinoSupermercado`** e clique em **Próximo**.
+5. Escolha a versão moderna do **.NET** adotada no laboratório (ex.: `.NET 8.0`), mantenha desmarcada a opção *"Não usar instruções de nível superior"* e clique em **Criar**.
+6. Teste rapidamente com **`Ctrl+F5`** para confirmar que o projeto compila e executa.
 
 ---
 
-## 2. Brincando com Variáveis (Entrada e Saída)
+## 3. O Perigo de Confiar no Que o Usuário Digita (`Convert` vs `TryParse`)
 
-Vamos transformar esse "Hello World" em um sistema primitivo de caixa de supermercado.
-Apague tudo no `Program.cs` e escreva o seguinte código:
+### Por que `Convert.ToInt32(Console.ReadLine())` é perigoso em um caixa?
+Se o operador de caixa esbarrar na letra `"a"` ao digitar a quantidade e seu código usar `Convert.ToInt32` ou `int.Parse`, o programa lança uma **`FormatException`** e **fecha abruptamente no meio do atendimento**, perdendo toda a compra do cliente!
 
-```csharp
-Console.WriteLine("=== BEM-VINDO AO MARKETFLOW ===");
+### Anatomia da Leitura Segura: `string?`, `??`, `do/while`, `TryParse`, `out`, `!` e `||`
 
-// 1. O sistema pergunta algo (Saída de dados)
-Console.Write("Digite o nome do produto: ");
-
-// 2. O sistema lê o que o usuário digitou (Entrada de dados)
-string nomeProduto = Console.ReadLine() ?? "";
-
-Console.Write("Digite a quantidade: ");
-// Console.ReadLine() sempre retorna um TEXTO (string).
-// Precisamos converter para Inteiro para fazer contas!
-string quantidadeTexto = Console.ReadLine() ?? "";
-int quantidade = Convert.ToInt32(quantidadeTexto);
-
-Console.Write("Digite o preço unitário (ex: 5,50): ");
-decimal preco = Convert.ToDecimal(Console.ReadLine());
-
-// 3. O sistema processa os dados
-decimal total = quantidade * preco;
-
-// 4. O sistema exibe o resultado final
-Console.WriteLine("\n--- COMPROVANTE DIDÁTICO — SEM VALOR FISCAL ---");
-Console.WriteLine($"Produto: {nomeProduto}");
-Console.WriteLine($"Qtd: {quantidade} x {preco:C}"); // :C formata como Moeda (Currency)
-Console.WriteLine($"Total a Pagar: {total:C}");
-```
-
-> [!TIP]
-> O símbolo `$` antes da string (como em `$"Produto: {nomeProduto}"`) se chama **Interpolação de String**. É a forma mais moderna e limpa de juntar textos e variáveis em C#, colocando a variável diretamente entre chaves `{}`.
-
----
-
-## 3. Praticando Estruturas de Decisão
-
-Vamos adicionar uma regra de negócio ao nosso caixa. Continue o código acima, logo abaixo do "Total a Pagar":
+Observe como cada peça trabalha em conjunto em um exemplo genérico de leitura de **número de parcelas**:
 
 ```csharp
-Console.WriteLine("--------------------");
-
-if (total > 100.00m)
-{
-    Console.WriteLine("🎉 Parabéns! O cliente ganhou um cupom de 10% para a próxima compra.");
-}
-else if (total > 50.00m)
-{
-    Console.WriteLine("👍 Cliente ganhou um brinde no balcão.");
-}
-else
-{
-    Console.WriteLine("Agradecemos a preferência.");
-}
-```
-Aperte **F5**. Faça um teste digitando valores que passem de R$ 100,00 e veja como o sistema toma caminhos diferentes na execução!
-
----
-
-## 📝 Atividades de Fixação (Console App)
-
-Agora é a sua vez de codificar. Apague o código anterior e tente resolver este desafio no Visual Studio:
-
-- [ ] **Desafio do Estoque:** Crie um programa que faça o seguinte:
-  1. Pergunte ao usuário a "Quantidade atual de maçãs no estoque".
-  2. Leia a resposta e converta para inteiro.
-  3. Use um laço `while` (enquanto) que diminua o estoque em 1 até chegar a zero. Em cada repetição, imprima: `"Vendendo uma maçã. Estoque restante: X"`.
-  4. Quando o `while` terminar (estoque = 0), imprima: `"ALERTA: Estoque vazio! Solicitar reposição."`.
-
-<details>
-<summary><b>💡 Ver Resposta (Tentou fazer sozinho primeiro?)</b></summary>
-<br>
-<pre><code>
-int estoque;
+int parcelas;
 string? entrada;
+
 do
 {
-    Console.Write("Quantidade atual de maçãs no estoque (zero ou mais): ");
-    entrada = Console.ReadLine();
-    if (entrada is null) return;
-} while (!int.TryParse(entrada, out estoque) || estoque < 0);
-
-while (estoque > 0)
-{
-    estoque--; // O mesmo que: estoque = estoque - 1;
-    Console.WriteLine($"Vendendo uma maçã. Estoque restante: {estoque}");
-}
-
-Console.WriteLine("ALERTA: Estoque vazio! Solicitar reposição.");
-</code></pre>
-</details>
-
-Antes de avançar, demonstre a validação e a depuração com uma entrada diferente do exemplo. Se métodos, classes ou objetos ainda forem novidade, retome o [percurso preparatório](fundamentos/README.md), especialmente F03–F06; executar este console sozinho não comprova domínio de orientação a objetos.
-
-
-## Entrega prática: valide e depure
-
-### Entenda a repetição antes de usar
-
-`ReadLine()` pode retornar `null`, por exemplo quando a entrada é encerrada; `?? ""` fornece texto vazio nesse caso. Isso não prova que há um nome válido: a regra de nome obrigatório precisa de outra verificação.
-
-`TryParse(texto, out quantidade)` devolve um `bool` indicando conversão e preenche `quantidade`. `!` inverte o booleano. `||` significa “ou” e só avalia o lado direito se o esquerdo for falso. Assim, `!TryParse(...) || quantidade <= 0` repete por formato inválido **ou** por número fora da regra. `do/while` executa o corpo ao menos uma vez e testa a condição depois.
-
-| Entrada | Converteu? | É positiva? | Ação |
-| --- | --- | --- | --- |
-| abc | Não | Não se aplica | Pedir novamente |
-| 0 | Sim | Não | Pedir novamente |
-| -1 | Sim | Não | Pedir novamente |
-| 3 | Sim | Sim | Continuar |
-
-Se `ReadLine()` retornar `null`, encerre a leitura com uma mensagem; repetir indefinidamente não resolve o fim da entrada. Na atividade de estoque, aceite zero como estoque vazio e recuse negativo; na compra, quantidade deve ser maior que zero. O gabarito com `Convert` mostra a versão inicial: sua entrega final deve usar `TryParse`, inclusive no estoque.
-
-Os exemplos iniciais usam `Convert` para mostrar a conversão. Na versão entregue, substitua a leitura da quantidade por:
-
-```csharp
-int quantidade;
-string? entrada;
-do
-{
-    Console.Write("Quantidade inteira maior que zero: ");
+    Console.Write("Número de parcelas (maior que zero): ");
     entrada = Console.ReadLine();
     if (entrada is null)
     {
         Console.WriteLine("Entrada encerrada.");
         return;
     }
-} while (!int.TryParse(entrada, out quantidade) || quantidade <= 0);
+} while (!int.TryParse(entrada, out parcelas) || parcelas <= 0);
 ```
 
-Faça o mesmo para preço com `decimal.TryParse`, exigindo valor positivo. No começo de `Program.cs`, configure `CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("pt-BR");` e adicione `using System.Globalization;` antes das instruções. Assim `5,50` tem interpretação consistente no laboratório.
+Dissecando **cada detalhe** e **por que usamos assim**:
 
-Coloque breakpoint na multiplicação, pressione F5, inspecione `quantidade` e `preco` e avance com F10. Demonstre as entradas `abc`, `0` e `3`: as duas primeiras devem pedir novamente; a última deve ser aceita. Explique por que uma entrada inválida não deve encerrar o programa. Os exemplos de conversão anteriores continuam úteis para comparar o comportamento.
+| Elemento | O que faz? | Por que é necessário? |
+| --- | --- | --- |
+| `string? entrada` | Declara uma string que aceita `null`. | `Console.ReadLine()` retorna `null` quando a entrada do terminal é fechada (ex.: `Ctrl+Z`). Testar `if (entrada is null) return;` impede um laço infinito se a entrada acabar. |
+| `?? ""` (quando usado em textos) | Operador de coalescência nula. | Em `string nome = Console.ReadLine() ?? "";`, garante que `nome` nunca fique `null`, virando `""` se vier nulo. **Atenção:** `?? ""` trata `null`, mas **não** impede texto vazio! |
+| `do { ... } while (...);` | Laço que testa a condição **no final**. | Diferente do `while` comum, o `do/while` garante que a pergunta ao usuário seja feita **pelo menos uma vez** antes de decidir se precisa repetir. Note o ponto e vírgula `;` obrigatório no final do `while (...) ;`. |
+| `int.TryParse(entrada, out parcelas)` | Tenta converter e entrega o resultado em `parcelas` (`out`). | Devolve `true` se o texto era um número inteiro e `false` se não era — sem nunca derrubar o programa. |
+| `!` (negação) | Inverte o booleano do `TryParse`. | Queremos repetir quando **NÃO** conseguiu converter (`!int.TryParse(...)`). |
+| `\|\|` (OU lógico com curto-circuito) | Repete se falhou a conversão **OU** se falhou a regra (`parcelas <= 0`). | Se o lado esquerdo for `true` (não converteu `"abc"`), o C# nem testa o lado direito e já repete o laço! |
 
-[Próxima aula](03-Orientacao-a-Objetos.md) · [Índice](README.md)
+### Tabela de Rastreamento: Conversão vs Regra de Negócio
+
+| Texto digitado | `TryParse` converteu? | Atende `> 0`? | Resultado de `!TryParse \|\| <= 0` | Ação do laço |
+| --- | --- | --- | --- | --- |
+| `abc` | Não (`false`) | Não avaliado (curto-circuito) | `true` | Repete a pergunta |
+| `0` | Sim (`true`) | Não (`0 <= 0` é `true`) | `true` | Repete a pergunta |
+| `-1` | Sim (`true`) | Não (`-1 <= 0` é `true`) | `true` | Repete a pergunta |
+| `3` | Sim (`true`) | Sim (`3 <= 0` é `false`) | `false` | **Sai do laço e aceita!** |
+
+### Por que configurar `CultureInfo.CurrentCulture` no início do `Program.cs`?
+Se um computador do laboratório estiver com o Windows em inglês, `decimal.TryParse("5,50", out preco)` falha ou lê errado porque espera ponto. Adicionando no topo do `Program.cs`:
+- `using System.Globalization;`
+- `CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("pt-BR");`
+
+garantimos que **todos** os computadores aceitem `"5,50"` com vírgula na digitação e exibam `R$ 5,50` com `:C` — mesmo que dentro do código C# os literais continuem sendo escritos com ponto (`5.50m`).
+
+---
+
+## 4. Roteiro de Construção Guiada (Sua Vez no Visual Studio 2022!)
+
+Construa no `Program.cs` do projeto `TreinoSupermercado` o seu **Caixa de Console Validado** seguindo as etapas abaixo (não copie blocos prontos — monte cada peça entendendo o motivo):
+
+### Etapa 1 — Cultura e Identificação do Produto (`A02.01` e `A02.02`)
+1. No topo de `Program.cs`, adicione `using System.Globalization;` e configure `CultureInfo.CurrentCulture` para `"pt-BR"`.
+2. Exiba um cabeçalho `"=== BEM-VINDO AO MARKETFLOW ==="`.
+3. Peça o nome do produto com `Console.Write` e leia com `Console.ReadLine() ?? ""`.
+4. **Experimento mental / no caderno (`A02.02`):** registre qual será o valor final de `string nome = entrada ?? "";` nos três cenários: `entrada` sendo `null`, `""` e `"Arroz"`.
+
+### Etapa 2 — Validação de Quantidade e Preço (`A02.03` e `A02.04`)
+1. *(Opcional de contraste)* Antes de usar `TryParse`, faça um teste rápido lendo com `Convert.ToInt32`, digite `"abc"`, observe a exceção `FormatException` no Visual Studio 2022 e entenda por que isso é inaceitável em produção.
+2. Substitua a leitura da quantidade por um laço `do / while` usando `int.TryParse(entrada, out quantidade)`:
+   - Encerre o programa com mensagem se `entrada is null`.
+   - Repita enquanto a conversão falhar **OU** `quantidade <= 0`.
+3. Construa um segundo laço `do / while` para o **preço unitário** (`decimal preco`) usando `decimal.TryParse(entrada, out preco)`:
+   - Encerre se `entrada is null`.
+   - Repita enquanto a conversão falhar **OU** `preco <= 0`.
+4. Calcule `decimal total = quantidade * preco;`.
+5. Exiba um **Comprovante Didático — Sem Valor Fiscal** usando interpolação de string (`$"..."`) e o formatador monetário `:C` (ex.: `$"Total a Pagar: {total:C}"`).
+
+### Etapa 3 — Regra de Brinde/Cupom e Teste de Fronteiras (`A02.05`)
+Logo abaixo do comprovante, construa uma estrutura `if / else if / else` sobre `total`:
+- Se `total > 100.00m`: informe que o cliente ganhou cupom de 10% para a próxima compra.
+- Senão, se `total > 50.00m`: informe que o cliente ganhou um brinde no balcão.
+- Senão: exiba mensagem de agradecimento.
+- **Teste obrigatório de fronteiras:** rode com valores que gerem totais exatos de `50,00`, `50,01`, `100,00` e `100,01` e explique no caderno o papel do operador `>` em vez de `>=`.
+
+### Etapa 4 — Simulador de Baixa de Estoque com Decremento (`A02.06`)
+Ao final do programa (ou em uma segunda seção clara), construa o controle de estoque de maçãs:
+1. Peça ao usuário a quantidade inicial de maçãs no estoque usando `do / while` e `int.TryParse`:
+   - **Atenção à diferença da regra:** estoque pode começar em **zero** (estoque vazio), mas **não** pode ser negativo (`estoque < 0`)!
+2. Enquanto `estoque > 0` (`while`), decremente uma unidade (`estoque--`) e exiba `"Vendendo uma maçã. Estoque restante: {estoque}"`.
+3. Quando o laço encerrar, exiba `"ALERTA: Estoque vazio! Solicitar reposição."`.
+4. **Teste de fronteira:** informe `0` como estoque inicial e confirme que nenhuma venda é executada e o alerta aparece direto (sem gerar saldo negativo).
+
+### Etapa 5 — Depuração Obrigatória no Visual Studio 2022 (`F9`, `F5`, `F10`)
+1. Coloque um **Breakpoint (`F9`)** na linha `decimal total = quantidade * preco;` e outro na linha `estoque--;`.
+2. Execute com **`F5`** (Iniciar com Depuração).
+3. Digite entradas inválidas (`abc`, `0`, `-1`) e depois válidas (`3` unidades a `5,50`).
+4. Quando o Visual Studio 2022 pausar na linha amarela, abra a janela **Locais**, inspecione `quantidade` e `preco`, avance com **`F10`** e confirme o cálculo `16,50`. Repita o acompanhamento em cada volta do laço `estoque--` com estoque inicial `3`.
+
+---
+
+## 5. Erros Comuns no Visual Studio 2022
+
+| Sintoma / Erro | Causa provável | Como corrigir |
+| --- | --- | --- |
+| `CS1002: ; esperado` após `while (...)` | Esqueceu o ponto e vírgula ao final do `do { ... } while (...);`. | Coloque `;` logo depois do parêntese do `while`. |
+| Digitar `5,50` falha na conversão | Não configurou `CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("pt-BR");` no início do `Program.cs`. | Adicione `using System.Globalization;` e configure a cultura `pt-BR` antes das leituras. |
+| Laço repete mesmo digitando número válido | Inverteu a lógica do `while` (usou `&&` em vez de `\|\|` ou esqueceu o `!` no `TryParse`). | Revise a tabela de rastreamento na Seção 3: queremos repetir se **NÃO** converteu **OU** estiver fora da regra. |
+
+[Anterior: Aula 01](01-Introducao-CSharp.md) · [Próxima: Aula 03 — Orientação a objetos](03-Orientacao-a-Objetos.md) · [Índice](README.md)
 
 ## Atividades por conceito
 
