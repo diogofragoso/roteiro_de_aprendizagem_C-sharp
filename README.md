@@ -7,8 +7,8 @@ Guia progressivo, linear e autoexplicativo para estudantes que estão **começan
 ## Como Este Guia Funciona (Filosofia de Aprendizagem)
 
 1. **Uma única trilha linear, sem repetições nem arquivos dispersos:** comece na **Aula 01** e siga em ordem até a **Aula 25**. Cada encontro introduz conceitos novos na dose certa, sempre apoiados no encontro anterior.
-2. **Explicação detalhada do "O quê", "Como" e "Por quê":** nenhum comando, palavra-chave ou símbolo da linguagem C# aparece sem explicação. Cada capítulo disseca a sintaxe com microexemplos independentes e mostra **por que** fazemos daquela forma (e qual problema ocorreria se fizéssemos diferente).
-3. **O guia orienta; você constrói:** não existem respostas prontas do projeto para "copiar e colar". Cada aula oferece **passo a passo no Visual Studio 2022** e **orientações estruturadas de construção** para que você escreva cada classe, método, consulta SQL e formulário com autonomia.
+2. **Explicação profunda com exemplos práticos completos e compiláveis:** nenhum comando, palavra-chave ou componente aparece sem explicação nem sem código real. Cada capítulo traz **exemplos completos que você pode digitar, compilar e executar no Visual Studio 2022** com a saída esperada, dissecando cada linha, o **porquê** de cada escolha técnica e comparativos de erros comuns (**❌ Errado vs ✅ Certo**).
+3. **Prática guiada + desafios autônomos:** após experimentar e entender os exemplos completos da aula, você aplica o conhecimento nos exercícios e desafios progressivos para construir o **MarketFlow** de ponta a ponta — usando o depurador (`F9`/`F10`/`F11`) e a **Lista de Erros** como ferramentas diárias de aprendizado.
 
 > [!TIP]
 > **Onde fica o código pronto?** A pasta `src/` deste repositório é de uso exclusivo do professor para conferência e execução das verificações automatizadas. Durante seus estudos, construa tudo pelas orientações dos capítulos — errar, ler a **Lista de Erros** do Visual Studio 2022 e depurar faz parte do aprendizado.

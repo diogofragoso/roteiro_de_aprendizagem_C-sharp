@@ -1,98 +1,136 @@
 # Aula 19 — Reposição de Estoque com Transação Atômica e Auditoria
 
-**Duração:** 3h30. **Pré-requisito:** [Aula 18](18-Cadastro-de-Produtos.md) e ao menos um produto ativo cadastrado. **Entrega:** operação de reposição que atualiza `produto.estoque` e registra o histórico em `movimento_estoque` dentro da mesma transação de banco de dados, atribuindo automaticamente o administrador logado como responsável.
+**Duração:** 3h30. **Pré-requisito:** [Aula 18](18-Cadastro-de-Produtos.md) e ao menos um produto ativo cadastrado. **Entrega:** operação de reposição que incrementa `produto.estoque` atomicamente no SQL e registra a entrada em `movimento_estoque` dentro da mesma transação, atribuindo o administrador autenticado como responsável (`A19.01`–`A19.05`).
 
 | Bloco | Minutos | Atividade |
 | --- | ---: | --- |
 | Retomada | 15 | Conferir saldo inicial `0` dos produtos cadastrados na Aula 18 |
-| Explicação | 30 | Transação ACID, rollback automático no descarte e incremento atômico no SQL |
-| Construção | 60 | Construir `ReporAsync` no contrato, repositório e serviço |
+| Explicação | 30 | Transação ACID, rollback automático no descarte e incremento atômico (`estoque + @q`) |
+| Construção | 60 | Implementar `ReporAsync` no contrato, repositório transacional e serviço |
 | Intervalo | 15 | Pausa |
-| Prática | 60 | Adicionar controles de reposição no `FormProdutos` e auditar no SQL Editor |
-| Entrega | 30 | Demonstrar conciliação matemática (`A19.01`–`A19.05`) e acesso negado |
+| Prática | 60 | Adicionar o bloco de reposição em `FormProdutos` e auditar no SQL Editor |
+| Entrega | 30 | Demonstrar conciliação matemática (`+10` + `+3` = `13`) e recusas (`A19.01`–`A19.05`) |
 
 ---
 
-## 1. Dois Problemas Críticos Que Esta Aula Resolve (Entenda o "Por Quê")
+## 1. Dois Problemas Críticos Que Esta Aula Resolve
 
-### 1.1 Por que usar Transação (`BeginTransactionAsync` + `CommitAsync`)? (`A19.02`)
-Uma reposição de mercadoria executa **duas gravações** em tabelas diferentes:
-1. Aumentar o saldo em `produto`;
-2. Gravar o registro de auditoria (`+quantidade`, `usuario_id`, `'Reposicao'`) em `movimento_estoque`.
-
-**O que acontece SEM transação se a internet cair exatamente entre o comando 1 e o comando 2?**
-O saldo sobe para `+10`, mas ninguém sabe quem colocou aquelas 10 unidades nem quando!
-Com uma **Transação**, ambas as gravações formam uma unidade indivisível (**Atomicidade**): **ou as duas confirmam juntas no `CommitAsync()`, ou nenhuma é gravada** (se ocorrer qualquer exceção antes do `CommitAsync()`, o `await using` da transação dispara **Rollback automático** ao encerrar o método!).
+### 1.1 Transação ACID (`BeginTransactionAsync` + `CommitAsync`) (`A19.02`)
+Uma reposição grava em **duas tabelas** (`UPDATE produto` + `INSERT movimento_estoque`). Sem transação, uma queda de rede entre os dois comandos aumentaria o saldo sem deixar auditoria!
+Com transação: **ou os dois confirmam juntos no `CommitAsync()`, ou nenhum é gravado** (se houver qualquer exceção antes do `CommitAsync()`, o `await using var transacao` dispara **Rollback automático**!).
 
 > [!IMPORTANT]
-> **Regra obrigatória em C# / Npgsql:** todos os comandos que fazem parte da mesma transação precisam receber **a mesma `conexao`** e **a mesma `transacao`** (`new NpgsqlCommand(sql, conexao, transacao)`). Usar `banco.CreateCommand(...)` criaria comandos fora da transação e destruiria a atomicidade!
+> **Regra de ouro em Npgsql:** todos os comandos da transação precisam receber **a mesma `conexao` e a mesma `transacao`** (`new NpgsqlCommand(sql, conexao, transacao)`). Chamar `banco.CreateCommand(...)` criaria comandos **fora** da transação!
 
-### 1.2 Por que somar no SQL (`estoque = estoque + @q`) em vez de somar no C#? (`A19.01`)
-Imagine o saldo inicial `0` e dois funcionários repondo mercadoria ao mesmo tempo (Funcionário A repõe `+10`, Funcionário B repõe `+3`):
-
-- **❌ Estratégia errada (ler para o C#, somar e sobrescrever `SET estoque = @novo`):**
-  1. Funcionário A lê `0` e calcula `0 + 10 = 10` em C#.
-  2. Funcionário B também lê `0` (antes do A gravar) e calcula `0 + 3 = 3` em C#.
-  3. A grava `10`; logo depois B grava `3` — **as 10 unidades do A sumiram!** (Isso se chama *Lost Update* / Perda de Atualização.)
-- **✅ Estratégia correta (Incremento Atômico no SQL):**
-  `UPDATE produto SET estoque = estoque + @q WHERE id = @id AND ativo`
-  O PostgreSQL trava brevemente a linha durante o `UPDATE`, soma `+10` (vira `10`) e na sequência o segundo comando soma `+3` sobre `10` (vira **`13`**)!
-
-### 1.3 Por que o `usuarioId` vem da `Sessao` e não de um campo digitado na tela? (`A19.03`)
-O operador nunca pode digitar *"quem fez a reposição"* em uma caixa de texto. O `ProdutoService` extrai `sessao.Id` do administrador autenticado e repassa ao repositório. Além disso, reposição é uma ação separada do botão **Salvar**: nunca permitimos digitar quantidade negativa para "corrigir" estoque (inventário e estorno exigem regras próprias de auditoria).
+### 1.2 Incremento Atômico no SQL vs Perda de Atualização (*Lost Update*) (`A19.01`)
+Com saldo inicial `0`, se dois administradores repõem `+10` e `+3` ao mesmo tempo:
+- **❌ Errado (somar no C# e gravar `SET estoque = @novo`):** ambos leem `0`; A grava `10`; B grava `3` → **10 unidades sumiram!**
+- **✅ Correto (incremento atômico no SQL):** `UPDATE produto SET estoque = estoque + @q WHERE id = @id AND ativo` → o banco trava a linha, soma `+10` (`10`) e depois soma `+3` (**`13`**)!
 
 ---
 
-## 2. Roteiro de Construção Guiada (Sua Vez no Visual Studio 2022!)
+## 2. Código Completo e Compilável desta Etapa (4 Trechos)
 
-### Passo 1 — Evoluir `IProdutoRepository.cs` e `ProdutoService.cs`
-1. Em **`Repositories/IProdutoRepository.cs`**, adicione a assinatura:
-   - `Task ReporAsync(int id, int quantidade, int usuarioId);`
-2. Em **`Services/ProdutoService.cs`**, implemente **`public Task ReporAsync(Sessao sessao, int id, int quantidade)`**:
-   - Exija `Permissoes.ExigirAdministrador(sessao);`.
-   - Valide `if (quantidade <= 0)` → lance `ArgumentException("Reposição deve ser maior que zero.")`.
-   - Retorne `produtos.ReporAsync(id, quantidade, sessao.Id);`.
+### Passo 1 — Contrato `Repositories/IProdutoRepository.cs` e Serviço `Services/ProdutoService.cs`
 
-### Passo 2 — Construir `ReporAsync` Transacional em `Repositories/ProdutoRepository.cs`
-Implemente `public async Task ReporAsync(int id, int quantidade, int usuarioId)` seguindo exatamente estas 5 etapas:
-1. Abra uma conexão dedicada do pool com descarte assíncrono: `await using var conexao = await banco.OpenConnectionAsync();`.
-2. Inicie a transação sobre essa conexão: `await using var transacao = await conexao.BeginTransactionAsync();`.
-3. **Primeiro comando (Incremento atômico):**
-   - Crie `await using var atualizar = new NpgsqlCommand("UPDATE produto SET estoque=estoque+@q WHERE id=@id AND ativo", conexao, transacao);`.
-   - Adicione os parâmetros `"q"` (`quantidade`) e `"id"` (`id`).
-   - Execute `if (await atualizar.ExecuteNonQueryAsync() != 1)` → lance `InvalidOperationException("Produto inexistente ou inativo.")` *(note que se o produto estiver inativo, a exceção interrompe o método aqui e a transação sofre rollback sem gravar movimento!)*.
-4. **Segundo comando (Registro de auditoria):**
-   - Crie `await using var movimento = new NpgsqlCommand(""" INSERT INTO movimento_estoque(produto_id, usuario_id, quantidade, motivo) VALUES (@id, @usuario, @q, 'Reposicao') """, conexao, transacao);`.
-   - Adicione os parâmetros `"id"`, `"usuario"` (`usuarioId`) e `"q"` (`quantidade`).
-   - Execute `await movimento.ExecuteNonQueryAsync();`.
-5. **Confirmação única:** somente após os dois comandos terem sucesso, execute **`await transacao.CommitAsync();`**.
+```csharp
+// Em Repositories/IProdutoRepository.cs:
+Task ReporAsync(int id, int quantidade, int usuarioId);
 
-### Passo 3 — Adicionar o Bloco de Reposição em `Views/FormProdutos.cs`
-No construtor de `FormProdutos.cs`, logo após os botões CRUD da Aula 18 e **antes** da linha `Shown += ...`:
-1. Adicione um rótulo: `painel.Controls.Add(Ui.Rotulo("Quantidade para repor no produto selecionado"));`.
-2. Crie um `NumericUpDown` chamado `quantidade` configurado com `Minimum = 1`, `Maximum = 1000000`, `Value = 1`, `Width = 180` (sem `DecimalPlaces`, pois estoque é inteiro — diferente do `NumericUpDown` de preço da Aula 18, conforme comparamos na [Aula 10 — Seção 2.5](10-Componentes-Windows-Forms.md)) e adicione-o ao painel com `painel.Controls.Add(quantidade);`.
-3. Adicione o botão **`"Registrar reposição"`** com evento `async (sender, _) =>`:
-   - Desabilite o botão (`var b = (Button)sender!; b.Enabled = false;`).
-   - Dentro de `try`, chame `await Ui.ExecutarAsync(async () => { await produtos.ReporAsync(sessao, Selecionado().Id, (int)quantidade.Value); await Carregar(); });`.
-   - No `finally`, reabilite `b.Enabled = true;`.
+// Em Services/ProdutoService.cs:
+public Task ReporAsync(Sessao sessao, int id, int quantidade)
+{
+    Permissoes.ExigirAdministrador(sessao);
+    if (quantidade <= 0)
+        throw new ArgumentException("Reposição deve ser maior que zero.");
+
+    // O usuarioId vem SEMPRE da Sessao autenticada, nunca de um campo digitado na tela!
+    return produtos.ReporAsync(id, quantidade, sessao.Id);
+}
+```
+
+### Passo 2 — Implementação Transacional em `Repositories/ProdutoRepository.cs`
+
+```csharp
+public async Task ReporAsync(int id, int quantidade, int usuarioId)
+{
+    // 1. Abre conexão dedicada do Pool e inicia a transação:
+    await using var conexao = await banco.OpenConnectionAsync();
+    await using var transacao = await conexao.BeginTransactionAsync();
+
+    // 2. Comando 1 — Incremento atômico no SQL (passando conexao E transacao!):
+    await using var atualizar = new NpgsqlCommand("""
+        UPDATE produto
+        SET estoque = estoque + @q
+        WHERE id = @id AND ativo
+        """, conexao, transacao);
+    atualizar.Parameters.AddWithValue("q", quantidade);
+    atualizar.Parameters.AddWithValue("id", id);
+
+    if (await atualizar.ExecuteNonQueryAsync() != 1)
+        throw new InvalidOperationException("Produto inexistente ou inativo.");
+
+    // 3. Comando 2 — Registro de auditoria na MESMA conexao e transacao:
+    await using var movimento = new NpgsqlCommand("""
+        INSERT INTO movimento_estoque(produto_id, usuario_id, quantidade, motivo)
+        VALUES (@id, @usuario, @q, 'Reposicao')
+        """, conexao, transacao);
+    movimento.Parameters.AddWithValue("id", id);
+    movimento.Parameters.AddWithValue("usuario", usuarioId);
+    movimento.Parameters.AddWithValue("q", quantidade);
+    await movimento.ExecuteNonQueryAsync();
+
+    // 4. Confirmação única (se qualquer linha acima falhar, o await using faz ROLLBACK!):
+    await transacao.CommitAsync();
+}
+```
+
+### Passo 3 — Bloco de Reposição em `Views/FormProdutos.cs`
+
+Ajuste a altura de `Ui.Preparar(this, "Administração — Produtos e estoque", 960, 900)` e adicione este bloco **logo antes** da linha `Shown += ...` no construtor de `FormProdutos.cs`:
+
+```csharp
+p.Controls.Add(Ui.Rotulo("Quantidade para repor no produto selecionado"));
+
+// NumericUpDown INTEIRO (DecimalPlaces = 0, Minimum = 1 — contraste com o de preço na Aula 10!):
+var quantidade = new NumericUpDown
+{
+    Minimum = 1,
+    Maximum = 1000000,
+    Value = 1,
+    Width = 180
+};
+p.Controls.Add(quantidade);
+
+Ui.Botao(p, "Registrar reposição", async (sender, _) =>
+{
+    var b = (Button)sender!;
+    b.Enabled = false;
+    try
+    {
+        await Ui.ExecutarAsync(async () =>
+        {
+            await produtos.ReporAsync(sessao, Selecionado().Id, (int)quantidade.Value);
+            await Carregar(); // Atualiza a grade mostrando o novo saldo!
+        });
+    }
+    finally { b.Enabled = true; }
+});
+```
 
 ---
 
 ## 3. Auditoria Matemática no Banco e Verificação (`A19.01`–`A19.05`)
 
-1. **Linha do tempo no papel (`A19.01`):** desenhe o comparativo entre duas reposições (`+10` e `+3`) por leitura/sobrescrita vs incremento atômico no SQL.
-2. **Teste prático no Visual Studio 2022 (`F5`):**
-   - Cadastre um produto novo (nasce com saldo `0`).
-   - Tente clicar em **Registrar reposição** sem selecionar nenhuma linha → deve recusar pedindo seleção.
-   - Selecione o produto, reponha **`10`** unidades e depois reponha **`3`** unidades → a grade deve atualizar para **`13`**.
-3. **Conciliação no SQL Editor (`A19.03`):** execute:
+1. **Teste na tela (`F5`):** cadastre um produto novo (saldo `0`), tente repor sem selecionar nada (recusado), depois selecione-o e reponha **`10`** e em seguida **`3`** → saldo na grade vai para **`13`**.
+2. **Conciliação no SQL Editor (`A19.03`):**
    ```sql
    SELECT id, codigo, estoque FROM produto ORDER BY id;
    SELECT produto_id, usuario_id, quantidade, motivo, criado_em
    FROM movimento_estoque ORDER BY id;
    ```
-   Confirme que o saldo é `13`, existem exatamente dois movimentos (`+10` e `+3`), a soma dos movimentos bate com o saldo e o `usuario_id` é o do administrador conectado!
-4. **Testes de recusa (`A19.04`):** verifique que quantidade `0`/negativa, produto **inativo** e sessão de **`Caixa`** são recusados sem alterar saldo nem criar movimento.
+   Confirme que o saldo é `13`, existem exatamente dois movimentos (`+10` e `+3`) e o `usuario_id` é o administrador conectado!
+3. **Testes de recusa (`A19.04`):** quantidade `0`/negativa, produto inativo e sessão de `Caixa` são recusados sem alterar saldo nem gravar histórico.
 
 [Anterior: Aula 18](18-Cadastro-de-Produtos.md) · [Próxima: Aula 20 — Carrinho do caixa](20-Carrinho-do-Caixa.md) · [Índice](README.md)
 

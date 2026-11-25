@@ -6,10 +6,10 @@
 
 ---
 
-## Princípio Pedagógico: O Guia Orienta e Explica, o Estudante Constrói
+## Princípio Pedagógico: Exemplos Completos para Aprender de Verdade + Prática Autônoma
 
-1. **Explicação de cada detalhe e dos "Porquês":** cada aula explica o conceito do zero, disseca a sintaxe C# com microexemplos independentes e justifica o motivo técnico das escolhas (`decimal`, `TryParse`, `interface`, `async/await`, SQL parametrizado, hash com salt, transações e bloqueios).
-2. **Construção autônoma no Visual Studio 2022:** os capítulos não entregam código pronto do projeto nem instruem o aluno a copiar arquivos de `src/`. Cada aula fornece **orientações passo a passo de construção** e caminhos exatos de menus/atalhos no **Visual Studio 2022**.
+1. **Explicação profunda com códigos completos e compiláveis:** cada aula ensina o conceito do zero com exemplos práticos completos (todos os arquivos `.cs`/SQL necessários + saída esperada no console/tela), disseca cada sintaxe e justifica o motivo técnico das escolhas (`decimal`, `TryParse`, `class`/referências, `interface`, `async/await`, SQL parametrizado, hash com salt, transações e bloqueios).
+2. **Prática guiada e desafios no Visual Studio 2022:** após digitar, compilar e depurar os exemplos da aula, o estudante resolve exercícios de fronteira, experimentos controlados de erro (`❌ vs ✅`) e desafios autônomos integrando cada camada do **MarketFlow**.
 3. **Verificação por evidência e explicação:** cada encontro termina com testes de casos normais e inválidos e explicação individual.
 
 ---

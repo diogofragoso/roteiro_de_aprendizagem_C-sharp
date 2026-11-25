@@ -1,105 +1,160 @@
-# Aula 23 — Relatório de Vendas por Período, UTC e Intervalo Semiaberto
+# Aula 23 — Relatório de Vendas por Período: UTC, Intervalo Semiaberto e `DateTimePicker`
 
-**Duração:** 3h30. **Pré-requisito:** [Aula 22](22-Finalizacao-e-Troco.md), com ao menos duas vendas confirmadas no banco. **Entrega:** tela `FormRelatorio` integrada ao menu administrativo que consulta vendas por data local (convertida corretamente para UTC em intervalo semiaberto), exibe a grade e totaliza quantidade de vendas e faturamento.
+**Duração:** 3h30. **Pré-requisito:** [Aula 22](22-Finalizacao-e-Troco.md), com ao menos duas vendas confirmadas no banco. **Entrega:** tela `FormRelatorio` integrada ao menu administrativo consultando vendas via `JOIN` por data local convertida para UTC em intervalo semiaberto, exibindo grade e totalização (`A23.01`–`A23.05`).
 
 | Bloco | Minutos | Atividade |
 | --- | ---: | --- |
 | Retomada | 15 | Conferir vendas reais registradas no banco na Aula 22 |
 | Explicação | 30 | Instante UTC (`timestamptz`), horário local, intervalo semiaberto e projeção LINQ |
-| Construção | 60 | Implementar `RelatorioAsync` no contrato, repositório (`JOIN`) e serviço |
+| Construção | 60 | Implementar `RelatorioAsync` em `IVendaRepository`, `VendaRepository` (`JOIN`) e `VendaService` |
 | Intervalo | 15 | Pausa |
-| Prática | 60 | Construir `FormRelatorio` com `DateTimePicker` e conectar ao `FormAdministrador` |
-| Entrega | 30 | Conferir fronteiras de data com SQL fixo (`A23.01`–`A23.05`) e perfil negado |
+| Prática | 60 | Construir `FormRelatorio` com dois `DateTimePicker` e conectar ao `FormAdministrador` |
+| Entrega | 30 | Conferir fronteiras exatas com SQL fixo (`A23.01`–`A23.05`) e bloqueio de `Caixa` |
 
 ---
 
 ## 1. Dois Erros Clássicos com Datas em Sistemas Reais (E Como Evitá-los)
 
-### 1.1 Por Que Guardar em UTC (`timestamptz`) e Converter Só na Tela? (`A23.01`)
-Imagine um servidor na nuvem nos EUA (horário UTC) recebendo vendas de um caixa em Brasília (`UTC-3`). Se você gravar datas sem fuso, relatórios quebram na mudança de dia (uma venda às `22:00` de Brasília já é `01:00` do dia seguinte em UTC!).
+### 1.1 Guardar em UTC (`timestamptz`) e Converter Só na Tela (`A23.01`)
+1. **No banco (`timestamptz`):** toda data representa um **instante absoluto em UTC**.
+2. **Da tela para o serviço:** convertemos a data local do `DateTimePicker` usando **`.Value.Date.ToUniversalTime()`** (define `DateTimeKind.Utc`).
+3. **Do banco para a `DataGridView`:** convertemos `v.DataUtc` para o relógio do Windows usando **`.ToLocalTime()`**.
+- *(Lembrete: configurar cultura `pt-BR` formata moeda/datas, mas **não** muda o fuso horário do Windows!)*
 
-**A regra de ouro da engenharia:**
-1. **No banco (`timestamptz`):** tudo representa um **instante absoluto em UTC**.
-2. **Ao enviar filtros da tela para o serviço:** convertemos a data local do `DateTimePicker` para UTC usando **`.Date.ToUniversalTime()`** (isso define `DateTimeKind.Utc`, exigido pelo Npgsql e validado no `VendaService`).
-3. **Ao exibir os resultados na grade:** convertemos cada `v.DataUtc` para o horário local do computador usando **`.ToLocalTime()`**.
-- **Atenção:** configurar moeda `pt-BR` (`CultureInfo`) **não** muda o fuso horário do Windows! Confira no relógio do Windows do laboratório que o fuso está correto (ex.: Brasília, `America/Sao_Paulo`).
-
-### 1.2 Por Que Usar Intervalo Semiaberto (`>= início AND < fim`) e NUNCA `23:59:59`? (`A23.02` e `A23.03`)
-Para o usuário humano, escolher data inicial `16/10` e data final `16/10` significa *"inclua o dia 16 inteiro"*.
-
-- **❌ Jeito perigoso (`<= '2026-10-16 23:59:59'`):** bancos modernos armazenam **microssegundos**! Uma venda gravada às `23:59:59.450` (meio segundo antes da meia-noite) ficaria **de fora** do relatório!
-- **✅ Jeito exato (Intervalo Semiaberto `[inicio, proximoDia)`):**
+### 1.2 Intervalo Semiaberto `[inicio, proximoDia)` — NUNCA `23:59:59`! (`A23.02` e `A23.03`)
+- **❌ Perigoso (`<= '2026-10-16 23:59:59'`):** vendas gravadas às `23:59:59.450` (microssegundos) ficam **de fora**!
+- **✅ Exato (`>= inicioUtc AND < fimUtc`):**
   ```text
-  Início inclusivo (>=): 16/10 00:00:00.000 (local → UTC)
-  Fim exclusivo    (<) : 17/10 00:00:00.000 (fim.Value.Date.AddDays(1).ToUniversalTime())
+  Início inclusivo (>=): inicio.Value.Date.ToUniversalTime()          -> 16/10 00:00:00.000 local (em UTC)
+  Fim exclusivo    (<) : fim.Value.Date.AddDays(1).ToUniversalTime()  -> 17/10 00:00:00.000 local (em UTC)
   ```
-  Qualquer venda até `23:59:59.999999` entra perfeitamente, e uma venda exatamente às `00:00:00.000` do dia `17/10` fica exatamente fora (entrará no relatório do dia 17, sem nunca aparecer duplicada em dois dias!).
-
-### 1.3 Projeção LINQ com Tipo Anônimo (`Select(v => new { ... })`) e Contagem de Vendas
-No relatório, `vendasPeriodo` retorna objetos `ResumoVenda(Id, DataUtc, Operador, Total)`. Para exibir a data já convertida em horário local na `DataGridView`, usamos uma projeção LINQ:
-```csharp
-grade.DataSource = vendasPeriodo
-    .Select(v => new { v.Id, DataLocal = v.DataUtc.ToLocalTime(), v.Operador, v.Total })
-    .ToList();
-```
-- **Atenção à métrica (`A23.04`):** `vendasPeriodo.Count` conta o número de **vendas (cupons)**, **não** a soma das quantidades de produtos vendidos; `vendasPeriodo.Sum(v => v.Total)` soma o faturamento do período.
-- **Nota de escala (`A23.05`):** neste recorte de laboratório carregamos a lista do período em memória. Em um supermercado com milhões de vendas por ano, a soma e a contagem devem ser calculadas por agregação no SQL (`COUNT(*)`, `SUM(total)`) e os detalhes exibidos com paginação (`LIMIT`/`OFFSET` ou cursor).
+  Inclui até `23:59:59.999999` do dia 16 e exclui exatamente `00:00:00.000` do dia 17!
 
 ---
 
-## 2. Roteiro de Construção Guiada (Sua Vez no Visual Studio 2022!)
+## 2. Código Completo e Compilável desta Etapa (4 Arquivos)
 
-### Passo 1 — Adicionar `RelatorioAsync` em `IVendaRepository`, `VendaRepository` e `VendaService`
-1. **`Repositories/IVendaRepository.cs`:** adicione a última assinatura do contrato:
-   - `Task<IReadOnlyList<ResumoVenda>> RelatorioAsync(DateTime inicioUtc, DateTime fimUtc);`
-2. **`Repositories/VendaRepository.cs`:** implemente `RelatorioAsync(DateTime inicioUtc, DateTime fimUtc)`:
-   - Escreva a consulta SQL unindo `venda` (`v`) e `usuario` (`u`) com **`JOIN`**:
-     ```sql
-     SELECT v.id, v.criado_em, u.username, v.total
-     FROM venda v
-     JOIN usuario u ON u.id = v.usuario_id
-     WHERE v.criado_em >= @inicio AND v.criado_em < @fim
-     ORDER BY v.criado_em, v.id
-     ```
-   - Adicione os parâmetros `"inicio"` (`inicioUtc`) e `"fim"` (`fimUtc`).
-   - Leia com `ExecuteReaderAsync()` e construa a `List<ResumoVenda>` usando `r.GetInt32(0)`, `r.GetDateTime(1)`, `r.GetString(2)` e `r.GetDecimal(3)`.
-3. **`Services/VendaService.cs`:** implemente `public Task<IReadOnlyList<ResumoVenda>> RelatorioAsync(Sessao sessao, DateTime inicio, DateTime fim)`:
-   - **Primeira linha:** `Permissoes.ExigirAdministrador(sessao);` *(Caixa NÃO acessa relatório financeiro!)*.
-   - **Validação de tipo UTC e intervalo:** se `inicio.Kind != DateTimeKind.Utc || fim.Kind != DateTimeKind.Utc || fim <= inicio`, lance `ArgumentException("Informe um intervalo UTC válido.")`.
-   - Retorne `vendas.RelatorioAsync(inicio, fim);`.
+### Passo 1 — `RelatorioAsync` em `IVendaRepository`, `VendaRepository` e `VendaService`
 
-### Passo 2 — Construir `Views/FormRelatorio.cs` e Conectar ao `FormAdministrador`
-1. Crie **`Views/FormRelatorio.cs`** (`public sealed class FormRelatorio : Form`) recebendo **`(Sessao sessao, VendaService vendas)`** no construtor:
-   - Exija `Permissoes.ExigirAdministrador(sessao);`.
-   - Prepare o painel com `Ui.Preparar(this, "Administração — Vendas por período")`.
-   - Crie dois controles **`DateTimePicker`** (`inicio` e `fim`), ambos configurados com `Format = DateTimePickerFormat.Short` e `Value = DateTime.Today` (relembre a Seção 2.8 da [Aula 10](10-Componentes-Windows-Forms.md): `.Value.Date` zera a hora para `00:00:00`), com rótulos claros (*"Data inicial (horário local do Windows)"* e *"Data final (inclusive)"*), **lembrando de adicionar cada rótulo e cada `DateTimePicker` ao painel com `painel.Controls.Add(...)`**.
-   - Crie `var grade = Ui.Grade(painel);` e `var resumo = Ui.Rotulo("Nenhuma consulta realizada."); painel.Controls.Add(resumo);`.
-   - Crie o botão **`"Consultar"`** com evento `async (sender, _) =>`:
-     1. Desabilite o botão antes do `try` e reabilite no `finally`.
-     2. Dentro de `Ui.ExecutarAsync`:
-        - Chame `vendas.RelatorioAsync(sessao, inicio.Value.Date.ToUniversalTime(), fim.Value.Date.AddDays(1).ToUniversalTime())`.
-        - Projete a lista com `DataLocal = v.DataUtc.ToLocalTime()` para `grade.DataSource`.
-        - Atualize `resumo.Text` com `vendasPeriodo.Count` e `vendasPeriodo.Sum(v => v.Total):C`.
-2. **Conectar no `FormAdministrador.cs` e `Program.cs`:**
-   - Atualize o construtor de `FormAdministrador` para receber também `VendaService vendas` e passe `vendaService` no `Program.cs`.
-   - Adicione o botão `"Relatório de vendas"` no `FormAdministrador` abrindo `using var tela = new FormRelatorio(sessao, vendas); tela.ShowDialog(this);`.
+```csharp
+// Em Repositories/IVendaRepository.cs:
+Task<IReadOnlyList<ResumoVenda>> RelatorioAsync(DateTime inicioUtc, DateTime fimUtc);
+
+// Em Repositories/VendaRepository.cs:
+public async Task<IReadOnlyList<ResumoVenda>> RelatorioAsync(DateTime inicioUtc, DateTime fimUtc)
+{
+    await using var cmd = banco.CreateCommand("""
+        SELECT v.id, v.criado_em, u.username, v.total
+        FROM venda v
+        JOIN usuario u ON u.id = v.usuario_id
+        WHERE v.criado_em >= @inicio AND v.criado_em < @fim
+        ORDER BY v.criado_em, v.id
+        """);
+    cmd.Parameters.AddWithValue("inicio", inicioUtc);
+    cmd.Parameters.AddWithValue("fim", fimUtc);
+
+    var resultado = new List<ResumoVenda>();
+    await using var r = await cmd.ExecuteReaderAsync();
+    while (await r.ReadAsync())
+    {
+        resultado.Add(new ResumoVenda(
+            r.GetInt32(0),
+            r.GetDateTime(1),
+            r.GetString(2),
+            r.GetDecimal(3)));
+    }
+    return resultado;
+}
+
+// Em Services/VendaService.cs:
+public Task<IReadOnlyList<ResumoVenda>> RelatorioAsync(Sessao sessao, DateTime inicio, DateTime fim)
+{
+    Permissoes.ExigirAdministrador(sessao); // Caixa NÃO acessa relatório financeiro!
+    if (inicio.Kind != DateTimeKind.Utc || fim.Kind != DateTimeKind.Utc || fim <= inicio)
+        throw new ArgumentException("Informe um intervalo UTC válido.");
+    return vendas.RelatorioAsync(inicio, fim);
+}
+```
+
+### Passo 2 — `Views/FormRelatorio.cs` Completo (`DateTimePicker` + `DataGridView` + Projeção LINQ)
+
+```csharp
+using SupermercadoApp.Models;
+using SupermercadoApp.Services;
+
+namespace SupermercadoApp.Views;
+
+public sealed class FormRelatorio : Form
+{
+    public FormRelatorio(Sessao sessao, VendaService vendas)
+    {
+        Permissoes.ExigirAdministrador(sessao);
+
+        var p = Ui.Preparar(this, "Administração — Vendas por período");
+
+        // Reaplicando DateTimePicker (Aula 10, Seção 2.8): Format.Short e .Value.Date!
+        p.Controls.Add(Ui.Rotulo("Data inicial (horário local do Windows)"));
+        var inicio = new DateTimePicker { Format = DateTimePickerFormat.Short, Value = DateTime.Today };
+        p.Controls.Add(inicio);
+
+        p.Controls.Add(Ui.Rotulo("Data final (inclusive)"));
+        var fim = new DateTimePicker { Format = DateTimePickerFormat.Short, Value = DateTime.Today };
+        p.Controls.Add(fim);
+
+        var grade = Ui.Grade(p);
+        var resumo = Ui.Rotulo("Nenhuma consulta realizada.");
+        p.Controls.Add(resumo);
+
+        Ui.Botao(p, "Consultar", async (sender, _) =>
+        {
+            var b = (Button)sender!;
+            b.Enabled = false;
+            try
+            {
+                await Ui.ExecutarAsync(async () =>
+                {
+                    var vendasPeriodo = await vendas.RelatorioAsync(
+                        sessao,
+                        inicio.Value.Date.ToUniversalTime(),
+                        fim.Value.Date.AddDays(1).ToUniversalTime());
+
+                    // Projeção LINQ convertendo UTC para horário local apenas na exibição:
+                    grade.DataSource = vendasPeriodo
+                        .Select(v => new
+                        {
+                            v.Id,
+                            DataLocal = v.DataUtc.ToLocalTime(),
+                            v.Operador,
+                            v.Total
+                        })
+                        .ToList();
+
+                    // Count = número de vendas (cupons), NÃO soma de itens!
+                    resumo.Text = $"Vendas: {vendasPeriodo.Count} | Total: {vendasPeriodo.Sum(v => v.Total):C}";
+                });
+            }
+            finally { b.Enabled = true; }
+        });
+    }
+}
+```
+
+### Passo 3 — Conectar em `FormAdministrador.cs` e `Program.cs`
+Passe `VendaService vendas` para `FormAdministrador` e adicione o botão `"Relatório de vendas"` abrindo `using var f = new FormRelatorio(sessao, vendas); f.ShowDialog(this);`.
 
 ---
 
 ## 3. Verificação de Fronteiras e Conferência SQL (`A23.01`–`A23.05`)
 
-1. **Massa de fronteiras exatas (`A23.02`):** com orientação do professor, aplique [database/laboratorio/18-fronteiras.sql](database/laboratorio/18-fronteiras.sql) (insere 4 vendas em instantes críticos ao redor de `16/10/2026` no fuso `America/Sao_Paulo`: 1 antes do dia, 2 dentro incluindo o último microssegundo, e 1 exatamente às `00:00:00` do dia `17/10`). Consulte `16/10/2026` a `16/10/2026` no seu `FormRelatorio` → devem aparecer **somente os 2 registros do meio** (soma `R$ 17,00` nessa massa isolada).
-2. **Conferência no SQL Editor (usando data literal fixa para reprodutibilidade):**
+1. **Massa de fronteiras (`A23.02`):** com orientação do professor, aplique [database/laboratorio/18-fronteiras.sql](database/laboratorio/18-fronteiras.sql) (4 vendas ao redor de `16/10/2026` em `America/Sao_Paulo`). Consulte `16/10/2026` a `16/10/2026` no `FormRelatorio` → entram **exatamente 2 vendas** (soma `R$ 17,00` nessa massa isolada).
+2. **Conferência SQL fixa:**
    ```sql
    SELECT count(*), coalesce(sum(total), 0)
    FROM venda
    WHERE criado_em >= (DATE '2026-10-16'::timestamp AT TIME ZONE 'America/Sao_Paulo')
-     AND criado_em < (DATE '2026-10-17'::timestamp AT TIME ZONE 'America/Sao_Paulo');
+     AND criado_em <  (DATE '2026-10-17'::timestamp AT TIME ZONE 'America/Sao_Paulo');
    ```
-3. **Casos de recusa e vazio:**
-   - Escolha data final anterior à inicial → recusado pela validação do serviço.
-   - Consulte uma data futura sem vendas → grade vazia, `Vendas: 0 | Total: R$ 0,00`.
-   - Com sessão de `Caixa`, chame `VendaService.RelatorioAsync` → lança `UnauthorizedAccessException`.
+3. **Recusas, vazio e escala (`A23.03`–`A23.05`):** data final anterior à inicial (recusada), data futura vazia (`Vendas: 0 | Total: R$ 0,00`), sessão de `Caixa` (`UnauthorizedAccessException`) e registro da proposta de agregação SQL (`COUNT`/`SUM`) + paginação para grandes volumes.
 
 [Anterior: Aula 22](22-Finalizacao-e-Troco.md) · [Próxima: Aula 24 — Cadastro de usuários](24-Cadastro-de-Usuarios.md) · [Índice](README.md)
 

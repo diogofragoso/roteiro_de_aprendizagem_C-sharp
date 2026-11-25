@@ -1,21 +1,21 @@
-# Aula 16 — Modelagem de Produtos, Regras de Validação e Dublê em Memória (Fake)
+# Aula 16 — Modelagem de Produtos, Regras de Validação e Testes com Fake em Memória
 
-**Duração:** 3h30. **Pré-requisito:** [Aula 15](15-Sessao-e-Perfis.md). **Entrega:** tabelas `produto` e `movimento_estoque` criadas no banco, modelo `Produto`, contrato inicial `IProdutoRepository`, validação completa em `ProdutoService.SalvarAsync` e testes executáveis de fronteira usando um repositório Fake em memória (sem tela de cadastro ainda).
+**Duração:** 3h30. **Pré-requisito:** [Aula 15](15-Sessao-e-Perfis.md). **Entrega:** tabelas `produto` e `movimento_estoque` criadas no banco, modelo `Produto`, contrato `IProdutoRepository`, serviço `ProdutoService.SalvarAsync` e suíte executável de fronteiras usando um repositório **Fake** em memória (`A16.01`–`A16.05`).
 
 | Bloco | Minutos | Atividade |
 | --- | ---: | --- |
-| Retomada | 15 | Revisar autorização de administrador e responsabilidades das camadas |
-| Explicação | 30 | Relacionamentos (PK/FK), saldo vs histórico, `numeric(10,2)` e testes com Fake |
-| Construção | 60 | Aplicar script `002-produtos.sql`, construir `Produto`, contrato e `ProdutoService` |
+| Retomada | 15 | Revisar autorização de administrador e as 5 camadas da Aula 08 |
+| Explicação | 30 | PK/FK, saldo vs histórico, `numeric(10,2)`, padrão `is < ... or > ...` e dublê Fake |
+| Construção | 60 | Aplicar `002-produtos.sql` e construir `Produto`, `IProdutoRepository` e `ProdutoService` |
 | Intervalo | 15 | Pausa |
-| Prática | 60 | Construir `ProdutoEmMemoriaRepository` (Fake) e validar todas as fronteiras |
-| Entrega | 30 | Demonstrar contador de chamadas do Fake, exceções e explicar o modelo ER |
+| Prática | 60 | Construir `ProdutoEmMemoriaRepository` (Fake) e executar todos os testes de fronteira |
+| Entrega | 30 | Demonstrar contador de chamadas do Fake, asserção executável e modelo ER |
 
 ---
 
-## 1. Modelando Antes de Codificar: Por Que Duas Tabelas (`produto` e `movimento_estoque`)? (`A16.01`)
+## 1. Modelagem Relacional (`database/002-produtos.sql`) Dissecada (`A16.01`)
 
-Antes de escrever C#, observe o modelo relacional do script [database/002-produtos.sql](database/002-produtos.sql):
+Antes de escrever C#, observe o diagrama e o script completo [database/002-produtos.sql](database/002-produtos.sql):
 
 ```mermaid
 erDiagram
@@ -42,95 +42,182 @@ erDiagram
     }
 ```
 
-Entenda **os 4 motivos de engenharia** dessa modelagem:
+```sql
+BEGIN;
 
-1. **Por que separar `produto.estoque` (saldo) de `movimento_estoque` (histórico)?**
-   - `produto.estoque` responde rapidamente *"quantas unidades temos na prateleira agora?"*.
-   - `movimento_estoque` responde *"quem mudou, quando mudou, quanto entrou (`+`) ou saiu (`-`) e por qual motivo (`Reposicao` ou `Venda`)?"*.
-   - As Chaves Estrangeiras (**FK** — `REFERENCES produto(id)` e `REFERENCES usuario(id)`) garantem que nunca exista um movimento apontando para um produto ou funcionário inexistente — mas **não** somam o estoque sozinhas (faremos a atualização conjunta em transação nas Aulas 19 e 21).
-2. **Por que todo produto nasce com `estoque = 0` e não deixamos digitar saldo no cadastro?**
-   - Se alguém digitasse "50" no cadastro inicial sem registrar um movimento de entrada, o saldo (`50`) nunca bateria com a soma do histórico (`0`). Toda entrada física de mercadoria passa por **Reposição** (Aula 19).
-3. **Por que existe a coluna `ativo` (`boolean`) em vez de apagar produtos com `DELETE`?**
-   - Se apagássemos fisicamente um produto que já foi vendido no mês passado, quebraríamos o histórico de vendas e relatórios! Por isso usamos **exclusão lógica** (`ativo = false`).
-4. **Por que `codigo` é `varchar(30)` e `preco` é `numeric(10,2)`? (`A16.02`)**
-   - Código `"000123"` precisa ser texto para preservar zeros à esquerda.
-   - `numeric(10,2)` aceita **10 dígitos totais**, sendo **2 casas decimais** (ou seja, 8 dígitos antes da vírgula: máximo exato **`99.999.999,99`**).
+CREATE TABLE produto (
+    id      integer       GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    codigo  varchar(30)   NOT NULL UNIQUE CHECK (length(trim(codigo)) > 0),
+    nome    varchar(120)  NOT NULL CHECK (length(trim(nome)) >= 2),
+    preco   numeric(10,2) NOT NULL CHECK (preco > 0),
+    estoque integer       NOT NULL DEFAULT 0 CHECK (estoque >= 0),
+    ativo   boolean       NOT NULL DEFAULT true
+);
+
+CREATE TABLE movimento_estoque (
+    id         bigint      GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    produto_id integer     NOT NULL REFERENCES produto(id),
+    usuario_id integer     NOT NULL REFERENCES usuario(id),
+    quantidade integer     NOT NULL CHECK (quantidade <> 0),
+    motivo     varchar(20) NOT NULL CHECK (motivo IN ('Reposicao', 'Venda')),
+    criado_em  timestamptz NOT NULL DEFAULT now()
+);
+
+COMMIT;
+```
+
+### Os 4 Motivos de Engenharia Dessa Modelagem
+1. **Saldo (`produto.estoque`) vs Histórico (`movimento_estoque`):** o saldo responde rápido *"quantos temos agora?"*; o histórico registra *quem*, *quando*, *quanto* (`+` entrada ou `-` saída) e *por quê* (`Reposicao` ou `Venda`).
+2. **Todo produto nasce com `estoque = 0` (`DEFAULT 0`):** nunca deixamos digitar estoque inicial solto no cadastro, para que toda entrada física gere um movimento de auditoria (Aula 19).
+3. **Exclusão lógica (`ativo boolean DEFAULT true`):** nunca apagamos produtos com `DELETE`, preservando chaves estrangeiras (`FK`) das vendas históricas.
+4. **Código textual e `numeric(10,2)` (`A16.02`):** `"000123"` preserva zeros à esquerda; `numeric(10,2)` permite exatamente 8 dígitos inteiros + 2 decimais (máximo exato **`99.999.999,99`**).
 
 ---
 
-## 2. Técnicas de Validação em C# Que Você Vai Construir (`A16.02` e `A16.03`)
+## 2. Técnicas de Validação em C# Que Vamos Aplicar
 
-Entenda os dois recursos do C# que tornam as validações de `ProdutoService` curtas, legíveis e exatas:
-
-### 2.1 Padrão Relacional (`is < ... or > ...`)
-Em vez de repetir o nome da variável (`if (nome.Length < 2 || nome.Length > 120)`), o C# moderno permite escrever:
-```csharp
-if (nome.Length is < 2 or > 120)
-```
-Lê-se naturalmente em inglês/português: *"se o tamanho de `nome` é menor que 2 ou maior que 120"*.
-
-### 2.2 Recusando 3 Casas Decimais Sem Arredondar Silenciosamente
-Se o usuário tentar enviar `1.999m`, o PostgreSQL (`numeric(10,2)`) poderia arredondar silenciosamente para `2.00`. **Por que não queremos arredondamento silencioso?** Em preços comerciais, o operador precisa ver o erro e corrigir!
-Como detectar em C# se um `decimal` tem mais de duas casas decimais?
-```csharp
-if (decimal.Round(preco, 2) != preco)
-```
-- **Entenda o truque matemático:** se `preco` for `25.90m`, `decimal.Round(25.90m, 2)` dá `25.90m` (igual → válido!). Se `preco` for `1.999m`, `decimal.Round(1.999m, 2)` dá `2.00m` (`2.00m != 1.999m` → diferente → **recusado!**).
-
-### 2.3 Por que Testar com um Repositório Fake em Memória (`Task.CompletedTask`)? (`A16.04`)
-Ainda não escrevemos o SQL de produtos nem a tela de cadastro, mas graças à interface `IProdutoRepository`, podemos criar uma classe **Fake** (dublê em memória) que apenas conta quantas vezes `SalvarAsync` foi chamado (`Chamadas++`) e retorna **`Task.CompletedTask`** (uma tarefa assíncrona já concluída sem precisar de `await`).
-- **O que isso comprova?** Se passarmos preço `0`, `1.999m`, nome vazio ou uma sessão de `Caixa`, o serviço deve lançar exceção **antes** de chamar o repositório — logo, `fake.Chamadas` **não pode aumentar**!
+- **Padrão relacional (`is < 2 or > 120`):** forma legível de escrever `nome.Length < 2 || nome.Length > 120`.
+- **Recusar 3 casas decimais sem arredondar silenciosamente:**
+  ```csharp
+  if (decimal.Round(preco, 2) != preco) // 25.90m == 25.90m (OK) | 1.999m != 2.00m (RECUSA!)
+  ```
+- **Repositório Fake em memória (`Task.CompletedTask`):** graças à interface `IProdutoRepository`, testamos todas as regras de `ProdutoService` **sem internet e sem SQL**, contando em `fake.Chamadas` quantas vezes o serviço deixou a chamada chegar ao repositório!
 
 ---
 
-## 3. Roteiro de Construção Guiada (Sua Vez no Visual Studio 2022!)
+## 3. Código Completo e Compilável desta Etapa (4 Arquivos + Testes)
 
-### Passo 1 — Executar o Script `002-produtos.sql` no Banco
-1. No SQL Editor do Neon (ou phpMyAdmin usando [database/mysql/002-produtos.sql](database/mysql/002-produtos.sql)), confira a branch/banco e execute [database/002-produtos.sql](database/002-produtos.sql) **uma única vez** (após o script 001).
-2. Confirme executando `SELECT codigo, nome, preco, estoque, ativo FROM produto;` (retornará zero linhas).
-3. Desenhe no seu caderno as relações entre `usuario`, `produto` e `movimento_estoque` com PK, FK, cardinalidades e dicionário de dados (`A16.01`).
+### Passo 1 — Aplicar o Script `002-produtos.sql`
+No SQL Editor do Neon (ou phpMyAdmin usando [database/mysql/002-produtos.sql](database/mysql/002-produtos.sql)), execute `002-produtos.sql` **uma única vez** e confira com `SELECT codigo, nome, preco, estoque, ativo FROM produto;` (deve retornar 0 linhas).
 
-### Passo 2 — Construir o Modelo `Models/Produto.cs`
-Crie **`Models/Produto.cs`** em `namespace SupermercadoApp.Models;` declarando um `public sealed record Produto` com os 6 parâmetros posicionais exatamente nesta ordem:
-`int Id, string Codigo, string Nome, decimal Preco, int Estoque, bool Ativo`.
+### Arquivo 1: `Models/Produto.cs`
 
-### Passo 3 — Construir o Contrato Mínimo `Repositories/IProdutoRepository.cs`
-Crie **`Repositories/IProdutoRepository.cs`** em `namespace SupermercadoApp.Repositories;` com **apenas** o método desta aula (não declare métodos de aulas futuras ainda!):
-- `Task SalvarAsync(int id, string codigo, string nome, decimal preco);`
+```csharp
+namespace SupermercadoApp.Models;
 
-### Passo 4 — Construir o Serviço `Services/ProdutoService.cs`
-Crie **`Services/ProdutoService.cs`** em `namespace SupermercadoApp.Services;`:
-1. Declare `public sealed class ProdutoService(IProdutoRepository produtos)` (construtor primário recebendo o contrato).
-2. Implemente o método **`public Task SalvarAsync(Sessao sessao, int id, string codigo, string nome, decimal preco)`** seguindo esta ordem rigorosa:
-   - **Autorização:** chame `Permissoes.ExigirAdministrador(sessao);` primeiro de tudo!
-   - **Normalização:** aplique `.Trim()` em `codigo` e em `nome`.
-   - **Validação de ID e tamanhos:** se `id < 0` ou `codigo.Length is < 1 or > 30` ou `nome.Length is < 2 or > 120`, lance `ArgumentException` informando os limites (`id == 0` indica inclusão de novo produto; negativo é inválido).
-   - **Validação monetária:** se `preco <= 0` ou `preco > 99999999.99m` ou `decimal.Round(preco, 2) != preco`, lance `ArgumentException`.
-   - **Delegação:** só após passar por **todas** as barreiras acima, retorne `produtos.SalvarAsync(id, codigo, nome, preco);`.
+public sealed record Produto(
+    int Id,
+    string Codigo,
+    string Nome,
+    decimal Preco,
+    int Estoque,
+    bool Ativo);
+```
 
-### Passo 5 — Construir o Dublê `ProdutoEmMemoriaRepository` e Provar as Fronteiras (`A16.02`–`A16.05`)
-1. Crie uma classe temporária `ProdutoEmMemoriaRepository : IProdutoRepository` com:
-   - `public int Chamadas { get; private set; }`
-   - Propriedades opcionais `UltimoCodigo`, `UltimoNome`, `UltimoPreco` para inspecionar o que chegou após `.Trim()`.
-   - Dentro de `SalvarAsync`: incremente `Chamadas++`, salve os valores recebidos e retorne `Task.CompletedTask;`.
-2. Conecte temporariamente o serviço com esse Fake em `Program.cs` / `FormAdministrador` (ou em um botão temporário de verificação que será removido após o teste) e execute **todos os casos de fronteira da tabela abaixo**:
+### Arquivo 2: `Repositories/IProdutoRepository.cs` (Contrato Inicial)
 
-| Entrada testada | Resultado esperado | Efeito em `fake.Chamadas` |
-| --- | --- | --- |
-| Válido: admin, ID `0`, `" 000123 "`, `" Arroz "`, `25.90m` | Aceita; salva `"000123"` e `"Arroz"` | Aumenta (+1) |
-| Preço `0` / `0.01m` / `1.999m` | Recusa / Aceita / Recusa | Só `0.01m` aumenta |
-| Preço `99999999.99m` / `100000000m` | Aceita / Recusa | Só o máximo aumenta |
-| Nome com `1` / `2` / `120` / `121` caracteres | Recusa / Aceita / Aceita / Recusa | Só `2` e `120` aumentam |
-| Código (após Trim) com `0` / `1` / `30` / `31` caracteres | Recusa / Aceita / Aceita / Recusa | Só `1` e `30` aumentam |
-| ID `-1` / `0` | Recusa / Aceita | Só `0` aumenta |
-| Sessão de `Caixa` com dados válidos | Lança `UnauthorizedAccessException` | **Não aumenta!** |
+```csharp
+namespace SupermercadoApp.Repositories;
 
-3. **Primeira asserção executável (reaproveitada na Aula 25):** após rodar 1 caso válido seguido de vários inválidos, escreva uma verificação automática:
-   ```csharp
-   if (fake.Chamadas != 1)
-       throw new Exception("Validação falhou e chegou indevidamente ao repositório!");
-   ```
-4. **Limpeza importante antes da Aula 17:** após registrar as evidências, remova o botão temporário e **remova `ProdutoEmMemoriaRepository.cs` de dentro do projeto `SupermercadoApp`** (guarde uma cópia do arquivo fora da pasta do projeto para reutilizar no projeto de verificações da Aula 25). **Por quê?** Na Aula 17 adicionaremos `ListarAsync` ao contrato `IProdutoRepository` — deixar um Fake antigo incompleto dentro de `SupermercadoApp` causaria erro de compilação `CS0535`!
+public interface IProdutoRepository
+{
+    Task SalvarAsync(int id, string codigo, string nome, decimal preco);
+}
+```
+
+### Arquivo 3: `Services/ProdutoService.cs` (Regras de Negócio e Autorização)
+
+```csharp
+using SupermercadoApp.Models;
+using SupermercadoApp.Repositories;
+
+namespace SupermercadoApp.Services;
+
+public sealed class ProdutoService(IProdutoRepository produtos)
+{
+    public Task SalvarAsync(Sessao sessao, int id, string codigo, string nome, decimal preco)
+    {
+        // 1. Autorização SEMPRE primeiro!
+        Permissoes.ExigirAdministrador(sessao);
+
+        // 2. Normalização de espaços nas bordas:
+        codigo = codigo.Trim();
+        nome = nome.Trim();
+
+        // 3. Validação de ID e tamanhos (id == 0 significa inclusão de novo produto):
+        if (id < 0 || codigo.Length is < 1 or > 30 || nome.Length is < 2 or > 120)
+            throw new ArgumentException("Informe código (1 a 30) e nome (2 a 120 caracteres).");
+
+        // 4. Validação monetária exata (sem arredondar 1,999m silenciosamente!):
+        if (preco <= 0 || preco > 99999999.99m || decimal.Round(preco, 2) != preco)
+            throw new ArgumentException("Preço deve ser positivo, com até duas casas decimais.");
+
+        // 5. Só chega ao repositório se passou por TODAS as barreiras acima!
+        return produtos.SalvarAsync(id, codigo, nome, preco);
+    }
+}
+```
+
+### Arquivo 4 (Temporário para Teste — `A16.04`): `ProdutoEmMemoriaRepository.cs`
+
+```csharp
+using SupermercadoApp.Repositories;
+
+namespace SupermercadoApp.Repositories;
+
+public sealed class ProdutoEmMemoriaRepository : IProdutoRepository
+{
+    public int Chamadas { get; private set; }
+    public string UltimoCodigo { get; private set; } = "";
+    public string UltimoNome { get; private set; } = "";
+    public decimal UltimoPreco { get; private set; }
+
+    public Task SalvarAsync(int id, string codigo, string nome, decimal preco)
+    {
+        Chamadas++;
+        UltimoCodigo = codigo;
+        UltimoNome = nome;
+        UltimoPreco = preco;
+        return Task.CompletedTask; // Tarefa assíncrona já concluída em memória!
+    }
+}
+```
+
+### Exemplo Prático Completo — Executando Todas as Fronteiras + Primeira Asserção (`A16.02`–`A16.04`)
+
+Você pode rodar este método de verificação em um botão temporário no `FormAdministrador` (ou em um projeto console de teste) para comprovar **todas** as fronteiras sem tocar no banco:
+
+```csharp
+async Task VerificarRegrasProdutosAsync()
+{
+    var fake = new ProdutoEmMemoriaRepository();
+    var servico = new ProdutoService(fake);
+    var admin = new Sessao(1, "admin", Perfil.Administrador);
+    var caixa = new Sessao(2, "caixa", Perfil.Caixa);
+
+    // 1. Caso VÁLIDO com espaços externos -> deve chamar fake (Chamadas vai para 1):
+    await servico.SalvarAsync(admin, 0, " 000123 ", " Arroz ", 25.90m);
+    if (fake.Chamadas != 1 || fake.UltimoCodigo != "000123" || fake.UltimoNome != "Arroz")
+        throw new Exception("Falha no caso válido / Trim!");
+
+    // 2. Casos de FRONTEIRA INVÁLIDOS -> nenhum pode incrementar fake.Chamadas!
+    async Task ExigirErro<TEx>(Func<Task> acao, string caso) where TEx : Exception
+    {
+        try { await acao(); throw new Exception($"Deveria recusar: {caso}"); }
+        catch (TEx) { /* Recusado corretamente! */ }
+    }
+
+    await ExigirErro<ArgumentException>(() => servico.SalvarAsync(admin, 0, "000123", "Arroz", 0m), "preço 0");
+    await ExigirErro<ArgumentException>(() => servico.SalvarAsync(admin, 0, "000123", "Arroz", 1.999m), "3 casas decimais");
+    await ExigirErro<ArgumentException>(() => servico.SalvarAsync(admin, 0, "000123", "Arroz", 100000000m), "acima do máximo");
+    await ExigirErro<ArgumentException>(() => servico.SalvarAsync(admin, -1, "000123", "Arroz", 10m), "ID negativo");
+    await ExigirErro<ArgumentException>(() => servico.SalvarAsync(admin, 0, "", "Arroz", 10m), "código vazio");
+    await ExigirErro<ArgumentException>(() => servico.SalvarAsync(admin, 0, "000123", "A", 10m), "nome com 1 letra");
+    await ExigirErro<UnauthorizedAccessException>(() => servico.SalvarAsync(caixa, 0, "000123", "Arroz", 10m), "sessão de Caixa");
+
+    // 3. Caso limite máximo válido (0,01 e 99.999.999,99):
+    await servico.SalvarAsync(admin, 0, new string('1', 30), new string('A', 120), 99999999.99m);
+    await servico.SalvarAsync(admin, 0, "1", "AB", 0.01m);
+
+    if (fake.Chamadas != 3)
+        throw new Exception($"Esperava exatamente 3 chamadas válidas, mas ocorreram {fake.Chamadas}!");
+
+    MessageBox.Show("Todas as verificações de fronteira passaram! Chamadas válidas no Fake: 3.");
+}
+```
+
+> [!WARNING]
+> **Limpeza antes da Aula 17:** após registrar as evidências, **remova `ProdutoEmMemoriaRepository.cs`** do projeto `SupermercadoApp` (guarde fora da pasta para reutilizar na Aula 25), pois na Aula 17 adicionaremos `ListarAsync` em `IProdutoRepository` — deixar o Fake antigo dentro do projeto causaria erro `CS0535`!
 
 [Anterior: Aula 15](15-Sessao-e-Perfis.md) · [Próxima: Aula 17 — Consulta de produtos](17-Consulta-de-Produtos.md) · [Índice](README.md)
 
