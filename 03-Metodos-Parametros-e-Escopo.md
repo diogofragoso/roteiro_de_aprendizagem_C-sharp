@@ -22,7 +22,7 @@ Um **método** (ou **função**) empacota uma tarefa com um **nome claro** para 
 ### Anatomia Completa de um Método
 
 ```text
-[TipoDeRetorno] [NomeEmPascalCase]([Tipo1 parametro1], [Tipo2 parametro2])
+TipoDeRetorno NomeEmPascalCase(Tipo1 parametro1, Tipo2 parametro2)
 {
     // Corpo do método (código que executa quando ele é chamado)
     return valorDoMesmoTipo; // Obrigatório quando TipoDeRetorno NÃO é void
