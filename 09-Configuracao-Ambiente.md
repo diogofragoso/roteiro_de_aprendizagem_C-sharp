@@ -36,7 +36,7 @@ Antes de criar o projeto visual, entenda **por que** precisamos conferir o ambie
    Confirme que há um SDK moderno do .NET instalado (ex.: `8.0.xxx` nativo do VS 2022, ou a versão definida pelo professor para a turma) e registre a saída no caderno.
 
 > [!NOTE]
-> **Escolha do banco de dados:** combine com o professor antes da Aula 11 se a turma seguirá pela trilha principal (**Neon/PostgreSQL**) ou pela trilha local ([**MySQL/MariaDB pelo XAMPP**](INTEGRACAO-MYSQL-XAMPP.md)). Hoje não precisamos de nenhum banco configurado ainda.
+> **Escolha do banco de dados:** combine com o professor antes da Aula 12 se a turma seguirá pela trilha principal (**Neon/PostgreSQL**) ou pela trilha local ([**MySQL/MariaDB pelo XAMPP**](INTEGRACAO-MYSQL-XAMPP.md)). Hoje e na próxima aula (catálogo prático de componentes Windows Forms) ainda não precisamos de banco configurado.
 
 ---
 
@@ -52,7 +52,7 @@ Siga cada tela com atenção (`A09.02`):
 5. Preencha exatamente assim:
    - **Nome do projeto:** `SupermercadoApp`
    - **Nome da solução:** `Supermercado`
-   - **Por que nomes diferentes?** A Solução (`Supermercado.sln`) representa o sistema inteiro (que na Aula 24 pode agrupar também projetos de teste), enquanto `SupermercadoApp` é o projeto do executável Windows Forms.
+   - **Por que nomes diferentes?** A Solução (`Supermercado.sln`) representa o sistema inteiro (que na Aula 25 pode agrupar também projetos de teste), enquanto `SupermercadoApp` é o projeto do executável Windows Forms.
 6. Clique em **Próximo**, selecione a versão moderna do **.NET** da turma (ex.: **.NET 8.0 (Suporte de Longo Prazo)** no VS 2022) e clique em **Criar**.
 
 ![Exemplo de criação de projeto no Visual Studio 2022](assets/vs2022_new_project_1791481163568.jpg)
@@ -129,7 +129,7 @@ No **Gerenciador de Soluções**, clique com o botão direito sobre o projeto **
 | `CS0246: O nome do tipo ou do namespace 'FormLogin' não pode ser encontrado` | `Program.cs` não tem `using SupermercadoApp.Views;` após você mover o formulário para `Views`. | Adicione `using SupermercadoApp.Views;` no topo do `Program.cs`. |
 | O arquivo abre em código em vez do desenho da tela | Você usou `F7` ou abriu `.Designer.cs`. | Clique com o botão direito em `FormLogin.cs` → **Exibir Designer** (`Shift+F7`). |
 
-[Anterior: Aula 08](08-Arquitetura-e-Padroes.md) · [Próxima: Aula 10 — Interface de login](10-Criando-Interface-Login.md) · [Índice](README.md)
+[Anterior: Aula 08](08-Arquitetura-e-Padroes.md) · [Próxima: Aula 10 — Componentes do Windows Forms na prática](10-Componentes-Windows-Forms.md) · [Índice](README.md)
 
 ## Atividades por conceito
 

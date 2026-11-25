@@ -1,6 +1,6 @@
-# Caderno de Evidências (Aulas 01 a 24)
+# Caderno de Evidências (Aulas 01 a 25)
 
-Copie o modelo abaixo para cada aula da trilha unificada, da **Aula 01** até a **Aula 24**. Não inclua senhas, credenciais do Neon/XAMPP ou dados reais de clientes. Capturas de tela devem ocultar sempre o painel de conexão e hashes completos.
+Copie o modelo abaixo para cada aula da trilha unificada, da **Aula 01** até a **Aula 25**. Não inclua senhas, credenciais do Neon/XAMPP ou dados reais de clientes. Capturas de tela devem ocultar sempre o painel de conexão e hashes completos.
 
 ## Aula NN — título
 
@@ -32,4 +32,4 @@ Preencha uma linha para cada ID do [caderno de atividades](ATIVIDADES-POR-CONCEI
 
 "Pendente" não equivale a "passou". Remova senhas, valores de conexão e hashes completos das evidências. Em dupla, identifique a contribuição e a explicação de cada integrante.
 
-Na **Aula 24**, acrescente o resultado do console de verificações, a identificação da versão entregue e as evidências do [roteiro manual](VALIDACAO-MANUAL.md). "Funcionou" sozinho não permite ao professor reproduzir a verificação.
+Na **Aula 25**, acrescente o resultado do console de verificações, a identificação da versão entregue e as evidências do [roteiro manual](VALIDACAO-MANUAL.md). "Funcionou" sozinho não permite ao professor reproduzir a verificação.

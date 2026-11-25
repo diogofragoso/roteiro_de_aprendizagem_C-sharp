@@ -17,7 +17,7 @@
 
 A partir desta aula e em todo o projeto MarketFlow, todas as classes pertencem a um **`namespace`**:
 - **`namespace Aula07Contratos;`** dá um "sobrenome" ao arquivo para evitar conflitos de nomes quando o sistema cresce. **Atenção:** criar pastas no Visual Studio 2022 organiza os arquivos no disco, mas o que define o namespace em C# é a declaração `namespace ...;` no código!
-- **`using Aula07Contratos;`** permite usar os nomes curtos daquele namespace no `Program.cs`. Ele **não** baixa pacotes da internet (isso é feito pelo NuGet na Aula 12).
+- **`using Aula07Contratos;`** permite usar os nomes curtos daquele namespace no `Program.cs`. Ele **não** baixa pacotes da internet (isso é feito pelo NuGet na Aula 13).
 
 ---
 

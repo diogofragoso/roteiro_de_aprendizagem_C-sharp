@@ -6,7 +6,7 @@ $falhas = New-Object 'System.Collections.Generic.List[string]'
 $atividades = [IO.File]::ReadAllText((Join-Path $repo 'ATIVIDADES-POR-CONCEITO.md'))
 $ids = @([regex]::Matches($atividades, '(?m)^\| (A\d{2}\.\d{2}) \|') | ForEach-Object { $_.Groups[1].Value })
 if (($ids | Select-Object -Unique).Count -ne $ids.Count) { $falhas.Add('IDs duplicados') }
-foreach ($n in 1..24) {
+foreach ($n in 1..25) {
     $num = '{0:D2}' -f $n
     if (-not ($ids | Where-Object { $_.StartsWith("A$num.") })) { $falhas.Add("Aula $num sem atividades") }
     if (-not $atividades.Contains('id="aula-' + $num + '"')) { $falhas.Add("Ancora ausente $num") }
@@ -42,7 +42,7 @@ foreach ($arquivo in $documentos) {
     }
 }
 if ($falhas.Count) { throw ($falhas -join "`n") }
-Write-Output "Documentacao: $($ids.Count) atividades unicas, 24 aulas, tempos, links e blocos conferidos."
+Write-Output "Documentacao: $($ids.Count) atividades unicas, 25 aulas, tempos, links e blocos conferidos."
 if ($SomenteDocumentacao) { return }
 $executavel = (Get-Command $Dotnet -ErrorAction Stop).Source
 function Dotnet([string[]]$Argumentos) {
@@ -60,6 +60,6 @@ foreach ($n in 0..20) {
 Dotnet @('build','Supermercado.sln','-c','Release','--nologo','-warnaserror')
 Dotnet @('run','--project','tests/SupermercadoApp.Verificacoes','-c','Release','--no-build')
 Dotnet @('run','--project',"$destino/20/tests/Verificacoes/Verificacoes.csproj",'-c','Release')
-$relatorio = "Data: $([DateTime]::UtcNow.ToString('u'))`nSDK: $(& $executavel --version)`nDocumentacao: $($ids.Count) atividades, 24 aulas.`n21 checkpoints compilados; consoles 00-04 executados.`nSolucao final e verificacoes com fakes executadas, incluindo checkpoint 20.`nPostgreSQL, cliques e rede: nao executados por este script.`n"
+$relatorio = "Data: $([DateTime]::UtcNow.ToString('u'))`nSDK: $(& $executavel --version)`nDocumentacao: $($ids.Count) atividades, 25 aulas.`n21 checkpoints compilados; consoles 00-04 executados.`nSolucao final e verificacoes com fakes executadas, incluindo checkpoint 20.`nPostgreSQL, cliques e rede: nao executados por este script.`n"
 [IO.File]::WriteAllText((Join-Path $repo "$destino/VALIDACAO.txt"), $relatorio, (New-Object Text.UTF8Encoding($false)))
 Write-Output "Validacao concluida; relatorio em $destino/VALIDACAO.txt"

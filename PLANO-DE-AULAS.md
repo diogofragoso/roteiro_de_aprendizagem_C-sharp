@@ -1,6 +1,6 @@
 # Plano de Ensino — Trilha Unificada de C# e MarketFlow (Visual Studio 2022)
 
-**Carga horária sugerida:** **84 horas** em **24 encontros contínuos e progressivos** (`Aulas 01` a `24`), divididos em **6 módulos**. Cada encontro possui **210 minutos** (3h30), incluindo 15 minutos de intervalo (195 minutos de atividade efetiva).
+**Carga horária sugerida:** **87h30** em **25 encontros contínuos e progressivos** (`Aulas 01` a `25`), divididos em **6 módulos**. Cada encontro possui **210 minutos** (3h30), incluindo 15 minutos de intervalo (195 minutos de atividade efetiva).
 
 **Público-alvo:** estudantes iniciantes que estão começando **absolutamente do zero** em programação. A trilha foi unificada em uma única sequência linear — eliminando a dispersão entre "fundamentos separados" e "aulas introdutórias repetidas". Saber usar o Windows é suficiente para iniciar a [Aula 01](01-Primeiro-Programa-e-Tipos.md). *(Em turmas com experiência prévia em lógica e POO, o professor pode aplicar um diagnóstico prático sobre os critérios das Aulas 01–07 antes de iniciar na Aula 08.)*
 
@@ -18,7 +18,7 @@
 
 - Antes da **Aula 01**, o professor prepara o **Visual Studio 2022 Community** com a carga de trabalho *Desenvolvimento para desktop com .NET* e o **.NET SDK** compatível.
 - A [Aula 09](09-Configuracao-Ambiente.md) revisita o ambiente ao criar a solução Windows Forms.
-- Defina com a turma antes da **Aula 11**: **Neon/PostgreSQL** (trilha principal) ou [**MySQL/MariaDB pelo XAMPP**](INTEGRACAO-MYSQL-XAMPP.md). Os checkpoints e o runner de integração existentes no repositório usam PostgreSQL.
+- Defina com a turma antes da **Aula 12**: **Neon/PostgreSQL** (trilha principal) ou [**MySQL/MariaDB pelo XAMPP**](INTEGRACAO-MYSQL-XAMPP.md). Os checkpoints e o runner de integração existentes no repositório usam PostgreSQL.
 
 ---
 
@@ -36,7 +36,7 @@
 
 ---
 
-## Sequência das 24 Aulas, Pré-requisitos e Evidências
+## Sequência das 25 Aulas, Pré-requisitos e Evidências
 
 | Aula | Módulo | Evidência de conclusão construída pelo estudante |
 | --- | --- | --- |
@@ -49,21 +49,22 @@
 | 07 | M2 — POO | `namespace`, `interface`, injeção pelo construtor, herança (`virtual`/`override`) e polimorfismo |
 | 08 | M3 — WinForms | Regra no serviço e substituição real de repositório em memória por contrato |
 | 09 | M3 — WinForms | Solução `Supermercado` e `SupermercadoApp` organizados em 5 pastas compilando |
-| 10 | M3 — WinForms | Tela `FormLogin` no Designer com `Name`/`Text`, senha oculta, Tab/Enter e validação visual |
-| 11 | M4 — Dados/Seg. | Tabela `usuario` criada (Neon ou XAMPP) e restrições testadas em tabela temporária |
-| 12 | M4 — Dados/Seg. | `Banco.cs` com pool e botão de diagnóstico `SELECT 1` assíncrono sem travar a janela |
-| 13 | M4 — Dados/Seg. | Admin criado com hash+salt; login verificando senha correta, incorreta e inexistente |
-| 14 | M4 — Dados/Seg. | Menus separados por perfil, autorização no serviço e ciclo limpo de troca de usuário |
-| 15 | M5 — PDV | Script 002 executado; `ProdutoService` validado com Fake em memória contando chamadas |
-| 16 | M5 — PDV | Grade `DataGridView` consultando nome/código (`ILIKE`/`LIMIT 200`), inclusive lista vazia |
-| 17 | M5 — PDV | Incluir, editar por `DataBoundItem`, recusar duplicidade (`23505`) e inativar logicamente |
-| 18 | M5 — PDV | Reposição com incremento atômico no SQL e histórico gravados na mesma transação |
-| 19 | M5 — PDV | Carrinho em memória agrupando itens (`AsReadOnly`, `with`, `checked`) sem alterar banco |
-| 20 | M5 — PDV | Script 003; venda atômica com `Guid`, `FOR UPDATE`, disputa pelo último item e rollback real |
-| 21 | M5 — PDV | Pagamento simulado, troco, `FormClosing` e reconciliação de tentativa pendente |
-| 22 | M6 — Entrega | Relatório por intervalo semiaberto UTC com conferência de fronteiras e totalização |
-| 23 | M6 — Entrega | Cadastro de contas pela UI com `ComboBox`/`Enum`; novo caixa entra e não cria usuários |
-| 24 | M6 — Entrega | Projeto de verificações com Fakes, roteiro manual em dupla e pasta publicada fora da IDE |
+| 10 | M3 — WinForms | Laboratório WFA (`LabComponentesWFA`): todos os controles essenciais e Mini-CRUD em memória com `DataGridView` |
+| 11 | M3 — WinForms | Tela `FormLogin` no Designer com `Name`/`Text`, senha oculta, Tab/Enter e validação visual |
+| 12 | M4 — Dados/Seg. | Tabela `usuario` criada (Neon ou XAMPP) e restrições testadas em tabela temporária |
+| 13 | M4 — Dados/Seg. | `Banco.cs` com pool e botão de diagnóstico `SELECT 1` assíncrono sem travar a janela |
+| 14 | M4 — Dados/Seg. | Admin criado com hash+salt; login verificando senha correta, incorreta e inexistente |
+| 15 | M4 — Dados/Seg. | Menus separados por perfil, autorização no serviço e ciclo limpo de troca de usuário |
+| 16 | M5 — PDV / CRUD | Script 002 executado; `ProdutoService` validado com Fake em memória contando chamadas |
+| 17 | M5 — PDV / CRUD | Grade `DataGridView` consultando nome/código (`ILIKE`/`LIMIT 200`), inclusive lista vazia |
+| 18 | M5 — PDV / CRUD | Incluir, editar por `DataBoundItem`, recusar duplicidade (`23505`) e inativar logicamente |
+| 19 | M5 — PDV / CRUD | Reposição com incremento atômico no SQL e histórico gravados na mesma transação |
+| 20 | M5 — PDV / CRUD | Carrinho em memória agrupando itens (`AsReadOnly`, `with`, `checked`) sem alterar banco |
+| 21 | M5 — PDV / CRUD | Script 003; venda atômica com `Guid`, `FOR UPDATE`, disputa pelo último item e rollback real |
+| 22 | M5 — PDV / CRUD | Pagamento simulado, troco, `FormClosing` e reconciliação de tentativa pendente |
+| 23 | M6 — Entrega | Relatório por intervalo semiaberto UTC com conferência de fronteiras e totalização |
+| 24 | M6 — Entrega | Cadastro de contas pela UI com `ComboBox`/`Enum`; novo caixa entra e não cria usuários |
+| 25 | M6 — Entrega | Projeto de verificações com Fakes, roteiro manual em dupla e pasta publicada fora da IDE |
 
 ---
 
@@ -76,7 +77,7 @@
 
 ## Avaliação Formativa e Rubrica Operacional
 
-Utilize o [**Caderno de Atividades por Conceito (`A01`–`A24`)**](ATIVIDADES-POR-CONCEITO.md) e o [**Caderno de Evidências**](CADERNO-DE-EVIDENCIAS.md). A correção registra por ID o status (**atingiu**, **parcial** ou **pendente**) com ação específica de recuperação. Em duplas, a explicação é sempre **individual**.
+Utilize o [**Caderno de Atividades por Conceito (`A01`–`A25`)**](ATIVIDADES-POR-CONCEITO.md) e o [**Caderno de Evidências**](CADERNO-DE-EVIDENCIAS.md). A correção registra por ID o status (**atingiu**, **parcial** ou **pendente**) com ação específica de recuperação. Em duplas, a explicação é sempre **individual**.
 
 | Dimensão e peso | Nível 0 | Nível 1 | Nível 2 | Nível 3 |
 | --- | --- | --- | --- | --- |
@@ -87,4 +88,4 @@ Utilize o [**Caderno de Atividades por Conceito (`A01`–`A24`)**](ATIVIDADES-PO
 
 Cálculo percentual: para cada dimensão, `peso × nível / 3`, somando as quatro parcelas.
 
-**Marcos de verificação individual:** Aula 07 (fechamento de Fundamentos e POO), Aula 10 (primeira interface), Aula 14 (acesso separado por perfil), Aula 18 (gestão de produtos e estoque), Aula 21 (venda completa no caixa) e Aula 24 (entrega e publicação). Ao fechar cada marco, oriente a turma a guardar uma cópia limpa do projeto sem `bin`, `obj`, `.vs` e sem credenciais.
+**Marcos de verificação individual:** Aula 07 (fechamento de Fundamentos e POO), Aula 10 (domínio prático de componentes WFA), Aula 11 (primeira interface do MarketFlow), Aula 15 (acesso separado por perfil), Aula 19 (gestão CRUD de produtos e estoque), Aula 22 (venda completa no caixa) e Aula 25 (entrega e publicação). Ao fechar cada marco, oriente a turma a guardar uma cópia limpa do projeto sem `bin`, `obj`, `.vs` e sem credenciais.

@@ -1,15 +1,15 @@
-# Aula 17 — Cadastro, Edição, Unicidade e Inativação Lógica de Produtos
+# Aula 18 — Cadastro, Edição, Unicidade e Inativação Lógica de Produtos
 
-**Duração:** 3h30. **Pré-requisito:** [Aula 16](16-Consulta-de-Produtos.md). **Entrega:** `FormProdutos` completo para incluir, editar e inativar produtos reais no banco (sem o bloco de reposição ainda, que entra na Aula 18), tratando códigos duplicados (`23505`) e preservando os dados digitados em caso de erro.
+**Duração:** 3h30. **Pré-requisito:** [Aula 17](17-Consulta-de-Produtos.md). **Entrega:** `FormProdutos` completo para incluir, editar e inativar produtos reais no banco (sem o bloco de reposição ainda, que entra na Aula 19), tratando códigos duplicados (`23505`) e preservando os dados digitados em caso de erro.
 
 | Bloco | Minutos | Atividade |
 | --- | ---: | --- |
-| Retomada | 15 | Consultar os produtos existentes na grade da Aula 16 |
+| Retomada | 15 | Consultar os produtos existentes na grade da Aula 17 |
 | Explicação | 30 | `INSERT` vs `UPDATE`, `DataBoundItem`, `NumericUpDown`, `23505` e exclusão lógica |
 | Construção | 60 | Implementar `InativarAsync`, tratar `23505` no `Ui` e construir campos de cadastro |
 | Intervalo | 15 | Pausa |
 | Prática | 60 | Construir ações Novo, Editar, Salvar e Inativar com confirmação e proteção de clique |
-| Entrega | 30 | Demonstrar a sequência completa (`A17.01`–`A17.06`) e registrar evidências |
+| Entrega | 30 | Demonstrar a sequência completa (`A18.01`–`A18.06`) e registrar evidências |
 
 ---
 
@@ -22,7 +22,7 @@ Como o formulário sabe se o clique no botão **Salvar** deve criar um produto n
   - **`produtoId > 0`:** modo **Edição** (quando o usuário seleciona uma linha na grade e clica em **Editar selecionado**, guardamos o `Id` real daquela linha em `produtoId` e copiamos `Codigo`, `Nome` e `Preco` para os campos).
 - **Por que o usuário NUNCA digita o ID?** O ID é uma identidade interna controlada exclusivamente pelo banco de dados. Clicar em **Novo** limpa os campos e volta `produtoId = 0;` para garantir que o próximo salvamento não sobrescreva o item editado anteriormente!
 
-### 1.2 Lendo o Objeto Real da Grade: `SelectedRows[0].DataBoundItem` (`A17.02`)
+### 1.2 Lendo o Objeto Real da Grade: `SelectedRows[0].DataBoundItem` (`A18.02`)
 **Por que NÃO usar o número da linha visual (`SelectedRows[0].Index`) nem `CurrentRow`?**
 1. Se o usuário reordenar a tabela clicando no cabeçalho de uma coluna, a linha `0` deixa de ser o mesmo produto! Já **`DataBoundItem`** devolve diretamente o objeto **`Produto`** original vinculado àquela linha.
 2. **`CurrentRow`** pode continuar apontando para a primeira linha mesmo depois que você chama `grade.ClearSelection()`. Por isso, sempre conferimos:
@@ -31,18 +31,18 @@ Como o formulário sabe se o clique no botão **Salvar** deve criar um produto n
        throw new InvalidOperationException("Selecione um produto na grade.");
    ```
 
-### 1.3 Por Que Verificar `ExecuteNonQueryAsync() != 1`? (`A17.03`)
+### 1.3 Por Que Verificar `ExecuteNonQueryAsync() != 1`? (`A18.03`)
 No `UPDATE produto SET ... WHERE id=@id AND ativo`:
 - `ExecuteNonQueryAsync()` devolve **quantas linhas foram modificadas** no banco.
 - Se retornar **`0`**, significa que o produto não existe ou foi inativado por outra janela segundos antes! Lançar `InvalidOperationException` impede que o sistema finja que a edição deu certo quando nada foi gravado.
 
-### 1.4 Concorrência de Código Duplicado: Por Que `SELECT` Antes do `INSERT` Não Basta? (`A17.04`)
+### 1.4 Concorrência de Código Duplicado: Por Que `SELECT` Antes do `INSERT` Não Basta? (`A18.04`)
 Um erro clássico de iniciantes é tentar garantir código único fazendo `SELECT COUNT(*) WHERE codigo = @c` antes do `INSERT`.
 - **Por que isso falha na vida real?** Se dois administradores clicarem em Salvar com o código `"000123"` no mesmo milissegundo, **ambos** passam pelo `SELECT` (que ainda retorna `0`) e tentam fazer `INSERT`!
 - **A solução profissional:** a restrição **`UNIQUE`** no PostgreSQL é a juíza definitiva. Quando um segundo `INSERT` colide, o PostgreSQL lança `PostgresException` com código **`23505`** (`PostgresErrorCodes.UniqueViolation`). Interceptamos exatamente esse código em `Ui.ExecutarAsync` e mostramos uma mensagem clara!
 
-### 1.5 Exclusão Lógica (`ativo = false`) vs `DELETE` (`A17.05`)
-Nunca executamos `DELETE FROM produto` porque vendas antigas (Aula 20) terão chaves estrangeiras apontando para aquele `produto_id`. Inativar apenas marca `ativo = false`: o histórico permanece íntegro e o código antigo continua reservado pela restrição `UNIQUE`.
+### 1.5 Exclusão Lógica (`ativo = false`) vs `DELETE` (`A18.05`)
+Nunca executamos `DELETE FROM produto` porque vendas antigas (Aula 21) terão chaves estrangeiras apontando para aquele `produto_id`. Inativar apenas marca `ativo = false`: o histórico permanece íntegro e o código antigo continua reservado pela restrição `UNIQUE`.
 
 ---
 
@@ -61,11 +61,19 @@ No método `Ui.ExecutarAsync`, adicione `using Npgsql;` no topo do arquivo e acr
 - `catch (PostgresException e) when (e.SqlState == PostgresErrorCodes.UniqueViolation)` → exiba `MessageBox.Show("Código ou usuário já cadastrado. Use outro valor.");`.
 *(Na trilha MySQL/XAMPP, use `catch (MySqlException erro) when (erro.Number == 1062)`.)*
 
-### Passo 3 — Ampliar `Views/FormProdutos.cs` com Campos e Ações CRUD (`A17.01`–`A17.06`)
-*(Nesta aula você completa as 4 operações do **CRUD de Produtos**: **C**reate = Salvar com ID `0`, **R**ead = Buscar/atualizar, **U**pdate = Editar selecionado + Salvar com ID `> 0` e **D**elete lógico = Inativar selecionado. Deixe os controles de quantidade e reposição para a Aula 18!)*
+### Passo 3 — Ampliar `Views/FormProdutos.cs` com Campos e Ações CRUD (`A18.01`–`A18.06`)
+*(Nesta aula você completa as 4 operações do **CRUD de Produtos** usando os componentes WFA praticados na [Aula 10](10-Componentes-Windows-Forms.md): **C**reate = `TextBox` + `NumericUpDown` + Salvar com ID `0`, **R**ead = `DataGridView` + Buscar/atualizar, **U**pdate = `DataBoundItem` + Editar selecionado + Salvar com ID `> 0` e **D**elete lógico = confirmação `MessageBoxButtons.YesNo` + Inativar selecionado. Deixe os controles de quantidade e reposição para a Aula 19!)*
+
+> [!TIP]
+> **Mapa rápido dos componentes WFA usados no CRUD de `FormProdutos`:**
+> - `TextBox` (`codigo`, `nome`): preserva zeros à esquerda e recebe texto do produto.
+> - `NumericUpDown` (`preco`): configurado com `DecimalPlaces = 2` e `Maximum = 99999999.99m`, entregando `preco.Value` diretamente como `decimal`.
+> - `FlowLayoutPanel` horizontal (`acoes`): agrupa os 5 botões lado a lado sem sobreposição.
+> - `DataGridView` + `SelectedRows[0].DataBoundItem`: lê o objeto `Produto` real sem depender de índice de coluna.
+> - `MessageBox.Show(..., MessageBoxButtons.YesNo)`: protege a inativação contra cliques acidentais.
 
 No **`Views/FormProdutos.cs`**, adicione o campo `private int produtoId;` na classe e amplie o construtor seguindo estas orientações:
-1. **Remover o botão `"Buscar"` isolado da Aula 16:** ele agora fará parte da barra horizontal `acoes` abaixo, evitando dois botões de busca duplicados na tela!
+1. **Remover o botão `"Buscar"` isolado da Aula 17:** ele agora fará parte da barra horizontal `acoes` abaixo, evitando dois botões de busca duplicados na tela!
 2. **Campos de entrada abaixo da grade:**
    - `codigo`: `Ui.Texto(painel, "Código (texto, preserva zeros à esquerda)")`.
    - `nome`: `Ui.Texto(painel, "Nome")`.
@@ -90,7 +98,7 @@ No **`Views/FormProdutos.cs`**, adicione o campo `private int produtoId;` na cla
 
 ---
 
-## 3. Roteiro de Verificação Sequencial (`A17.01`–`A17.06`)
+## 3. Roteiro de Verificação Sequencial (`A18.01`–`A18.06`)
 
 Execute com **`F5`** no Visual Studio 2022 e execute esta sequência exata registrando IDs e saldos antes/depois:
 
@@ -101,8 +109,8 @@ Execute com **`F5`** no Visual Studio 2022 e execute esta sequência exata regis
 5. **Inativação (Cancelar vs Confirmar):** selecione o produto, clique em **Inativar**, escolha **Não** (deve continuar `Ativo = true`); repita escolhendo **Sim** (passa para `Ativo = false`).
 6. **Persistência real:** feche e reabra `FormProdutos` → todas as alterações continuam persistidas no banco!
 
-[Anterior: Aula 16](16-Consulta-de-Produtos.md) · [Próxima: Aula 18 — Reposição de estoque](18-Reposicao-de-Estoque.md) · [Índice](README.md)
+[Anterior: Aula 17](17-Consulta-de-Produtos.md) · [Próxima: Aula 19 — Reposição de estoque](19-Reposicao-de-Estoque.md) · [Índice](README.md)
 
 ## Atividades por conceito
 
-Realize as atividades da [aula 17 no caderno complementar](ATIVIDADES-POR-CONCEITO.md#aula-17). Cada conceito tem enunciado e critério de aceite. Reúna as evidências em uma entrega por aula, usando os IDs no [caderno de evidências](CADERNO-DE-EVIDENCIAS.md). Essas tarefas integram a prática e a verificação já previstas no encontro.
+Realize as atividades da [aula 18 no caderno complementar](ATIVIDADES-POR-CONCEITO.md#aula-18). Cada conceito tem enunciado e critério de aceite. Reúna as evidências em uma entrega por aula, usando os IDs no [caderno de evidências](CADERNO-DE-EVIDENCIAS.md). Essas tarefas integram a prática e a verificação já previstas no encontro.

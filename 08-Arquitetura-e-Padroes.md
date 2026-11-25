@@ -111,7 +111,7 @@ Crie um novo **Aplicativo de Console** no **Visual Studio 2022** chamado **`Aula
 4. Crie o método `public IReadOnlyList<Produto> Executar()` que chama `produtos.Listar()` e devolve o resultado.
 5. Crie o método `public void ValidarPreco(decimal preco)`:
    - Se `preco <= 0`, lance `ArgumentException` com a mensagem `"Preço deve ser positivo."`.
-   - *(Por que `ValidarPreco` está separado de `Executar` hoje? Para você exercitar uma regra de negócio isolada no serviço sem nenhuma tela gráfica. A partir da Aula 15, a validação ficará integrada dentro de `SalvarAsync`.)*
+   - *(Por que `ValidarPreco` está separado de `Executar` hoje? Para você exercitar uma regra de negócio isolada no serviço sem nenhuma tela gráfica. A partir da Aula 16, a validação ficará integrada dentro de `SalvarAsync`.)*
 
 ### Passo 4 — Construir a Segunda Implementação: `ProdutosPromocionais.cs` (`A08.03`)
 1. Crie o arquivo **`ProdutosPromocionais.cs`** também assinando o mesmo contrato (`: IConsultaProdutos`).

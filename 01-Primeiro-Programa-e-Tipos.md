@@ -27,7 +27,7 @@ Antes de clicar nos botões, entenda o papel de cada ferramenta e **por que** pr
 | **C# (C-Sharp)** | Linguagem de programação moderna e **fortemente tipada**. | Exige declarar o tipo de cada variável, impedindo bugs invisíveis (como misturar texto com dinheiro) **antes** de o programa rodar. |
 | **.NET SDK** | Compilador e ferramentas que traduzem seu texto em C# para programa executável. | O computador não entende texto humano; o SDK verifica a gramática e gera o executável. |
 | **Visual Studio 2022** | IDE que reúne editor, Gerenciador de Soluções, Lista de Erros e Depurador. | Mostra erros enquanto você digita, completa comandos (IntelliSense) e permite pausar linha a linha. |
-| **Aplicativo de Console** | Programa de tela de texto simples (sem botões gráficos). | **Por que começar no Console?** Remove distrações visuais para você dominar lógica, variáveis, métodos e objetos antes de adicionar telas Windows Forms (Aula 09) e banco de dados (Aula 11). |
+| **Aplicativo de Console** | Programa de tela de texto simples (sem botões gráficos). | **Por que começar no Console?** Remove distrações visuais para você dominar lógica, variáveis, métodos e objetos antes de adicionar telas Windows Forms (Aulas 09–10) e banco de dados (Aula 12). |
 
 ---
 
