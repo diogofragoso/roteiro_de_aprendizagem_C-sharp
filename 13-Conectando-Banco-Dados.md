@@ -1,39 +1,34 @@
-# Aula 13 — Conexão Assíncrona, Pool de Conexões e Descarte Seguro
+# Aula 13 — Conexão Assíncrona (`async`/`await`), Pool de Conexões e Descarte Seguro
 
 > [!NOTE]
-> **Opção MySQL/MariaDB (XAMPP):** se você escolheu banco local, utilize as Etapas 3 a 5 da [trilha alternativa XAMPP](INTEGRACAO-MYSQL-XAMPP.md) no lugar de `Npgsql` e `NpgsqlDataSource`. Todos os conceitos de assincronia (`async`/`await`), descarte (`await using`), `try/catch/finally` e segurança permanecem idênticos.
+> **Opção MySQL/MariaDB (XAMPP):** se você escolheu banco local, utilize as Etapas 3 a 5 da [trilha alternativa XAMPP](INTEGRACAO-MYSQL-XAMPP.md) no lugar de `Npgsql` e `NpgsqlDataSource`. Todos os conceitos de `async`/`await`, `await using`, `try/catch/finally` e segurança permanecem idênticos.
 
-**Duração:** 3h30. **Pré-requisito:** [Aula 12](12-Criando-Banco-Dados-Neon.md) e `FormLogin` da Aula 11. **Entrega:** infraestrutura `Banco.cs` construída por você usando variável de ambiente, mais botão temporário de diagnóstico que executa `SELECT 1` sem travar a janela e trata falhas de rede com segurança.
+**Duração:** 3h30. **Pré-requisito:** [Aula 12](12-Criando-Banco-Dados-Neon.md) e `FormLogin` da [Aula 11](11-Criando-Interface-Login.md). **Entrega:** `Infrastructure/Banco.cs` lendo variável de ambiente `SUPERMERCADO_DB`, mais botão temporário de diagnóstico em `FormLogin` executando `SELECT 1` assincronamente sem congelar a janela (`A13.01`–`A13.05`).
 
 | Bloco | Minutos | Atividade |
 | --- | ---: | --- |
 | Retomada | 15 | Conferir branch/tabela da Aula 12 e projeto `SupermercadoApp` no VS 2022 |
-| Explicação | 30 | NuGet, variáveis de ambiente, Pool (`NpgsqlDataSource`), `async/await` e `finally` |
-| Construção | 60 | Instalar Npgsql, configurar `SUPERMERCADO_DB` e construir `Infrastructure/Banco.cs` |
+| Explicação | 30 | NuGet, variáveis de ambiente, Pool (`NpgsqlDataSource`), `async`/`await` e `finally` |
+| Construção | 60 | Instalar `Npgsql`, configurar `SUPERMERCADO_DB` e construir `Infrastructure/Banco.cs` |
 | Intervalo | 15 | Pausa |
-| Prática | 60 | Injetar a fonte de dados e construir o evento assíncrono `SELECT 1` |
-| Entrega | 30 | Demonstrar sucesso, espera responsiva, configuração ausente e falha de rede |
+| Prática | 60 | Injetar `NpgsqlDataSource` no `FormLogin` e programar `SELECT 1` assíncrono |
+| Entrega | 30 | Demonstrar sucesso, espera responsiva (`Task.Delay`), falta de config e falha de rede |
 
 ---
 
-## 1. Conceitos Fundamentais Desta Aula (O Quê e Por Quê)
+## 1. Conceitos Fundamentais (O Quê, Como e Por Quê)
 
-### 1.1 O que é NuGet no Visual Studio 2022?
-O .NET não vem com drivers para todos os bancos do mundo embutidos. O **NuGet** é o gerenciador oficial de pacotes/bibliotecas para projetos .NET. Instalar o pacote **`Npgsql`** adiciona ao seu `.csproj` a biblioteca que sabe falar o protocolo binário do PostgreSQL. **Atenção:** um pacote NuGet pertence ao *projeto* (fica registrado em `SupermercadoApp.csproj`), não é uma extensão da IDE!
+### 1.1 NuGet e Variável de Ambiente (`A13.01` e `A13.02`)
+- **NuGet:** gerenciador oficial de pacotes do .NET. Instalar `Npgsql` adiciona a referência no arquivo `SupermercadoApp.csproj` (é dependência do *projeto*, não extensão da IDE).
+- **Variável de Ambiente (`SUPERMERCADO_DB`):** mantém senhas fora do código-fonte. Ao criá-la no Windows, **feche e reabra o Visual Studio 2022**, pois cada processo captura o ambiente apenas no momento em que é iniciado.
 
-### 1.2 Por que guardar a conexão em Variável de Ambiente (`SUPERMERCADO_DB`)?
-Se você colar `Password=minhasenha` dentro de um arquivo `.cs`, basta subir o projeto no GitHub ou enviar um ZIP para o professor e sua senha vazou!
-Lendo `Environment.GetEnvironmentVariable("SUPERMERCADO_DB")`, o código-fonte fica 100% livre de segredos: cada máquina lê sua própria variável do sistema operacional.
-- **Por que fechar e reabrir o Visual Studio 2022 após criar a variável no Windows?** Cada processo do Windows tira uma "foto" das variáveis de ambiente **no instante em que é aberto**. Um Visual Studio que já estava aberto não enxerga variáveis recém-criadas até ser reiniciado.
+### 1.2 Pool de Conexões (`NpgsqlDataSource`) e Descarte (`using` / `await using`) (`A13.03`)
+- Criamos **um único `NpgsqlDataSource`** no `Program.cs` (dentro de `using var banco = Banco.Criar();`), que mantém um **Pool (piscina)** de conexões TCP/TLS reutilizáveis.
+- Em cada consulta, usamos **`await using var cmd = banco.CreateCommand(...)`**: ao terminar o bloco (mesmo com exceção!), a conexão volta automaticamente para o Pool sem vazar recursos!
 
-### 1.3 O que é Pool de Conexões (`NpgsqlDataSource`) e `using` / `await using`?
-Abrir uma conexão TCP + criptografia TLS até a nuvem do zero leva centenas de milissegundos.
-- **`NpgsqlDataSource`** gerencia um **Pool (piscina) de Conexões**: criamos o `NpgsqlDataSource` **uma única vez** no `Program.cs` e injetamos onde precisar.
-- A cada consulta, criamos um comando com `await using var cmd = banco.CreateCommand(...)`. Quando o bloco termina (mesmo que dê exceção!), o **`await using`** devolve automaticamente a conexão ao Pool sem vazar recursos do servidor!
-- **O que NUNCA fazer:** guardar uma conexão aberta global para sempre nem chamar `Banco.Criar()` a cada clique de botão (isso recriaria pools e esgotaria o limite do Neon).
+### 1.3 Programação Assíncrona (`async`, `await`, `Task` e `async void`) (`A13.04`)
 
-### 1.4 Programação Assíncrona (`async`, `await`, `Task` e `async void`)
-No Windows Forms, existe uma única **Thread de Interface (UI Thread)** responsável por desenhar a janela, mover o mouse e responder a cliques.
+No Windows Forms, existe uma única **Thread de Interface (UI Thread)** desenhando janelas e atendendo cliques:
 
 ```mermaid
 sequenceDiagram
@@ -42,105 +37,179 @@ sequenceDiagram
     participant B as Banco na Nuvem (Neon)
     U->>C: Clica no botão (Desabilita botão)
     C->>B: Envia "SELECT 1" (ExecuteScalarAsync)
-    Note over U: Com 'await', a UI Thread fica LIVRE!<br/>A janela pode ser arrastada sem travar.
+    Note over U: Com 'await', a UI Thread fica LIVRE!<br/>Você pode arrastar a janela sem travar.
     B-->>C: Devolve resposta "1"
     C->>U: Retoma após 'await', mostra resultado e reabilita botão no 'finally'
 ```
 
-- **Sem `await` (ou usando `.Result` / `.Wait()`):** a UI Thread fica bloqueada esperando a internet; a janela congela e o Windows mostra `(Não está respondendo)` — podendo até causar *deadlock* na interface!
-- **`async` e `Task`:** métodos assíncronos normais retornam `Task` (ou `Task<T>`) para que quem os chamou possa aguardar com `await` e capturar exceções.
-- **Exceção única — `async void`:** no Windows Forms, manipuladores de evento (`private async void btnTestarConexao_Click(object sender, EventArgs e)`) **precisam** retornar `void` por exigência do evento `Click`. **Nunca** use `async void` nos seus serviços ou repositórios!
-
-### 1.5 Por que usar `try / catch / finally` ao redor de chamadas de rede?
-- Antes do `try`: desabilitamos o botão (`botao.Enabled = false;`) para impedir que o usuário clique 5 vezes seguidas enquanto a internet responde.
-- No `try`: executamos a consulta ao banco com `await`.
-- No `catch (Exception)`: exibimos uma mensagem amigável **sem jamais mostrar `erro.ToString()`** na tela (detalhes técnicos podem expor servidor, porta ou estrutura interna!).
-- No **`finally`**: reabilitamos o botão (`botao.Enabled = true;`). **Por que no `finally` e não depois do `try`?** Porque o bloco `finally` executa **sempre** — tanto se a consulta deu certo quanto se deu erro de internet! Sem `finally`, uma falha de rede deixaria o botão travado desabilitado para sempre.
+- **Nunca use `.Result` ou `.Wait()` em WinForms:** bloqueiam a UI Thread, congelam a janela e podem causar *deadlock*.
+- **Métodos assíncronos normais** retornam `Task` ou `Task<T>`.
+- **Exceção única — `async void`:** manipuladores de evento do WinForms (`private async void btnTestarConexao_Click(...)`) exigem retorno `void`. **Nunca** use `async void` em serviços ou repositórios!
 
 ---
 
-## 2. Passo a Passo no Visual Studio 2022: NuGet e Variável de Ambiente
+## 2. Preparação no Visual Studio 2022 e no Windows
 
 ### Passo 1 — Instalar o pacote `Npgsql` (`A13.01`)
-1. No **Gerenciador de Soluções** do Visual Studio 2022, clique com o botão direito no projeto **`SupermercadoApp`** → **Gerenciar Pacotes do NuGet...**.
-2. Clique na aba **Procurar**, verifique se a **Origem do pacote** no canto superior direito é `nuget.org` e pesquise por **`Npgsql`**.
-3. Selecione o pacote oficial **Npgsql** (do autor *Npgsql*), escolha a versão compatível com o SDK da turma (conforme definido pelo professor; consulte [REFERENCIAS.md](REFERENCIAS.md)) e clique em **Instalar**.
-4. Expanda **Dependências → Pacotes** no Gerenciador de Soluções e confirme que `Npgsql` aparece listado. Pressione `Ctrl+Shift+B` para validar a compilação.
+1. No **Gerenciador de Soluções**, clique direito em **`SupermercadoApp`** → **Gerenciar Pacotes do NuGet...** → aba **Procurar**.
+2. Pesquise **`Npgsql`** (autor *Npgsql*), escolha a versão compatível com o SDK da turma (veja [REFERENCIAS.md](REFERENCIAS.md)) e clique em **Instalar**.
+3. Pressione `Ctrl+Shift+B` para confirmar a compilação.
 
-### Passo 2 — Configurar a variável `SUPERMERCADO_DB` no Windows (`A13.02`)
-1. Abra o menu Iniciar do Windows e digite **Editar as variáveis de ambiente da sua conta**.
-2. Na seção superior (**Variáveis de usuário**), clique em **Novo...**.
-3. Nome da variável: **`SUPERMERCADO_DB`**.
-4. Valor da variável: cole a sua string de conexão Npgsql da Aula 12 (com `SSL Mode=VerifyFull;`).
-5. Clique em **OK** em todas as janelas e **feche e reabra o Visual Studio 2022**.
-
-*(Prefira sempre a janela gráfica do Windows em vez de digitar a senha no terminal, para que a senha não fique salva no histórico de comandos.)*
+### Passo 2 — Criar a variável `SUPERMERCADO_DB` no Windows (`A13.02`)
+1. Menu Iniciar → **Editar as variáveis de ambiente da sua conta** → **Variáveis de usuário** → **Novo...**.
+2. Nome: **`SUPERMERCADO_DB`** | Valor: sua string de conexão Npgsql da Aula 12 (com `SSL Mode=VerifyFull;`).
+3. Clique em **OK** e **feche e reabra o Visual Studio 2022**.
 
 ---
 
-## 3. Roteiro de Construção Guiada (Sua Vez no Visual Studio 2022!)
+## 3. Código Completo e Compilável desta Etapa (3 Arquivos)
 
-Construa cada peça abaixo **sem copiar código pronto de `src/`**:
+> [!TIP]
+> **Ordem importante no Designer:** antes de adicionar o parâmetro `NpgsqlDataSource banco` no construtor de `FormLogin`, abra `FormLogin.cs` no Designer (`Shift+F7`), arraste um `Button`, configure `(Name)` = **`btnTestarConexao`** e `Text` = **`Testar conexão`**, dê duplo clique para gerar o evento e salve (`Ctrl+S`). *(Este botão temporário será removido na Aula 14.)*
 
-### Construção 1 — Classe `Infrastructure/Banco.cs` (`A13.03`)
-1. No **Gerenciador de Soluções**, clique com o botão direito na pasta **`Infrastructure`** → **Adicionar → Classe...** (`Shift+Alt+C`) → nomeie como **`Banco.cs`**.
-2. Adicione `using Npgsql;` no topo e confirme `namespace SupermercadoApp.Infrastructure;`.
-3. Declare uma classe pública estática **`public static class Banco`** (estática porque atua apenas como fábrica de configuração, sem estado de instância).
-4. Crie o método público estático **`public static NpgsqlDataSource Criar()`** seguindo esta sequência lógica:
-   - Leia a variável de ambiente: `string? texto = Environment.GetEnvironmentVariable("SUPERMERCADO_DB");`.
-   - Verifique com `if (string.IsNullOrWhiteSpace(texto))`: se estiver ausente/vazia, lance `InvalidOperationException` com uma mensagem clara instruindo a configurar `SUPERMERCADO_DB` e reabrir o Visual Studio 2022.
-   - Passe `texto` para `var builder = new NpgsqlConnectionStringBuilder(texto);`.
-   - Force programaticamente as proteções de segurança e tempo limite no `builder`:
-     - `builder.SslMode = SslMode.VerifyFull;` (impede conexões sem verificação TLS);
-     - `builder.Timeout = 15;` (máximo 15 segundos para conectar);
-     - `builder.CommandTimeout = 30;` (máximo 30 segundos por consulta).
-   - Retorne `NpgsqlDataSource.Create(builder.ConnectionString);`.
+### Arquivo 1: `Infrastructure/Banco.cs` (`Shift+Alt+C` na pasta `Infrastructure`)
 
-### Construção 2 — Adicionar o Botão Temporário no Designer ANTES de Alterar o Construtor (`A13.04`)
-*(Este botão será removido na Aula 14, quando a tela deixar de falar direto com o banco e passar a falar com o `AutenticacaoService`. Adicioná-lo agora, enquanto `FormLogin` ainda possui o construtor padrão sem parâmetros, evita qualquer aviso no Designer do Visual Studio 2022!)*
+```csharp
+using Npgsql;
 
-1. Abra **`Views/FormLogin.cs`** no Designer (`Shift+F7`), arraste um `Button` da Caixa de Ferramentas, pressione `F4` e configure `(Name)` como **`btnTestarConexao`** e `Text` como **`Testar conexão`**.
-2. Dê duplo clique no botão para o Visual Studio 2022 gerar o manipulador `btnTestarConexao_Click` em `FormLogin.cs` e salve (`Ctrl+S`).
+namespace SupermercadoApp.Infrastructure;
 
-### Construção 3 — Injetar a Fonte de Dados no `FormLogin` e no `Program.cs`
-1. Com **`Views/FormLogin.cs`** aberto em modo código (`F7`), adicione `using Npgsql;` no topo.
-2. Declare um campo privado somente leitura: `private readonly NpgsqlDataSource banco;`.
-3. Altere o construtor existente de `FormLogin` para receber `NpgsqlDataSource banco` como parâmetro — **mantendo `InitializeComponent();`** na primeira linha do construtor e salvando `this.banco = banco;` logo abaixo!
-4. Abra **`Program.cs`** e proteja a inicialização após `ApplicationConfiguration.Initialize();`:
-   - Envolva em um `try / catch (InvalidOperationException erro)`:
-     - No `try`: crie a fonte de dados com **`using var banco = SupermercadoApp.Infrastructure.Banco.Criar();`** (o `using` garante que o pool seja fechado ao sair do aplicativo) e passe-a ao login: `Application.Run(new SupermercadoApp.Views.FormLogin(banco));`.
-     - No `catch`: mostre `MessageBox.Show(erro.Message, "Configuração");` para orientar o usuário caso a variável de ambiente falte.
+// Classe estática: atua como fábrica de configuração, sem necessidade de 'new Banco()'.
+public static class Banco
+{
+    public static NpgsqlDataSource Criar()
+    {
+        string? texto = Environment.GetEnvironmentVariable("SUPERMERCADO_DB");
+        if (string.IsNullOrWhiteSpace(texto))
+        {
+            throw new InvalidOperationException(
+                "Configure a variável SUPERMERCADO_DB e reabra o Visual Studio.");
+        }
 
-### Construção 4 — Programar o Evento Assíncrono `SELECT 1` (`A13.04` e `A13.05`)
-Volte ao método `btnTestarConexao_Click` em **`Views/FormLogin.cs`**, adicione a palavra-chave **`async`** à assinatura (`private async void btnTestarConexao_Click(object sender, EventArgs e)`) e construa exatamente estes passos:
-   - Desabilite o botão (`btnTestarConexao.Enabled = false;`).
-   - Abra um bloco **`try / catch (Exception) / finally`**:
-     - **No `try`:**
-       - Crie o comando com descarte assíncrono: `await using var comando = banco.CreateCommand("SELECT 1");`.
-       - Aguarde o resultado escalar: `var resultado = await comando.ExecuteScalarAsync();` (por que `ExecuteScalarAsync`? Porque `SELECT 1` devolve um único valor na primeira linha e primeira coluna!).
-       - Exiba com `MessageBox.Show` confirmando a conexão e mostrando `resultado`.
-     - **No `catch (Exception)`:** exiba uma mensagem amigável orientando conferir rede e configuração (sem mostrar `erro.ToString()` nem credenciais!).
-     - **No `finally`:** reabilite o botão (`btnTestarConexao.Enabled = true;`).
+        var builder = new NpgsqlConnectionStringBuilder(texto);
+
+        // Força segurança TLS e limites de tempo no código (não depende só do texto da variável!):
+        builder.SslMode = SslMode.VerifyFull;
+        builder.Timeout = 15;        // Máximo 15s para conectar
+        builder.CommandTimeout = 30; // Máximo 30s por consulta
+
+        return NpgsqlDataSource.Create(builder.ConnectionString);
+    }
+}
+```
+
+### Arquivo 2: `Program.cs` (Criando e Descartando o Pool com `using`)
+
+```csharp
+using SupermercadoApp.Infrastructure;
+using SupermercadoApp.Views;
+
+namespace SupermercadoApp;
+
+internal static class Program
+{
+    [STAThread]
+    private static void Main()
+    {
+        ApplicationConfiguration.Initialize();
+
+        try
+        {
+            // 'using' garante que o Pool de conexões será encerrado com segurança ao sair do app:
+            using var banco = Banco.Criar();
+            Application.Run(new FormLogin(banco));
+        }
+        catch (InvalidOperationException erro)
+        {
+            // Trata ausência de SUPERMERCADO_DB com mensagem clara (sem travar com tela técnica!):
+            MessageBox.Show(erro.Message, "Configuração do ambiente",
+                MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
+    }
+}
+```
+
+### Arquivo 3: `Views/FormLogin.cs` (Injeção do Pool + Evento `SELECT 1` Assíncrono)
+
+```csharp
+using Npgsql;
+
+namespace SupermercadoApp.Views;
+
+public partial class FormLogin : Form
+{
+    private readonly NpgsqlDataSource banco;
+
+    public FormLogin(NpgsqlDataSource banco)
+    {
+        InitializeComponent(); // SEMPRE na 1ª linha do construtor!
+        this.banco = banco;
+    }
+
+    private void btnLogin_Click(object sender, EventArgs e)
+    {
+        if (string.IsNullOrWhiteSpace(txtUsuario.Text) || txtSenha.Text.Length == 0)
+        {
+            MessageBox.Show("Preencha usuário e senha.");
+            return;
+        }
+        MessageBox.Show("Campos validados. A autenticação real entra na Aula 14.");
+    }
+
+    // Botão temporário de diagnóstico (será removido na Aula 14):
+    private async void btnTestarConexao_Click(object sender, EventArgs e)
+    {
+        // 1. Impede que o usuário clique 5 vezes seguidas enquanto a rede responde:
+        btnTestarConexao.Enabled = false;
+
+        try
+        {
+            // Descomente temporariamente para o teste A13.04 (arrastar a janela durante a espera!):
+            // await Task.Delay(2000);
+
+            // 2. 'await using' devolve a conexão ao Pool automaticamente ao fim do bloco:
+            await using var comando = banco.CreateCommand("SELECT 1");
+
+            // 3. ExecuteScalarAsync devolve o único valor da 1ª linha e 1ª coluna (1):
+            object? resultado = await comando.ExecuteScalarAsync();
+
+            MessageBox.Show($"Conexão confirmada! Resultado do SELECT 1: {resultado}",
+                "Diagnóstico OK", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+        catch (Exception)
+        {
+            // NUNCA exiba erro.ToString() nem a string de conexão na tela!
+            MessageBox.Show("Não foi possível conectar ao banco. Verifique rede e configuração.",
+                "Falha de comunicação", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+        finally
+        {
+            // 4. SEMPRE executa (no sucesso OU na falha), impedindo botão travado para sempre!
+            btnTestarConexao.Enabled = true;
+        }
+    }
+}
+```
 
 ---
 
-## 4. Roteiro de Testes, Rastreamento e Evidências (`A13.01`–`A13.05`)
+## 4. Roteiro de Testes e Evidências (`A13.01`–`A13.05`)
 
-1. **Rastreamento no papel antes de rodar:** trace os 3 caminhos possíveis: (a) sucesso (`try` → `finally`), (b) erro de rede (`try` → `catch` → `finally`) e (c) variável ausente (falha em `Banco.Criar()` antes mesmo da tela abrir). Desenhe quais objetos são descartados em cada caminho.
-2. **Teste de responsividade da janela (`A13.04`):** adicione temporariamente `await Task.Delay(2000);` logo antes do `CreateCommand`, rode com `F5`, clique no botão e **arraste a janela pela tela durante os 2 segundos de espera** — confirme que ela não congela e que o botão fica desabilitado impedindo clique duplo. **Remova o `Task.Delay` ao concluir!**
-3. **Teste real de `SELECT 1`:** clique em **Testar conexão** com a internet ligada → deve exibir `1` e reabilitar o botão.
-4. **Teste sem configuração (`A13.02`):** remova/renomeie temporariamente `SUPERMERCADO_DB`, reabra o VS 2022, rode e confirme a mensagem amigável de configuração ausente. Restaure a variável e reabra o VS 2022.
-5. **Teste de rede indisponível (`A13.05`):** com orientação do professor, teste sem rede e confirme que nenhuma senha/host vaza na mensagem e que o botão volta a habilitar após o timeout.
+1. **Rastreamento de fluxo (`A13.03`):** desenhe o ciclo de vida de `Banco` → `NpgsqlDataSource` → `comando` nos caminhos de sucesso (`try` → `finally`) e falha (`try` → `catch` → `finally`).
+2. **Teste de responsividade (`A13.04`):** descomente `await Task.Delay(2000);`, rode com `F5`, clique em **Testar conexão** e **arraste a janela pela tela durante os 2 segundos** — ela se move livremente e o botão permanece desabilitado até terminar. **Remova o `Task.Delay` após testar!**
+3. **Teste real `SELECT 1`:** clique em **Testar conexão** → exibe `1` e reabilita o botão.
+4. **Teste sem configuração (`A13.02`):** renomeie temporariamente `SUPERMERCADO_DB`, reabra o VS 2022, rode e confirme o aviso amigável; depois restaure e reabra o VS 2022.
+5. **Teste de rede indisponível (`A13.05`):** com orientação do professor, teste sem rede confirmando que nenhuma senha/host aparece e que o botão volta a habilitar.
 
 ---
 
-## 5. Erros Comuns no Visual Studio 2022
+## 5. Erros Comuns no Visual Studio 2022 (❌ Errado vs ✅ Certo)
 
-| Erro / Sintoma | Causa provável | Como corrigir |
+| Erro / Sintoma | Causa provável | Como resolver |
 | --- | --- | --- |
-| `CS4033: O operador 'await' só pode ser usado em um método assíncrono` | Esqueceu de colocar `async` na declaração do evento `private async void btnTestarConexao_Click`. | Adicione `async` antes de `void`. |
-| "Configure a variável SUPERMERCADO_DB..." mesmo depois de criar no Windows | Você criou a variável com o Visual Studio 2022 já aberto. | Feche todas as janelas do VS 2022 e abra novamente. |
-| Designer do `FormLogin` não abre mais | Alguns cenários do Designer visual procuram um construtor sem parâmetros ou falham se houver código extra antes de `InitializeComponent()`. | Mantenha `InitializeComponent()` na primeira linha do construtor e evite código que acesse rede dentro do construtor. |
+| **`CS4033`: `await` só pode ser usado em método assíncrono** | Faltou `async` em `private async void btnTestarConexao_Click`. | Adicione `async` antes de `void`. |
+| **Aviso de `SUPERMERCADO_DB` ausente mesmo após criar** | Variável criada com o Visual Studio 2022 já aberto. | Feche todas as janelas do VS 2022 e abra de novo. |
+| **Botão fica cinza para sempre após erro de internet** | Colocou `Enabled = true;` dentro do `try` em vez do `finally`. | Mova `btnTestarConexao.Enabled = true;` para o bloco **`finally`**. |
 
 [Anterior: Aula 12](12-Criando-Banco-Dados-Neon.md) · [Próxima: Aula 14 — Autenticação segura](14-Autenticacao-Segura.md) · [Índice](README.md)
 

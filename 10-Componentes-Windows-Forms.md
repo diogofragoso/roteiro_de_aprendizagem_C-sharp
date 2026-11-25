@@ -579,6 +579,266 @@ Abra o código de `Form1.cs` (`F7`) e construa os seguintes elementos:
      - Pede confirmação com `MessageBox.Show(..., "Confirmar", MessageBoxButtons.YesNo, MessageBoxIcon.Question)`.
      - Só remove (`produtos.Remove(item);`), recarrega a grade e limpa os campos se o retorno for `DialogResult.Yes`!
 
+### Código Completo e 100% Compilável do Laboratório (`ProdutoDemo.cs` + `Form1.cs`)
+
+Para você conferir cada detalhe, testar imediatamente ou comparar com o que montou pelo Designer, veja abaixo a implementação completa do laboratório (em código limpo, sem depender do `.Designer.cs`, bastando criar os dois arquivos no projeto `LabComponentesWFA` e compilar com **`F5`**!):
+
+#### Arquivo 1: `ProdutoDemo.cs`
+
+```csharp
+namespace LabComponentesWFA;
+
+public class ProdutoDemo
+{
+    public int Id { get; set; }
+    public string Codigo { get; set; } = "";
+    public string Nome { get; set; } = "";
+    public string Categoria { get; set; } = "";
+    public string Origem { get; set; } = "Manual";
+    public decimal Preco { get; set; }
+    public int Quantidade { get; set; }
+    public DateTime DataCadastro { get; set; }
+    public bool Ativo { get; set; }
+    public decimal Subtotal => Preco * Quantidade;
+}
+```
+
+#### Arquivo 2: `Form1.cs` (Mini-CRUD Completo Integrando Todos os Componentes WFA)
+
+```csharp
+using System.Globalization;
+
+namespace LabComponentesWFA;
+
+public partial class Form1 : Form
+{
+    // Estado do Mini-CRUD em memória:
+    private readonly List<ProdutoDemo> produtos = [];
+    private int proximoId = 1;
+    private int idEmEdicao = 0;
+
+    // Controles visuais da tela:
+    private readonly TextBox txtCodigo = new() { Width = 220, MaxLength = 30, PlaceholderText = "Ex.: 000123" };
+    private readonly TextBox txtNome = new() { Width = 320, MaxLength = 120, PlaceholderText = "Ex.: Arroz 5kg" };
+    private readonly ComboBox cmbCategoria = new() { Width = 220, DropDownStyle = ComboBoxStyle.DropDownList };
+    private readonly NumericUpDown numPreco = new() { Width = 150, DecimalPlaces = 2, Minimum = 0m, Maximum = 999999.99m, Increment = 0.50m };
+    private readonly NumericUpDown numQuantidade = new() { Width = 120, DecimalPlaces = 0, Minimum = 1, Maximum = 10000, Value = 1 };
+    private readonly DateTimePicker dtpCadastro = new() { Width = 160, Format = DateTimePickerFormat.Short };
+    private readonly CheckBox chkAtivo = new() { Text = "Produto ativo para venda", Checked = true, AutoSize = true };
+    private readonly RadioButton radManual = new() { Text = "Manual", Checked = true, AutoSize = true, Left = 12, Top = 24 };
+    private readonly RadioButton radImportado = new() { Text = "Importado", AutoSize = true, Left = 100, Top = 24 };
+    private readonly DataGridView dgvProdutos = new()
+    {
+        Width = 860, Height = 200, ReadOnly = true, AllowUserToAddRows = false,
+        AllowUserToDeleteRows = false, MultiSelect = false,
+        SelectionMode = DataGridViewSelectionMode.FullRowSelect,
+        AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill
+    };
+    private readonly Label lblResumo = new() { Text = "Itens: 0 | Total em estoque: R$ 0,00", AutoSize = true, Font = new Font("Segoe UI", 10, FontStyle.Bold) };
+    private readonly ErrorProvider errValidacao = new();
+
+    public Form1()
+    {
+        CultureInfo.DefaultThreadCurrentCulture = CultureInfo.GetCultureInfo("pt-BR");
+        InitializeComponent();
+
+        // Configuração do Form:
+        Text = "Laboratório WFA — Mini-CRUD de Produtos";
+        ClientSize = new Size(920, 680);
+        StartPosition = FormStartPosition.CenterScreen;
+
+        // Painel principal vertical com rolagem automática:
+        var painel = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Fill, FlowDirection = FlowDirection.TopDown,
+            WrapContents = false, AutoScroll = true, Padding = new Padding(16)
+        };
+        Controls.Add(painel);
+
+        // Populando o ComboBox fechado:
+        cmbCategoria.Items.AddRange(new object[] { "Mercearia", "Bebidas", "Limpeza", "Hortifrúti" });
+        cmbCategoria.SelectedIndex = 0;
+
+        // GroupBox isolando os dois RadioButtons:
+        var grpOrigem = new GroupBox { Text = "Origem do cadastro", Width = 240, Height = 58 };
+        grpOrigem.Controls.Add(radManual);
+        grpOrigem.Controls.Add(radImportado);
+
+        // Adicionando todos os controles ao painel principal:
+        AdicionarCampo(painel, "Código (preserva zeros à esquerda):", txtCodigo);
+        AdicionarCampo(painel, "Nome do produto:", txtNome);
+        AdicionarCampo(painel, "Categoria (DropDownList):", cmbCategoria);
+        AdicionarCampo(painel, "Preço unitário (R$):", numPreco);
+        AdicionarCampo(painel, "Quantidade (inteira):", numQuantidade);
+        AdicionarCampo(painel, "Data de cadastro:", dtpCadastro);
+        painel.Controls.Add(chkAtivo);
+        painel.Controls.Add(grpOrigem);
+
+        // Barra horizontal de ações (FlowLayoutPanel aninhado!):
+        var flpAcoes = new FlowLayoutPanel { AutoSize = true, WrapContents = false, Margin = new Padding(0, 10, 0, 10) };
+        var btnNovo = new Button { Text = "Novo", AutoSize = true };
+        var btnSalvar = new Button { Text = "Salvar", AutoSize = true };
+        var btnEditar = new Button { Text = "Editar selecionado", AutoSize = true };
+        var btnExcluir = new Button { Text = "Excluir selecionado", AutoSize = true };
+        flpAcoes.Controls.AddRange(new Control[] { btnNovo, btnSalvar, btnEditar, btnExcluir });
+        painel.Controls.Add(flpAcoes);
+        AcceptButton = btnSalvar;
+
+        painel.Controls.Add(dgvProdutos);
+        painel.Controls.Add(lblResumo);
+
+        // Ligando os eventos do Mini-CRUD:
+        btnNovo.Click += (_, _) => LimparCampos();
+        btnSalvar.Click += (_, _) => SalvarProduto();
+        btnEditar.Click += (_, _) => CarregarParaEdicao();
+        btnExcluir.Click += (_, _) => ExcluirSelecionado();
+
+        // Evento FormClosing impedindo perda acidental de dados:
+        FormClosing += (_, e) =>
+        {
+            if (produtos.Count > 0 &&
+                MessageBox.Show("Deseja sair e descartar os dados em memória?", "Confirmar saída",
+                    MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
+            {
+                e.Cancel = true;
+            }
+        };
+    }
+
+    private static void AdicionarCampo(FlowLayoutPanel painel, string rotulo, Control controle)
+    {
+        painel.Controls.Add(new Label { Text = rotulo, AutoSize = true, Margin = new Padding(3, 6, 3, 2) });
+        painel.Controls.Add(controle);
+    }
+
+    private void SalvarProduto()
+    {
+        errValidacao.Clear();
+        if (string.IsNullOrWhiteSpace(txtCodigo.Text))
+        {
+            errValidacao.SetError(txtCodigo, "Informe o código.");
+            txtCodigo.Focus();
+            return;
+        }
+        if (txtNome.Text.Trim().Length < 2)
+        {
+            errValidacao.SetError(txtNome, "Nome precisa ter ao menos 2 caracteres.");
+            txtNome.Focus();
+            return;
+        }
+        if (numPreco.Value <= 0m)
+        {
+            errValidacao.SetError(numPreco, "O preço deve ser maior que zero.");
+            numPreco.Focus();
+            return;
+        }
+
+        string origem = radManual.Checked ? "Manual" : "Importado";
+
+        if (idEmEdicao == 0) // CREATE
+        {
+            produtos.Add(new ProdutoDemo
+            {
+                Id = proximoId++,
+                Codigo = txtCodigo.Text.Trim(),
+                Nome = txtNome.Text.Trim(),
+                Categoria = cmbCategoria.SelectedItem!.ToString()!,
+                Origem = origem,
+                Preco = numPreco.Value,
+                Quantidade = (int)numQuantidade.Value,
+                DataCadastro = dtpCadastro.Value.Date,
+                Ativo = chkAtivo.Checked
+            });
+        }
+        else // UPDATE
+        {
+            var existente = produtos.FirstOrDefault(p => p.Id == idEmEdicao);
+            if (existente is not null)
+            {
+                existente.Codigo = txtCodigo.Text.Trim();
+                existente.Nome = txtNome.Text.Trim();
+                existente.Categoria = cmbCategoria.SelectedItem!.ToString()!;
+                existente.Origem = origem;
+                existente.Preco = numPreco.Value;
+                existente.Quantidade = (int)numQuantidade.Value;
+                existente.DataCadastro = dtpCadastro.Value.Date;
+                existente.Ativo = chkAtivo.Checked;
+            }
+        }
+
+        AtualizarGrade();
+        LimparCampos();
+    }
+
+    private ProdutoDemo? ObterSelecionado()
+    {
+        if (dgvProdutos.SelectedRows.Count == 0 ||
+            dgvProdutos.SelectedRows[0].DataBoundItem is not ProdutoDemo item)
+        {
+            MessageBox.Show("Selecione um produto na grade primeiro.");
+            return null;
+        }
+        return item;
+    }
+
+    private void CarregarParaEdicao()
+    {
+        var item = ObterSelecionado();
+        if (item is null) return;
+
+        idEmEdicao = item.Id;
+        txtCodigo.Text = item.Codigo;
+        txtNome.Text = item.Nome;
+        cmbCategoria.SelectedItem = item.Categoria;
+        numPreco.Value = item.Preco;
+        numQuantidade.Value = item.Quantidade;
+        dtpCadastro.Value = item.DataCadastro;
+        chkAtivo.Checked = item.Ativo;
+        radManual.Checked = item.Origem == "Manual";
+        radImportado.Checked = item.Origem == "Importado";
+    }
+
+    private void ExcluirSelecionado()
+    {
+        var item = ObterSelecionado();
+        if (item is null) return;
+
+        var resposta = MessageBox.Show($"Confirma excluir '{item.Nome}'?", "Confirmar exclusão",
+            MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+
+        if (resposta != DialogResult.Yes) return;
+
+        produtos.Remove(item);
+        AtualizarGrade();
+        LimparCampos();
+    }
+
+    private void AtualizarGrade()
+    {
+        dgvProdutos.DataSource = null;
+        dgvProdutos.DataSource = produtos.ToList();
+        dgvProdutos.ClearSelection();
+        lblResumo.Text = $"Itens: {produtos.Count} | Total em estoque: {produtos.Sum(p => p.Subtotal):C}";
+    }
+
+    private void LimparCampos()
+    {
+        idEmEdicao = 0;
+        txtCodigo.Clear();
+        txtNome.Clear();
+        cmbCategoria.SelectedIndex = 0;
+        numPreco.Value = 0m;
+        numQuantidade.Value = 1;
+        dtpCadastro.Value = DateTime.Today;
+        chkAtivo.Checked = true;
+        radManual.Checked = true;
+        errValidacao.Clear();
+        dgvProdutos.ClearSelection();
+        txtCodigo.Focus();
+    }
+}
+```
+
 ---
 
 ## 4. Roteiro de Testes do Laboratório (`A10.01`–`A10.05`)

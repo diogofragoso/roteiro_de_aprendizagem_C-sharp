@@ -3,97 +3,152 @@
 > [!NOTE]
 > **Escolha do banco de dados:** esta aula apresenta a trilha principal com **Neon / PostgreSQL**. Se a sua turma escolheu banco local com **MySQL/MariaDB pelo XAMPP**, siga as Etapas 1 e 2 da [trilha alternativa XAMPP](INTEGRACAO-MYSQL-XAMPP.md) no lugar da criação de conta Neon e dos scripts PostgreSQL abaixo. Todos os conceitos de integridade e critérios de entrega permanecem os mesmos.
 
-**Duração:** 3h30. **Pré-requisito:** [Aula 11](11-Criando-Interface-Login.md), internet e conta de laboratório. **Entrega:** ambiente de banco isolado com a tabela `usuario` criada, restrições testadas em tabela temporária e nenhuma conta com senha em texto puro.
+**Duração:** 3h30. **Pré-requisito:** [Aula 11](11-Criando-Interface-Login.md), internet e conta de laboratório. **Entrega:** ambiente de banco isolado com a tabela `usuario` criada, restrições (`PK`, `UNIQUE`, `NOT NULL`, `CHECK`) e transações (`BEGIN`/`ROLLBACK`/`COMMIT`) comprovadas em tabela temporária, e nenhuma senha em texto puro (`A12.01`–`A12.05`).
 
 | Bloco | Minutos | Atividade |
 | --- | ---: | --- |
 | Retomada | 15 | Diferenciar memória RAM volátil da persistência em banco de dados |
-| Explicação | 30 | Tabelas, chave primária, `IDENTITY`, `NOT NULL`, `UNIQUE`, `CHECK` e TLS |
+| Explicação | 30 | Tabelas, chave primária, `IDENTITY`, `NOT NULL`, `UNIQUE`, `CHECK`, transações e TLS |
 | Construção | 60 | Preparar projeto/branch isolada no Neon e aplicar o script `001-usuarios.sql` |
 | Intervalo | 15 | Pausa |
-| Prática | 60 | Montar dicionário de dados e testar violações em tabela temporária |
-| Entrega | 30 | Explicar esquema, restrições e diferença entre Role do banco e Perfil do app |
+| Prática | 60 | Executar os exemplos práticos de inspeção SQL e o laboratório de restrições/rollback |
+| Entrega | 30 | Explicar dicionário de dados, restrições e diferença entre Role do banco e Perfil do app |
 
 ---
 
-## 1. Por Que Precisamos de um Banco de Dados Relacional com Restrições?
+## 1. Por Que Um Banco Relacional com Restrições? (Defesa em Profundidade)
 
-Na memória RAM (como nas listas das Aulas 06 e 08), ao fechar o programa tudo desaparece. Um **Banco de Dados Relacional (PostgreSQL)** grava as informações em disco de forma estruturada em **tabelas** (linhas e colunas) e permite que vários caixas acessem os mesmos dados simultaneamente com regras rígidas de integridade.
+Na memória RAM (Aulas 01–10), tudo some ao fechar o aplicativo. Um **Banco de Dados Relacional (PostgreSQL)** grava os dados em disco em **tabelas** (colunas com tipos fixos e linhas representando registros) e permite que vários caixas trabalhem ao mesmo tempo com consistência garantida.
 
-**Por que colocar restrições (`NOT NULL`, `UNIQUE`, `CHECK`) no banco se também vamos validar no C#?**
-Isso se chama **Defesa em Profundidade**:
-- A validação em **C#** serve para dar mensagens amigáveis e rápidas para quem usa a tela.
-- As restrições no **Banco de Dados** são a garantia definitiva: mesmo que outro sistema, um script ou dois usuários no mesmo milissegundo tentem gravar dados inválidos ou duplicados, o banco recusa fisicamente a gravação!
+- **Validação no C#:** oferece mensagens rápidas e amigáveis na interface.
+- **Restrições no Banco (`PRIMARY KEY`, `NOT NULL`, `UNIQUE`, `CHECK`):** são a **barreira definitiva de integridade** — mesmo que outro programa ou dois usuários no mesmo milissegundo tentem gravar dados inválidos ou duplicados, o PostgreSQL recusa fisicamente a gravação!
 
 ---
 
 ## 2. Preparando Seu Ambiente Isolado no Neon (`A12.01`)
 
 1. Acesse o [console do Neon](https://console.neon.tech/) e faça login com sua conta de laboratório.
-2. Crie um projeto chamado `SupermercadoDB` escolhendo a região mais próxima disponível.
-3. **Regra de isolamento:** cada estudante ou dupla deve trabalhar em seu **próprio banco ou branch vazia**. **Por quê?** Se duas duplas compartilharem o mesmo banco, os scripts e testes de uma apagarão ou conflitarão com os dados da outra!
-4. Abra o **SQL Editor** no painel e **sempre confira o nome da branch e do banco selecionados** no topo antes de rodar qualquer comando.
+2. Crie um projeto chamado **`SupermercadoDB`** na região mais próxima.
+3. **Regra de isolamento:** cada estudante ou dupla deve usar seu **próprio banco ou branch vazia** para não sobrescrever dados de outros colegas.
+4. Abra o **SQL Editor** e **sempre confira o nome da branch e do banco selecionados** no topo antes de executar qualquer comando!
 
 ![Exemplo ilustrativo do painel Neon PostgreSQL](assets/neon_postgres_dashboard_1791481203630.jpg)
 
 ---
 
-## 3. Dissecando Cada Linha do Script `001-usuarios.sql` (`A12.02`)
+## 3. Script Completo `database/001-usuarios.sql` Dissecado Linha por Linha (`A12.02`)
 
-Abra o arquivo [database/001-usuarios.sql](database/001-usuarios.sql) no repositório e leia cada cláusula **antes** de executá-lo. Entenda o motivo técnico de cada palavra:
+Veja o conteúdo completo de [database/001-usuarios.sql](database/001-usuarios.sql) antes de executá-lo **uma única vez** no SQL Editor:
 
-| Cláusula SQL | O que faz exatamente? | Por que usamos dessa forma? |
+```sql
+BEGIN;
+
+CREATE TABLE usuario (
+    id         integer     GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    username   varchar(50) NOT NULL UNIQUE CHECK (username = lower(username)),
+    senha_hash text        NOT NULL,
+    perfil     varchar(20) NOT NULL CHECK (perfil IN ('Administrador', 'Caixa'))
+);
+
+COMMIT;
+```
+
+| Cláusula SQL | O que faz exatamente? | Por que usamos assim? |
 | --- | --- | --- |
-| `BEGIN;` ... `COMMIT;` | Envolve o script em uma **transação**. | Garante que o bloco seja aplicado por inteiro ou revertido se falhar. (Se um erro abortar uma transação no editor, execute `ROLLBACK;` antes de tentar de novo.) |
-| `id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY` | Cria a **Chave Primária (`PK`)** gerada automaticamente pelo PostgreSQL. | `id` identifica cada usuário de forma imutável, mesmo que o nome mude no futuro. `GENERATED ALWAYS` impede que alguém force IDs manuais; **nunca** suponha que IDs não terão lacunas após um rollback. |
-| `username varchar(50) NOT NULL UNIQUE` | Texto até 50 caracteres, obrigatório e **sem repetição**. | `UNIQUE` impede dois cadastros com o mesmo login mesmo em acessos simultâneos. **Atenção:** `NOT NULL` impede ausência de dado (`NULL`), mas sozinho **não** impede texto vazio `''` — são conceitos diferentes! |
-| `CHECK (username = lower(username))` | Regra de verificação que só aceita o login totalmente em minúsculas. | Evita que existam dois usuários diferentes `"Admin"` e `"admin"` no mesmo supermercado. |
-| `senha_hash text NOT NULL` | Guarda o **hash criptográfico** gerado pela biblioteca no C#. | **Nunca** criamos coluna de senha aberta nem fazemos `INSERT` com `"123456"` aqui! Se o banco vazar um dia, hashes fortes protegem as senhas reais. |
-| `perfil varchar(20) NOT NULL CHECK (perfil IN ('Administrador', 'Caixa'))` | Restringe a coluna a exatamente dois valores permitidos. | Dispensa criar uma tabela extra de cargos com IDs mágicos (`1 = gerente`) e casa perfeitamente com o `enum Perfil` que construiremos no C# na Aula 14. |
+| `BEGIN;` ... `COMMIT;` | Agrupa tudo em uma **transação atômica**. | Ou cria por inteiro, ou desfaz tudo se houver erro. |
+| `id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY` | **Chave Primária (`PK`)** numérica gerada automaticamente. | Identidade fixa e imutável de cada usuário (`GENERATED ALWAYS` impede forçar IDs manuais; lembre-se de que IDs podem ter lacunas após um `ROLLBACK`). |
+| `username varchar(50) NOT NULL UNIQUE` | Texto até 50 caracteres, obrigatório e **sem repetição**. | `UNIQUE` impede logins duplicados mesmo em acessos simultâneos. **Atenção:** `NOT NULL` proíbe ausência (`NULL`), mas sozinho **não** proíbe texto vazio `''`! |
+| `CHECK (username = lower(username))` | Só aceita o login todo em letras minúsculas. | Evita duas contas diferentes `"Admin"` e `"admin"` no sistema. |
+| `senha_hash text NOT NULL` | Armazena o **hash criptográfico** gerado pelo C# (Aula 14). | **Nunca** gravamos senha aberta nem `INSERT` com `"123456"` no SQL! |
+| `perfil varchar(20) NOT NULL CHECK (perfil IN ('Administrador', 'Caixa'))` | Aceita exclusivamente esses dois valores exatos. | Casa 100% com o `enum Perfil` que criaremos em C# na Aula 14. |
 
 ---
 
-## 4. Entendendo a String de Conexão, TLS e Role vs Perfil (`A12.05`)
+## 4. Exemplos Práticos SQL — Inspeção, Violação de Restrições e Transações (`A12.02`–`A12.04`)
 
-No painel do Neon, localize o botão **Connect**, escolha o formato **.NET / C#** e observe os 5 componentes da string de conexão Npgsql:
+### Exemplo Prático #1 — Conferir a Tabela Criada (Após Aplicar `001-usuarios.sql`)
+
+Execute estas duas consultas `SELECT` no SQL Editor:
+
+```sql
+-- 1. Consultar usuários existentes (resultado esperado hoje: 0 linhas! O 1º admin entra na Aula 14):
+SELECT id, username, perfil FROM usuario;
+
+-- 2. Inspecionar a estrutura real registrada nos metadados do PostgreSQL:
+SELECT column_name, data_type, is_nullable
+FROM information_schema.columns
+WHERE table_schema = 'public' AND table_name = 'usuario'
+ORDER BY ordinal_position;
+```
+
+### Exemplo Prático #2 — Laboratório Controlado em Tabela Temporária (`A12.03` e `A12.04`)
+
+Em vez de sujar a tabela real `usuario` com dados falsos, usamos uma **tabela temporária** (`CREATE TEMP TABLE`, que some sozinha ao encerrar a sessão — veja também [database/laboratorio/07-restricoes.sql](database/laboratorio/07-restricoes.sql)). Execute **um bloco por vez** e observe qual restrição o PostgreSQL acusa em cada falha:
+
+```sql
+-- 1. Criar tabela temporária com as MESMAS regras (sem coluna de senha):
+CREATE TEMP TABLE usuario_lab (
+    id       integer     GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    username varchar(50) NOT NULL UNIQUE CHECK (username = lower(username)),
+    perfil   varchar(20) NOT NULL CHECK (perfil IN ('Administrador', 'Caixa'))
+);
+
+-- 2. Inserção VÁLIDA (deve funcionar!):
+INSERT INTO usuario_lab (username, perfil) VALUES ('ana.caixa', 'Caixa');
+
+-- 3. Teste de UNIQUE (deve FALHAR acusando violação de unicidade!):
+INSERT INTO usuario_lab (username, perfil) VALUES ('ana.caixa', 'Caixa');
+
+-- 4. Teste de NOT NULL vs texto vazio '':
+INSERT INTO usuario_lab (username, perfil) VALUES (NULL, 'Caixa'); -- FALHA (NOT NULL)
+INSERT INTO usuario_lab (username, perfil) VALUES ('', 'Caixa');   -- PASSA! (Prova que '' != NULL)
+
+-- 5. Teste de CHECK (maiúsculas) — deve FALHAR:
+INSERT INTO usuario_lab (username, perfil) VALUES ('Admin', 'Administrador');
+
+-- 6. Teste de CHECK (perfil inválido) — deve FALHAR:
+INSERT INTO usuario_lab (username, perfil) VALUES ('joao', 'Gerente');
+
+-- 7. Teste de TRANSAÇÃO: ROLLBACK (desfaz) vs COMMIT (confirma):
+BEGIN;
+INSERT INTO usuario_lab (username, perfil) VALUES ('teste.desfeito', 'Caixa');
+ROLLBACK; -- A linha desaparece!
+
+BEGIN;
+INSERT INTO usuario_lab (username, perfil) VALUES ('teste.confirmado', 'Administrador');
+COMMIT;   -- A linha permanece gravada!
+
+-- 8. Conferir o que sobrou (repare também no salto do 'id' gerado após o ROLLBACK!):
+SELECT id, username, perfil FROM usuario_lab ORDER BY id;
+```
+
+---
+
+## 5. String de Conexão, TLS e Diferença Entre Role e Perfil (`A12.05`)
+
+No painel do Neon, clique em **Connect**, escolha **.NET / C#** e observe a estrutura da string de conexão Npgsql:
 
 ```text
 Host=SEU_HOST;Database=SEU_BANCO;Username=SEU_ROLE;Password=SUA_SENHA;SSL Mode=VerifyFull;
 ```
 
-- **Por que não colar a URI `postgresql://...`?** O construtor `NpgsqlConnectionStringBuilder` que construiremos na Aula 13 espera pares `Chave=Valor;` separados por ponto e vírgula.
-- **O que faz `SSL Mode=VerifyFull`?** Ativa criptografia **TLS** na rede **e** confere se o certificado digital pertence ao hostname oficial do servidor (proteção contra interceptação *Man-in-the-Middle*). **Nunca** use `Trust Server Certificate=true` para "sumir" com um erro de certificado — corrija a rede, o relógio do Windows ou o hostname.
-- **Diferença crítica — Role do Banco vs Perfil do Aplicativo:**
-  - **Role (`Username` na string de conexão):** é a credencial técnica que o *aplicativo* usa para entrar no servidor PostgreSQL.
-  - **Perfil (`Administrador` / `Caixa` na tabela `usuario`):** é a conta humana do *funcionário do supermercado* dentro da aplicação. São senhas e conceitos totalmente separados!
+- **Por que `Chave=Valor;` e não `postgresql://...`?** O `NpgsqlConnectionStringBuilder` (Aula 13) lê pares `Chave=Valor;` separados por ponto e vírgula.
+- **O que faz `SSL Mode=VerifyFull`?** Criptografa o tráfego com **TLS** e valida que o certificado pertence ao hostname oficial do servidor. **Nunca** desative verificação TLS!
+- **Role do Banco vs Perfil do Aplicativo:**
+  - **Role (`Username` na string de conexão):** credencial técnica usada pelo *aplicativo* para autenticar no servidor PostgreSQL.
+  - **Perfil (`Administrador` / `Caixa` na tabela `usuario`):** conta humana do *funcionário* dentro do MarketFlow.
 
 > [!CAUTION]
-> **Segurança absoluta:** jamais salve sua string de conexão em código C#, no GitHub, em capturas de tela ou no Caderno de Evidências! Na Aula 13 ela será guardada em uma variável de ambiente local do Windows.
+> **Segurança absoluta:** jamais salve sua string de conexão em arquivos `.cs`, no GitHub, em capturas de tela ou no Caderno de Evidências! Na Aula 13 ela será configurada como variável de ambiente do Windows.
 
 ---
 
-## 5. Roteiro de Construção e Experimentação Guiada (`A12.01`–`A12.05`)
+## 6. Roteiro de Entrega (`A12.01`–`A12.05`)
 
-Execute as etapas abaixo no **SQL Editor** do Neon (ou phpMyAdmin, se escolheu XAMPP):
-
-1. **Aplicar o script inicial uma única vez:**
-   - Copie o conteúdo de [database/001-usuarios.sql](database/001-usuarios.sql), cole no SQL Editor (após conferir branch e banco) e execute **uma vez**.
-   - **Não** fique reexecutando scripts de `CREATE TABLE` como se fossem consultas; se a tabela já existe, inspecione-a antes de tomar qualquer ação.
-2. **Inspecionar a estrutura criada (`A12.02`):**
-   - Escreva e execute duas consultas `SELECT` no SQL Editor:
-     - Uma listando `id, username, perfil` da tabela `usuario` — **resultado esperado: zero linhas!** Isso está correto: o primeiro administrador será criado de forma segura com hash pelo nosso aplicativo na Aula 14.
-     - Outra consultando `column_name, data_type, is_nullable` na visão de metadados `information_schema.columns` filtrando `table_schema = 'public'` e `table_name = 'usuario'`.
-   - **Construa seu Dicionário de Dados no caderno:** liste cada coluna de `usuario`, seu tipo SQL, todas as restrições (`PK`, `NOT NULL`, `UNIQUE`, `CHECK`), significado e um exemplo fictício (sem colocar senha nem hash real).
-3. **Laboratório de Violação de Restrições e Transações (`A12.03` e `A12.04`):**
-   - Abra [database/laboratorio/07-restricoes.sql](database/laboratorio/07-restricoes.sql) e estude o que ele faz: ele cria **tabelas temporárias** na sessão (sem tocar na tabela real `usuario`) para testar violações controladas.
-   - Execute os testes **um caso por vez** (ou o roteiro em conexão direta mantendo a mesma sessão) observando qual restrição o PostgreSQL acusa ao tentar:
-     1. Inserir `username` duplicado → violação de `UNIQUE`;
-     2. Inserir `NULL` em campo obrigatório → violação de `NOT NULL` (compare inserindo texto vazio `''` para comprovar que `NOT NULL` sozinho aceita `''`!);
-     3. Inserir `username` com letra maiúscula (`'Admin'`) → violação de `CHECK`;
-     4. Inserir `perfil` fora da lista (`'Gerente'`) → violação de `CHECK`;
-     5. Abrir transação (`BEGIN`), inserir uma linha e desfazer (`ROLLBACK`), depois repetir confirmando (`COMMIT`) → observe que a linha revertida some, mas o contador `IDENTITY` pode pular o ID!
-4. **Registrar modelo de conexão sem segredos (`A12.05`):**
-   - Anote no caderno apenas o modelo genérico (`Host=...;Database=...`) explicando cada campo e diferenciando Role de Perfil.
+1. **`A12.01`:** registre o nome do ambiente didático isolado (sem credenciais) e explique o que conferir antes de rodar `001-usuarios.sql`.
+2. **`A12.02`:** aplique `001-usuarios.sql` uma vez, execute os dois `SELECT` de conferência (zero usuários) e monte o **Dicionário de Dados** de `usuario`.
+3. **`A12.03` e `A12.04`:** execute todos os casos da tabela temporária `usuario_lab` (duplicidade, `NULL` vs `''`, maiúsculas, perfil inválido, `ROLLBACK` e `COMMIT`) registrando o resultado de cada um.
+4. **`A12.05`:** entregue o modelo genérico da string de conexão (sem segredos) explicando cada campo e diferenciando Role de Perfil.
 
 Fontes oficiais: [Neon com .NET/Npgsql](https://neon.com/docs/guides/dotnet-npgsql) e [Segurança TLS no Npgsql](https://www.npgsql.org/doc/security.html).
 
